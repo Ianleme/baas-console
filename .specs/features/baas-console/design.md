@@ -6,7 +6,7 @@
 
 **Project decisions**: `.specs/STATE.md`
 
-**Status**: Draft for user approval
+**Status**: Approved
 
 ## Recommended Architecture
 

@@ -1,6 +1,6 @@
 # BaaS Console Specification
 
-**Status**: Draft for user review
+**Status**: Approved
 
 **Scope tier**: Complex
 
