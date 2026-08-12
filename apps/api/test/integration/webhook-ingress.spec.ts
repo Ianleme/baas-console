@@ -265,20 +265,33 @@ describe('raw webhook HTTP boundary', () => {
     const response = await request(server())
       .post('/api/v1/webhooks/opaque-endpoint')
       .set('content-type', 'application/json')
-      .set('x-webhook-event', 'PAYMENT_PIX')
-      .set('x-webhook-signature', signature(rawBody))
+      .set('x-lera-box-event', 'PAYMENT_PIX')
+      .set('x-lera-box-signature', signature(rawBody))
       .send(rawBody.toString('utf8'))
       .expect(200);
     expect(response.body as unknown).toEqual({ status: 'RECEIVED' });
     expect(store.events).toHaveLength(1);
   });
 
-  test('returns 401 with no row for an invalid signature', async () => {
+  test('rejects the obsolete generic webhook headers', async () => {
+    const rawBody = payload();
     const response = await request(server())
       .post('/api/v1/webhooks/opaque-endpoint')
       .set('content-type', 'application/json')
       .set('x-webhook-event', 'PAYMENT_PIX')
-      .set('x-webhook-signature', '0'.repeat(64))
+      .set('x-webhook-signature', signature(rawBody))
+      .send(rawBody.toString('utf8'))
+      .expect(401);
+    expect(response.body as unknown).toMatchObject({ code: 'WEBHOOK_SIGNATURE_INVALID' });
+    expect(store.events).toEqual([]);
+  });
+
+  test('returns 401 with no row for an invalid signature', async () => {
+    const response = await request(server())
+      .post('/api/v1/webhooks/opaque-endpoint')
+      .set('content-type', 'application/json')
+      .set('x-lera-box-event', 'PAYMENT_PIX')
+      .set('x-lera-box-signature', '0'.repeat(64))
       .send(payload())
       .expect(401);
     expect(response.body as unknown).toMatchObject({ code: 'WEBHOOK_SIGNATURE_INVALID' });
@@ -291,8 +304,8 @@ describe('raw webhook HTTP boundary', () => {
     const response = await request(server())
       .post('/api/v1/webhooks/opaque-endpoint')
       .set('content-type', 'application/json')
-      .set('x-webhook-event', 'PAYMENT_PIX')
-      .set('x-webhook-signature', signature(rawBody))
+      .set('x-lera-box-event', 'PAYMENT_PIX')
+      .set('x-lera-box-signature', signature(rawBody))
       .send(rawBody.toString('utf8'))
       .expect(503);
     expect(response.body as unknown).toMatchObject({ code: 'WEBHOOK_PERSISTENCE_UNAVAILABLE' });
@@ -303,8 +316,8 @@ describe('raw webhook HTTP boundary', () => {
     const response = await request(server())
       .post('/api/v1/webhooks/opaque-endpoint')
       .set('content-type', 'application/json')
-      .set('x-webhook-event', 'PAYMENT_PIX')
-      .set('x-webhook-signature', signature(rawBody))
+      .set('x-lera-box-event', 'PAYMENT_PIX')
+      .set('x-lera-box-signature', signature(rawBody))
       .send(rawBody.toString('utf8'))
       .expect(200);
     expect(response.body as unknown).toEqual({ status: 'UNPROCESSABLE' });

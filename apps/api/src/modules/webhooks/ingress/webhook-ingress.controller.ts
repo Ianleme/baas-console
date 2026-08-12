@@ -18,8 +18,8 @@ export class WebhookIngressController {
   async receive(
     @Param('publicEndpointId') publicEndpointId: string,
     @Req() request: RawBodyRequest<Request>,
-    @Headers('x-webhook-signature') signature?: string,
-    @Headers('x-webhook-event') eventHeader?: string
+    @Headers('x-lera-box-signature') signature?: string,
+    @Headers('x-lera-box-event') eventHeader?: string
   ): Promise<{ status: 'RECEIVED' | 'UNPROCESSABLE' }> {
     if (!request.rawBody) throw problem(new WebhookIngressError('WEBHOOK_RAW_BODY_REQUIRED', 401));
     try {

@@ -151,8 +151,8 @@ describe('durable webhooks and reconciliation HTTP runtime', () => {
     await request(app.getHttpServer() as Server)
       .post(`/api/v1/webhooks/${endpoint.public_endpoint_id}`)
       .set('content-type', 'application/json')
-      .set('x-webhook-event', 'PAYMENT_PIX')
-      .set('x-webhook-signature', signature)
+      .set('x-lera-box-event', 'PAYMENT_PIX')
+      .set('x-lera-box-signature', signature)
       .send(raw.toString('utf8'))
       .expect(200);
     await expect(app.get(WebhookProcessingService).run()).resolves.toBe(1);
