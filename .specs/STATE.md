@@ -182,9 +182,9 @@
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
 - **Phase / Task**: Execute / Batch 5, Phase 5, T031-T036
-- **Completed**: T001-T034; T034 validada (Tela de extrato de transações no frontend com filtros por status/tipo/origem/referência, badges acessíveis, paginação e 14 testes web 100% verdes no gate pr)
-- **In-progress** (file:line): T035 (`apps/api/src/modules/withdrawals/**`)
-- **Next step**: Executar T035: Implement withdrawal backend logic and gateway transfer
+- **Completed**: T001-T035; T035 validada (Backend de saques com validação de saldo autoritativo da carteira, débito transacional, mascara LGPD de chaves Pix, adapter Lera Box e 12 testes unitários 100% verdes no gate pr)
+- **In-progress** (file:line): T036 (`apps/web/src/features/withdrawals/**`)
+- **Next step**: Executar T036: Implement withdrawal user journey and modal
 - **Blockers**: none
 - **Uncommitted files**: progress bookkeeping only
 - **Branch**: main
