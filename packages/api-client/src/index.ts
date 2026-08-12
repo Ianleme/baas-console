@@ -18,6 +18,7 @@ export function createBaasClient(options: BaasClientOptions) {
 
 export function createAuthJourneyClient(options: BaasClientOptions) {
   const request = options.fetch ?? globalThis.fetch;
+  let accessToken = '';
   async function post(path: string, body: unknown): Promise<unknown> {
     const response = await request(`${options.baseUrl}${path}`, {
       method: 'POST',
@@ -26,7 +27,10 @@ export function createAuthJourneyClient(options: BaasClientOptions) {
       body: JSON.stringify(body)
     });
     if (!response.ok) throw new Error('BAAS_REQUEST_FAILED');
-    return response.status === 204 ? {} : (response.json() as Promise<unknown>);
+    const result =
+      response.status === 204 ? {} : ((await response.json()) as { accessToken?: unknown });
+    if (typeof result.accessToken === 'string') accessToken = result.accessToken;
+    return result;
   }
   return {
     async login(input: { email: string; password: string; remember: boolean }): Promise<void> {
@@ -39,7 +43,18 @@ export function createAuthJourneyClient(options: BaasClientOptions) {
       document: string;
       password: string;
     }): Promise<'ACTIVE' | 'PROFILE_MISMATCH'> {
-      const result = (await post('/api/v1/gateway-account/connect', input)) as { status?: unknown };
+      const response = await request(`${options.baseUrl}/api/v1/gateway-account/connect`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify(input)
+      });
+      if (!response.ok) {
+        const problem = (await response.json()) as { code?: unknown };
+        if (problem.code === 'GATEWAY_PROFILE_MISMATCH') return 'PROFILE_MISMATCH';
+        throw new Error('BAAS_REQUEST_FAILED');
+      }
+      const result = (await response.json()) as { status?: unknown };
       return result.status === 'ACTIVE' ? 'ACTIVE' : 'PROFILE_MISMATCH';
     }
   };

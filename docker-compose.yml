@@ -46,6 +46,9 @@ services:
     environment:
       <<: *database-environment
       PORT: 3000
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?AUTH_TOKEN_SECRET is required}
+      ENCRYPTION_KEY_BASE64: ${ENCRYPTION_KEY_BASE64:?ENCRYPTION_KEY_BASE64 is required}
+      LERA_BOX_BASE_URL: ${LERA_BOX_BASE_URL:-https://api.branchpay.com.br}
     depends_on:
       migrate:
         condition: service_completed_successfully

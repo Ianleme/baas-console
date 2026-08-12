@@ -10,7 +10,7 @@ import {
   Res
 } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsBoolean, IsEmail, IsString, Length, MaxLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsOptional, IsString, Length, MaxLength } from 'class-validator';
 import type { Request, Response } from 'express';
 
 import { ProblemException } from '../../platform/errors/problem.exception.js';
@@ -21,16 +21,28 @@ import {
   type IssuedSession
 } from './auth.service.js';
 import { TypeOrmAuthStore } from './typeorm-auth.store.js';
+import { GatewayOnboardingService } from '../gateway-accounts/gateway-onboarding.service.js';
 
 const REFRESH_COOKIE = '__Host-baas_refresh';
 const CSRF_COOKIE = '__Host-baas_csrf';
 const COOKIE_PATH = '/';
 
 export class RegisterOwnerDto {
-  @IsString() @Length(2, 255) legalName!: string;
-  @IsString() @Length(2, 120) displayName!: string;
+  @IsOptional() @IsString() @Length(2, 2) personType?: 'PF' | 'PJ';
+  @IsOptional() @IsString() @Length(2, 255) name?: string;
+  @IsOptional() @IsString() @Length(2, 120) tradingName?: string;
+  @IsOptional() @IsString() @Length(2, 255) legalName?: string;
+  @IsOptional() @IsString() @Length(2, 120) displayName?: string;
   @IsEmail() @MaxLength(254) email!: string;
   @IsString() @Length(12, 128) password!: string;
+  @IsOptional() @IsString() @Length(8, 20) phone?: string;
+  @IsOptional() @IsString() @Length(3, 32) document?: string;
+  @IsOptional() @IsString() @Length(8, 12) zipCode?: string;
+  @IsOptional() @IsString() @Length(2, 255) address?: string;
+  @IsOptional() @IsString() @Length(1, 20) number?: string;
+  @IsOptional() @IsString() @Length(2, 120) neighborhood?: string;
+  @IsOptional() @IsString() @Length(2, 120) city?: string;
+  @IsOptional() @IsString() @Length(2, 2) state?: string;
 }
 export class LoginDto {
   @IsEmail() @MaxLength(254) email!: string;
@@ -45,7 +57,8 @@ export class AuthController {
   private readonly loginLimiter = new FixedWindowRateLimiter(10, 60_000);
   constructor(
     private readonly auth: AuthService,
-    private readonly store: TypeOrmAuthStore
+    private readonly store: TypeOrmAuthStore,
+    private readonly onboarding: GatewayOnboardingService
   ) {}
 
   @Post('register')
@@ -55,11 +68,31 @@ export class AuthController {
     @Body() input: RegisterOwnerDto,
     @Ip() ip: string,
     @Res({ passthrough: true }) response: Response
-  ): Promise<{ userId: string }> {
+  ): Promise<Record<string, unknown>> {
     this.consume(this.registrationLimiter, ip, response);
     try {
-      const user = await this.auth.registerOwner(input);
-      return { userId: user.id };
+      const user = await this.auth.registerOwner({
+        legalName: input.name ?? input.legalName ?? '',
+        displayName: input.tradingName ?? input.displayName ?? '',
+        email: input.email,
+        password: input.password
+      });
+      if (isGatewayRegistration(input))
+        await this.onboarding.register(user.merchantId, {
+          personType: input.personType,
+          name: input.name,
+          tradingName: input.tradingName,
+          email: input.email,
+          phone: input.phone,
+          document: input.document,
+          zipCode: input.zipCode,
+          address: input.address,
+          number: input.number,
+          neighborhood: input.neighborhood,
+          city: input.city,
+          state: input.state
+        });
+      return this.writeSession(response, await this.auth.login(input.email, input.password));
     } catch (error) {
       if (error instanceof AuthError) throw this.problem(error);
       if (isDuplicateEntry(error))
@@ -191,6 +224,40 @@ export class AuthController {
       'Authentication request was rejected.'
     );
   }
+}
+
+function isGatewayRegistration(
+  input: RegisterOwnerDto
+): input is RegisterOwnerDto &
+  Required<
+    Pick<
+      RegisterOwnerDto,
+      | 'personType'
+      | 'name'
+      | 'tradingName'
+      | 'phone'
+      | 'document'
+      | 'zipCode'
+      | 'address'
+      | 'number'
+      | 'neighborhood'
+      | 'city'
+      | 'state'
+    >
+  > {
+  return Boolean(
+    input.personType &&
+    input.name &&
+    input.tradingName &&
+    input.phone &&
+    input.document &&
+    input.zipCode &&
+    input.address &&
+    input.number &&
+    input.neighborhood &&
+    input.city &&
+    input.state
+  );
 }
 
 function parseCookies(header: string | undefined): Record<string, string> {

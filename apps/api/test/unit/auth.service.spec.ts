@@ -87,7 +87,7 @@ describe('AuthService', () => {
   let service: AuthService;
   beforeEach(() => {
     store = new MemoryStore();
-    service = new AuthService(store, () => now);
+    service = new AuthService(store, () => now, 'unit-test-auth-secret-at-least-32-bytes');
   });
 
   it('creates one owner through a transaction', async () => {
@@ -244,5 +244,29 @@ describe('AuthService', () => {
   });
   it('exposes stable typed error codes', () => {
     expect(new AuthError('RATE_LIMITED').code).toBe('RATE_LIMITED');
+  });
+
+  it('verifies a signed access token and rejects tampering', async () => {
+    await service.registerOwner(validInput);
+    const issued = await service.login(validInput.email, validInput.password);
+    expect(service.verifyAccessToken(issued.accessToken)).toEqual(issued.principal);
+    expect(() => service.verifyAccessToken(`${issued.accessToken}x`)).toThrow('AUTH_REQUIRED');
+  });
+  it('rejects expired access tokens', async () => {
+    await service.registerOwner(validInput);
+    const issued = await service.login(validInput.email, validInput.password);
+    service = new AuthService(
+      store,
+      () => new Date(now.getTime() + 900001),
+      'unit-test-auth-secret-at-least-32-bytes'
+    );
+    expect(() => service.verifyAccessToken(issued.accessToken)).toThrow('AUTH_REQUIRED');
+  });
+  it('fails fast when access-token signing is not configured', async () => {
+    service = new AuthService(store, () => now, 'short');
+    const user = await service.registerOwner(validInput);
+    await expect(service.login(user.email, validInput.password)).rejects.toMatchObject({
+      code: 'AUTH_CONFIGURATION_INVALID'
+    });
   });
 });

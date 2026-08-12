@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 
 import * as argon2 from 'argon2';
 
@@ -66,7 +66,8 @@ const REFRESH_TTL_MS = 30 * 24 * 60 * 60_000;
 export class AuthService {
   constructor(
     private readonly store: AuthStore,
-    private readonly now: () => Date = () => new Date()
+    private readonly now: () => Date = () => new Date(),
+    private readonly tokenSecret: string = process.env.AUTH_TOKEN_SECRET ?? ''
   ) {}
 
   async registerOwner(input: {
@@ -155,7 +156,7 @@ export class AuthService {
     if (current) await this.store.rotateSession(current, replacement, at);
     else await this.store.saveSession(replacement);
     return {
-      accessToken: randomBytes(32).toString('base64url'),
+      accessToken: this.createAccessToken(user.id, user.merchantId, at),
       accessExpiresAt: new Date(at.getTime() + ACCESS_TTL_MS),
       refreshToken,
       refreshExpiresAt: replacement.expiresAt,
@@ -163,6 +164,42 @@ export class AuthService {
       cookie: { httpOnly: true, secure: true, sameSite: 'strict', path: '/api/v1/auth' },
       principal: { userId: user.id, merchantId: user.merchantId }
     };
+  }
+
+  verifyAccessToken(token: string): { userId: string; merchantId: string } {
+    if (this.tokenSecret.length < 32) throw new AuthError('AUTH_CONFIGURATION_INVALID');
+    const [encoded, signature] = token.split('.');
+    if (!encoded || !signature) throw new AuthError('AUTH_REQUIRED');
+    const expected = createHmac('sha256', this.tokenSecret).update(encoded).digest('base64url');
+    const left = Buffer.from(signature);
+    const right = Buffer.from(expected);
+    if (left.length !== right.length || !timingSafeEqual(left, right))
+      throw new AuthError('AUTH_REQUIRED');
+    try {
+      const value = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as Record<
+        string,
+        unknown
+      >;
+      if (
+        typeof value.userId !== 'string' ||
+        typeof value.merchantId !== 'string' ||
+        typeof value.exp !== 'number' ||
+        value.exp <= this.now().getTime()
+      )
+        throw new Error();
+      return { userId: value.userId, merchantId: value.merchantId };
+    } catch {
+      throw new AuthError('AUTH_REQUIRED');
+    }
+  }
+
+  private createAccessToken(userId: string, merchantId: string, at: Date): string {
+    if (this.tokenSecret.length < 32) throw new AuthError('AUTH_CONFIGURATION_INVALID');
+    const encoded = Buffer.from(
+      JSON.stringify({ userId, merchantId, exp: at.getTime() + ACCESS_TTL_MS }),
+      'utf8'
+    ).toString('base64url');
+    return `${encoded}.${createHmac('sha256', this.tokenSecret).update(encoded).digest('base64url')}`;
   }
 }
 
