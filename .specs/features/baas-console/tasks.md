@@ -53,6 +53,22 @@ Coverage thresholds are non-negotiable: backend global 90% lines/statements/func
 - `SPEC_DEVIATION`, weakened assertions, removed tests or fabricated gateway fields stop the task.
 - Default tools: `apply_patch` for edits and PowerShell/Node/npm/Docker/Git for verification. MCP is `NONE` unless explicitly selected before Execute.
 
+## Execution Progress
+
+| Task | Status | Commit |
+| --- | --- | --- |
+| T001 | Complete | `f4e5354` |
+| T002 | Complete | `37e0d20` |
+| T003 | Complete | `cfe9991` |
+| T004 | Complete | `8e859f1` |
+| T005 | Complete | `27e5b14` |
+| T006 | Complete | `06313e6` |
+| T007 | Complete | `2a26fdd`, corrected by `b5b2ac9` |
+| T008 | Complete | `26c2e3b` |
+| T009 | Complete | `5786f99` |
+| T010 | Complete | `63357fb` |
+| T011-T053 | Pending | — |
+
 ## Execution Plan
 
 ### Phase 1: Reproducible platform foundation

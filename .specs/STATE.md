@@ -181,10 +181,10 @@
 ## Handoff
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
-- **Phase / Task**: Execute / Batch 1, Phase 1, T001-T010
-- **Completed**: spec, design, tasks e ferramentas aprovados; fonte fixada por SHA-256; 53 tarefas em 8 fases; 133 requisitos e 69 linhas-fonte mapeados
+- **Phase / Task**: Execute / Batch 2, Phase 2, T011-T017
+- **Completed**: T001-T010; Phase 1 gate final com 154 testes (38 quality, 13 web, 91 MySQL integration, 4 contract, 8 Docker smoke), zero falhas
 - **In-progress** (file:line): none
-- **Next step**: executar T001-T010 sequencialmente, com gate e commit atomico por tarefa
-- **Blockers**: nenhum para Phase 1; T011 exige autorizacao/segredos live e continua gate antes dos adapters financeiros
+- **Next step**: executar T011-T017 sequencialmente, iniciando pelo contract spike live da Lera Box
+- **Blockers**: T011 depende de contatos/segredos live configurados; se ausentes, deve reportar blocker sem inventar contrato
 - **Uncommitted files**: none after execution-start commit
 - **Branch**: main
