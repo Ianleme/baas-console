@@ -61,7 +61,9 @@ export class CreateAuthPersistence1723500000000 implements MigrationInterface {
       CREATE TABLE gateway_accounts (
         id CHAR(36) NOT NULL,
         merchant_id CHAR(36) NOT NULL,
-        status ENUM('AWAITING_CREDENTIALS', 'ACTIVE', 'ERROR', 'DISCONNECTED') NOT NULL DEFAULT 'AWAITING_CREDENTIALS',
+        status ENUM('REGISTRATION_PENDING', 'GATEWAY_REGISTRATION_FAILED', 'GATEWAY_REGISTRATION_UNKNOWN', 'AWAITING_CREDENTIALS', 'ACTIVE', 'ERROR', 'DISCONNECTED') NOT NULL DEFAULT 'AWAITING_CREDENTIALS',
+        expected_document VARCHAR(32) NULL,
+        expected_person_type ENUM('PF', 'PJ') NULL,
         gateway_user_id VARCHAR(191) NULL,
         codigo_cliente_ciphertext VARBINARY(4096) NULL,
         chave_loja_ciphertext VARBINARY(4096) NULL,

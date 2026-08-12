@@ -12,7 +12,7 @@ const prStages = [
   { name: 'unit', script: 'test:unit', enabled: true, ownerTask: 'T014' },
   { name: 'integration', script: 'test:integration', enabled: true },
   { name: 'contract', script: 'test:contract', enabled: true },
-  { name: 'gherkin', script: 'test:gherkin', enabled: false, ownerTask: 'T016' }
+  { name: 'gherkin', script: 'test:gherkin', enabled: true, ownerTask: 'T016' }
 ];
 
 export const verificationProfiles = {

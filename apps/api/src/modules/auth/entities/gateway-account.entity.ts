@@ -11,7 +11,14 @@ import {
 
 import { MerchantEntity } from './merchant.entity.js';
 
-export type GatewayAccountStatus = 'AWAITING_CREDENTIALS' | 'ACTIVE' | 'ERROR' | 'DISCONNECTED';
+export type GatewayAccountStatus =
+  | 'REGISTRATION_PENDING'
+  | 'GATEWAY_REGISTRATION_FAILED'
+  | 'GATEWAY_REGISTRATION_UNKNOWN'
+  | 'AWAITING_CREDENTIALS'
+  | 'ACTIVE'
+  | 'ERROR'
+  | 'DISCONNECTED';
 
 @Entity({ name: 'gateway_accounts' })
 @Index('uq_gateway_accounts_merchant', ['merchantId'], { unique: true })
@@ -28,13 +35,27 @@ export class GatewayAccountEntity {
 
   @Column({
     type: 'enum',
-    enum: ['AWAITING_CREDENTIALS', 'ACTIVE', 'ERROR', 'DISCONNECTED'],
+    enum: [
+      'REGISTRATION_PENDING',
+      'GATEWAY_REGISTRATION_FAILED',
+      'GATEWAY_REGISTRATION_UNKNOWN',
+      'AWAITING_CREDENTIALS',
+      'ACTIVE',
+      'ERROR',
+      'DISCONNECTED'
+    ],
     default: 'AWAITING_CREDENTIALS'
   })
   status!: GatewayAccountStatus;
 
   @Column({ name: 'gateway_user_id', type: 'varchar', length: 191, nullable: true })
   gatewayUserId!: string | null;
+
+  @Column({ name: 'expected_document', type: 'varchar', length: 32, nullable: true })
+  expectedDocument!: string | null;
+
+  @Column({ name: 'expected_person_type', type: 'enum', enum: ['PF', 'PJ'], nullable: true })
+  expectedPersonType!: 'PF' | 'PJ' | null;
 
   @Column({ name: 'codigo_cliente_ciphertext', type: 'varbinary', length: 4096, nullable: true })
   codigoClienteCiphertext!: Buffer | null;

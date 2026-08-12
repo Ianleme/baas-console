@@ -304,4 +304,37 @@ describe('authentication persistence on MySQL 8.4', () => {
     );
     expect(rows).toEqual([]);
   });
+
+  test('persists the unknown remote-registration state without fabricating credentials', async () => {
+    const merchantId = await insertMerchant();
+    await dataSource.query(
+      'INSERT INTO gateway_accounts (id, merchant_id, status, expected_document, expected_person_type) VALUES (?, ?, ?, ?, ?)',
+      [randomUUID(), merchantId, 'GATEWAY_REGISTRATION_UNKNOWN', 'masked-document', 'PF']
+    );
+    const rows = await dataSource.query<Record<string, unknown>[]>(
+      'SELECT status, expected_document, expected_person_type, access_token_ciphertext FROM gateway_accounts WHERE merchant_id = ?',
+      [merchantId]
+    );
+    expect(rows).toEqual([
+      {
+        status: 'GATEWAY_REGISTRATION_UNKNOWN',
+        expected_document: 'masked-document',
+        expected_person_type: 'PF',
+        access_token_ciphertext: null
+      }
+    ]);
+  });
+
+  test('persists a conclusive failed registration state independently', async () => {
+    const merchantId = await insertMerchant();
+    await dataSource.query(
+      'INSERT INTO gateway_accounts (id, merchant_id, status, last_error_code) VALUES (?, ?, ?, ?)',
+      [randomUUID(), merchantId, 'GATEWAY_REGISTRATION_FAILED', 'GATEWAY_REGISTRATION_FAILED']
+    );
+    const [{ status }] = await dataSource.query<{ status: string }[]>(
+      'SELECT status FROM gateway_accounts WHERE merchant_id = ?',
+      [merchantId]
+    );
+    expect(status).toBe('GATEWAY_REGISTRATION_FAILED');
+  });
 });
