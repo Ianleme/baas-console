@@ -17,10 +17,16 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "clean": "npm run clean --workspaces --if-present",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "prettier --write \"**/*.{js,mjs,cjs,ts,tsx,json,yml,yaml,css,html}\"",
+    "format:check": "prettier --check \"**/*.{js,mjs,cjs,ts,tsx,json,yml,yaml,css,html}\"",
     "lint": "eslint . --max-warnings=0",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "test:quality": "node --test --test-isolation=none scripts/validate-quality.test.mjs",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "validate:quality": "node scripts/validate-quality.mjs",
+    "verify": "node scripts/run-verification.mjs pr",
+    "verify:full": "node scripts/run-verification.mjs full",
+    "verify:live": "node scripts/run-verification.mjs live",
+    "verify:quick": "node scripts/run-verification.mjs quick"
   },
   "devDependencies": {
     "@eslint/js": "9.39.2",

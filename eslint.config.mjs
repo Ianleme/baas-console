@@ -15,8 +15,14 @@ export default tseslint.config(
     ]
   },
   eslint.configs.recommended,
-  ...tseslint.configs.strictTypeChecked,
-  ...tseslint.configs.stylisticTypeChecked,
+  ...tseslint.configs.strictTypeChecked.map((config) => ({
+    ...config,
+    files: ['**/*.ts', '**/*.tsx']
+  })),
+  ...tseslint.configs.stylisticTypeChecked.map((config) => ({
+    ...config,
+    files: ['**/*.ts', '**/*.tsx']
+  })),
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
