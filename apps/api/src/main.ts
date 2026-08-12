@@ -7,7 +7,7 @@ import { DatabaseService } from './database/database.service.js';
 import { configureApplication } from './platform/configure-application.js';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
   configureApplication(app);
   await app.get(DatabaseService).connect();
   app.enableShutdownHooks();
