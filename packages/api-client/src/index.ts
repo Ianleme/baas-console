@@ -271,6 +271,28 @@ export function createDashboardClient(options: BaasClientOptions) {
   };
 }
 
+export function createTransactionsClient(options: BaasClientOptions) {
+  const request = options.fetch ?? globalThis.fetch;
+  return {
+    async list(query?: Record<string, unknown>) {
+      const accessToken = options.accessToken?.();
+      const params = new URLSearchParams();
+      if (query) {
+        for (const [key, val] of Object.entries(query)) {
+          if (val !== undefined && val !== null) params.set(key, String(val));
+        }
+      }
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      const response = await request(`${options.baseUrl}/api/v1/transactions${queryString}`, {
+        credentials: 'include',
+        headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
+      });
+      if (!response.ok) throw new Error('TRANSACTIONS_UNAVAILABLE');
+      return response.json();
+    }
+  };
+}
+
 export interface PublicCheckoutView {
   id: string;
   description: string;

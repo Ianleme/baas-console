@@ -28,7 +28,7 @@ const navSections = [
     items: [
       { label: 'Visão geral', href: '#/', icon: LayoutDashboard },
       { label: 'Links de pagamento', href: '#/links', icon: LinkIcon },
-      { label: 'Transações', href: '#/transacoes', icon: Receipt }
+      { label: 'Transações', href: '#/transactions', icon: Receipt }
     ]
   },
   {
@@ -66,13 +66,21 @@ function useUserProfile() {
         email?: string;
         status?: string;
       };
-      const rawName = data.userName || (data.email ? data.email.split('@')[0] : undefined);
+      const rawName =
+        typeof data.userName === 'string' && data.userName.length > 0
+          ? data.userName
+          : typeof data.email === 'string'
+            ? data.email.split('@')[0]
+            : undefined;
       const userName = rawName ?? 'Conta do lojista';
-      const merchantName = data.tradingName || userName;
+      const merchantName =
+        typeof data.tradingName === 'string' && data.tradingName.length > 0
+          ? data.tradingName
+          : userName;
       const initials =
         userName
           .split(' ')
-          .filter((part): part is string => Boolean(part?.[0]))
+          .filter((part): part is string => part.length > 0)
           .map((part) => part[0])
           .slice(0, 2)
           .join('')

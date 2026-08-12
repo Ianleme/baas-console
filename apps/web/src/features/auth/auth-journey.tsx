@@ -331,7 +331,7 @@ export function AuthJourney({
       if (typeof window !== 'undefined') {
         try {
           const raw = localStorage.getItem('baas_user_profile');
-          const profile = raw ? JSON.parse(raw) : {};
+          const profile = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
           localStorage.setItem(
             'baas_user_profile',
             JSON.stringify({ ...profile, status: 'ACTIVE' })

@@ -66,9 +66,10 @@ export class TransactionsService {
 
     // Check if remote gateway synchronization is available
     try {
-      const auth = (await this.credentials.getActiveGatewayAuth(merchantId)) as
-        | { accessToken?: string }
-        | undefined;
+      const creds = this.credentials as {
+        getActiveGatewayAuth(id: string): Promise<{ accessToken?: string } | null>;
+      };
+      const auth = await creds.getActiveGatewayAuth(merchantId);
       if (auth?.accessToken) {
         const remoteTransactions = await this.gateway.listStatement(auth.accessToken);
         const remoteMap = new Map(remoteTransactions.map((item) => [item.id, item]));
