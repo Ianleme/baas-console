@@ -14,6 +14,7 @@ import { PaymentAttemptEntity } from '../../payments/entities/payment-attempt.en
 @Entity({ name: 'financial_events' })
 @Index('idx_financial_events_merchant_occurred', ['merchantId', 'occurredAt'])
 @Index('idx_financial_events_payment_tenant', ['paymentAttemptId', 'merchantId'])
+@Index('idx_financial_events_withdrawal_tenant', ['withdrawalId', 'merchantId'])
 @Check(
   'chk_financial_events_exactly_one_origin',
   '(payment_attempt_id IS NULL) <> (withdrawal_id IS NULL)'
