@@ -38,6 +38,16 @@ export default tseslint.config(
     }
   },
   {
+    files: ['apps/api/test/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: ['./apps/api/tsconfig.test.json'],
+        projectService: false,
+        tsconfigRootDir: import.meta.dirname
+      }
+    }
+  },
+  {
     files: ['**/*.mjs'],
     languageOptions: {
       globals: globals.node

@@ -20,6 +20,7 @@
     "format": "prettier --write \"**/*.{js,mjs,cjs,ts,tsx,json,yml,yaml,css,html}\"",
     "format:check": "prettier --check \"**/*.{js,mjs,cjs,ts,tsx,json,yml,yaml,css,html}\"",
     "lint": "eslint . --max-warnings=0",
+    "test:integration": "npm run test:integration --workspace @baas/api",
     "test:quality": "node --test --test-isolation=none scripts/validate-quality.test.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "validate:quality": "node scripts/validate-quality.mjs",
