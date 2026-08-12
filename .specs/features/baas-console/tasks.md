@@ -67,7 +67,14 @@ Coverage thresholds are non-negotiable: backend global 90% lines/statements/func
 | T008 | Complete | `26c2e3b` |
 | T009 | Complete | `5786f99` |
 | T010 | Complete | `63357fb` |
-| T011-T053 | Pending | — |
+| T011 | Complete | `883d68e` |
+| T012 | Complete | `071966c` |
+| T013 | Complete | `74c70e7` |
+| T014 | Complete | `d023772` |
+| T015 | Complete | `e9de430` |
+| T016 | Complete | `20e2970` |
+| T017 | Complete | `d388cff` |
+| T018-T053 | Pending | — |
 
 ## Execution Plan
 

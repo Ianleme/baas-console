@@ -181,10 +181,10 @@
 ## Handoff
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
-- **Phase / Task**: Execute / Batch 2, Phase 2, T011-T017
-- **Completed**: T001-T010; Phase 1 gate final com 154 testes (38 quality, 13 web, 91 MySQL integration, 4 contract, 8 Docker smoke), zero falhas
+- **Phase / Task**: Execute / Batch 3, Phase 3, T018-T024
+- **Completed**: T001-T017; Phase 2 gate final com 258 casos automatizados, incluindo 57 unitarios, 95 integracao, 31 frontend, 20 contrato API, 13 stub, 4 cenarios Gherkin e 3 E2E, zero falhas
 - **In-progress** (file:line): none
-- **Next step**: executar T011-T017 sequencialmente, iniciando pelo contract spike live da Lera Box
-- **Blockers**: T011 depende de contatos/segredos live configurados; se ausentes, deve reportar blocker sem inventar contrato
-- **Uncommitted files**: none after execution-start commit
+- **Next step**: executar T018-T024 sequencialmente, iniciando pelo lifecycle de links de pagamento
+- **Blockers**: none
+- **Uncommitted files**: progress bookkeeping only
 - **Branch**: main
