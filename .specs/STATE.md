@@ -182,9 +182,9 @@
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
 - **Phase / Task**: Execute / Batch 5, Phase 5, T031-T036
-- **Completed**: T001-T032; T032 validada (Dashboard financeiro acessivel, KPIs em tempo real, grafico de composicao Pix/Cartao, integracao com saldo da carteira e responsividade Ultra-Wide)
-- **In-progress** (file:line): T033 (`apps/api/src/modules/transactions/**`)
-- **Next step**: Executar T033: Implement consolidated transaction statement API
+- **Completed**: T001-T033; T033 validada (API de extrato consolidado com mescla de adapter remoto da Lera Box, projeções TypeORM locais isoladas por tenant e 11 testes unitários com validação 100% verde no gate pr)
+- **In-progress** (file:line): T034 (`apps/web/src/features/transactions/**`)
+- **Next step**: Executar T034: Implement transaction screens and exact filters
 - **Blockers**: none
 - **Uncommitted files**: progress bookkeeping only
 - **Branch**: main
