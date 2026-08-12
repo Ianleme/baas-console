@@ -10,6 +10,7 @@ export default tseslint.config(
       '**/coverage/**',
       '**/node_modules/**',
       'artifacts/**',
+      'packages/api-client/src/generated/**',
       'playwright-report/**',
       'test-results/**'
     ]
@@ -45,6 +46,39 @@ export default tseslint.config(
         projectService: false,
         tsconfigRootDir: import.meta.dirname
       }
+    }
+  },
+  {
+    files: ['packages/api-client/test/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: ['./packages/api-client/tsconfig.consumer.json'],
+        projectService: false,
+        tsconfigRootDir: import.meta.dirname
+      }
+    }
+  },
+  {
+    files: ['apps/web/src/**/*.ts', 'apps/web/src/**/*.tsx'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'fetch',
+          message: 'Use @baas/api-client instead of a feature-level handwritten HTTP call.'
+        }
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'axios',
+              message: 'Use @baas/api-client instead of a feature-level handwritten HTTP client.'
+            }
+          ]
+        }
+      ]
     }
   },
   {
