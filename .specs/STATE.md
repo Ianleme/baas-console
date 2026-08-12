@@ -181,10 +181,10 @@
 ## Handoff
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
-- **Phase / Task**: Execute / Batch 4, Phase 4, T025-T030
-- **Completed**: T001-T024; Phase 3 gate final com 161 unitarios, 98 integracao, 99 frontend, 36 contrato API, 13 stub, 12 cenarios Gherkin e 7 E2E, zero falhas
+- **Phase / Task**: Execute / Batch 5, Phase 5, T031-T036
+- **Completed**: T001-T030; Phase 4 gate final com 208 unitarios, 146 integracao, 132 frontend, 59 contrato API, 13 stub, 16 cenarios Gherkin e 9 E2E, zero falhas
 - **In-progress** (file:line): none
-- **Next step**: executar T025-T030 sequencialmente, iniciando pela configuracao dos webhooks
+- **Next step**: executar T031-T036 sequencialmente, iniciando pela carteira autoritativa
 - **Blockers**: none
 - **Uncommitted files**: progress bookkeeping only
 - **Branch**: main
