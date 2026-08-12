@@ -79,7 +79,7 @@ export class WebhookConfigurationService {
     const previous = await this.store.find(input.merchantId, input.event);
     if (previous) await this.gateway.delete(input.accessToken, previous.gatewayWebhookId);
 
-    const id = this.id();
+    const id = previous?.id ?? this.id();
     const publicEndpointId = this.opaqueId();
     const secret = this.secret();
     const gateway = await this.gateway.create(input.accessToken, {

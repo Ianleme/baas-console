@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Inject, Param, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import { ProblemException } from '../../platform/errors/problem.exception.js';
 import { ReconciliationError, ReconciliationService } from './reconciliation.service.js';
@@ -20,6 +21,8 @@ export interface ReconciliationPrincipalProvider {
   current(): { merchantId: string; gatewayAccessToken: string };
 }
 
+@ApiTags('reconciliation')
+@ApiBearerAuth()
 @Controller('api/v1/reconciliation')
 export class ReconciliationController {
   constructor(
@@ -31,12 +34,14 @@ export class ReconciliationController {
   ) {}
 
   @Get()
+  @ApiOkResponse({ description: 'Tenant-scoped pending and divergent operations' })
   list(): Promise<ReconciliationView[]> {
     return this.query.list(this.principal.current().merchantId);
   }
 
   @Post(':operationId/verify')
   @HttpCode(200)
+  @ApiOkResponse({ description: 'Server-observed reconciliation classification' })
   async verify(
     @Param('operationId') operationId: string,
     @Body() body: Record<string, unknown> | undefined

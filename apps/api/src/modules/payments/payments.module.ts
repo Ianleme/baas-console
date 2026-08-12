@@ -89,6 +89,8 @@ export class PaymentsModule {}
 
 function required(name: string): string {
   const value = process.env[name];
+  if (process.env.JEST_WORKER_ID && name === 'AUTH_TOKEN_SECRET')
+    return 'jest-auth-token-secret-at-least-32-bytes';
   if (process.env.JEST_WORKER_ID && name === 'LERA_BOX_BASE_URL') return 'https://gateway.invalid';
   if (!value) throw new Error(`CONFIGURATION_MISSING: ${name}`);
   return value;

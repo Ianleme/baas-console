@@ -1,16 +1,20 @@
 import { Controller, Headers, HttpCode, Param, Post, Req } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ProblemException } from '../../../platform/errors/problem.exception.js';
 import { WebhookIngressError, WebhookIngressService } from './webhook-ingress.service.js';
 
+@ApiTags('webhooks')
 @Controller('api/v1/webhooks')
 export class WebhookIngressController {
   constructor(private readonly ingress: WebhookIngressService) {}
 
   @Post(':publicEndpointId')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Accept a raw HMAC-authenticated gateway event' })
+  @ApiOkResponse({ description: 'Event durably persisted before acknowledgement' })
   async receive(
     @Param('publicEndpointId') publicEndpointId: string,
     @Req() request: RawBodyRequest<Request>,

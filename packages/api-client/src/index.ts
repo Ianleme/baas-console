@@ -137,7 +137,7 @@ export function createWebhooksClient(options: BaasClientOptions) {
         body: JSON.stringify({ event })
       }) as Promise<never>,
     remove: async (event: 'PAYMENT_PIX' | 'PAYMENT_CARD' | 'WITHDRAWAL') => {
-      await json(`/api/v1/webhooks/${event}`, { method: 'DELETE' });
+      await json(`/api/v1/webhooks/configurations/${event}`, { method: 'DELETE' });
     }
   };
 }
