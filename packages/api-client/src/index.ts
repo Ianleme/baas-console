@@ -72,6 +72,32 @@ export function createPaymentLinksClient(options: BaasClientOptions) {
   };
 }
 
+export function createWebhooksClient(options: BaasClientOptions) {
+  const request = options.fetch ?? globalThis.fetch;
+  async function json(path: string, init?: RequestInit): Promise<unknown> {
+    const headers = new Headers(init?.headers);
+    headers.set('content-type', 'application/json');
+    const response = await request(`${options.baseUrl}${path}`, {
+      credentials: 'include',
+      ...init,
+      headers
+    });
+    if (!response.ok) throw new Error('BAAS_REQUEST_FAILED');
+    return response.status === 204 ? undefined : (response.json() as Promise<unknown>);
+  }
+  return {
+    list: () => json('/api/v1/webhooks') as Promise<never[]>,
+    configure: (event: 'PAYMENT_PIX' | 'PAYMENT_CARD' | 'WITHDRAWAL') =>
+      json('/api/v1/webhooks', {
+        method: 'POST',
+        body: JSON.stringify({ event })
+      }) as Promise<never>,
+    remove: async (event: 'PAYMENT_PIX' | 'PAYMENT_CARD' | 'WITHDRAWAL') => {
+      await json(`/api/v1/webhooks/${event}`, { method: 'DELETE' });
+    }
+  };
+}
+
 export interface PublicCheckoutView {
   id: string;
   description: string;

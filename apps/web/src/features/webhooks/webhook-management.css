@@ -1,0 +1,167 @@
+.webhook-management {
+  color: var(--color-ink);
+}
+.webhook-management__heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+}
+.webhook-management__heading h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  margin: 0.2rem 0;
+}
+.webhook-management__heading p,
+.webhook-card p {
+  color: var(--color-muted);
+}
+.webhook-security {
+  background: var(--color-lime-soft);
+  border: 1px solid #b9e783;
+  border-radius: 99rem;
+  color: var(--color-green-800);
+  font-weight: 700;
+  padding: 0.55rem 0.9rem;
+}
+.webhook-management__live {
+  min-height: 2.2rem;
+  padding-top: 0.7rem;
+}
+.webhook-empty {
+  background: white;
+  border: 1px dashed var(--color-line);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.2rem;
+}
+.webhook-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+.webhook-card {
+  background: white;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  min-height: 26rem;
+  overflow: hidden;
+  padding: 1.4rem;
+  position: relative;
+}
+.webhook-card::before {
+  background: linear-gradient(90deg, var(--color-green-700), var(--color-lime));
+  content: '';
+  height: 0.3rem;
+  inset: 0 0 auto;
+  position: absolute;
+}
+.webhook-card__number {
+  color: var(--color-green-700);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.webhook-card h2 {
+  font-size: 1.35rem;
+  margin: 1.2rem 0 0.25rem;
+}
+.webhook-card dl {
+  border-top: 1px solid var(--color-line);
+  margin: 1.2rem 0;
+}
+.webhook-card dl div {
+  align-items: center;
+  border-bottom: 1px solid var(--color-line);
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+}
+.webhook-card dt {
+  color: var(--color-muted);
+}
+.webhook-card dd {
+  font-weight: 700;
+  margin: 0;
+  text-align: right;
+}
+.status-active {
+  color: var(--color-green-700);
+}
+.status-idle {
+  color: #8a5100;
+}
+.webhook-card__actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: auto;
+}
+.webhook-card__actions button {
+  border: 1px solid var(--color-green-700);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 2.8rem;
+  padding: 0.65rem 0.85rem;
+}
+.webhook-card__actions button:not(.primary-action) {
+  background: white;
+  color: var(--color-green-700);
+}
+.webhook-card__actions .webhook-remove {
+  border-color: #c33;
+  color: #a00000;
+}
+.webhook-dialog-backdrop {
+  align-items: center;
+  background: rgb(0 30 25 / 42%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 80;
+}
+.webhook-dialog {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  max-width: 32rem;
+  padding: 1.5rem;
+  width: 100%;
+}
+.webhook-dialog > div {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+.webhook-dialog button {
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 2.7rem;
+  padding: 0.65rem 0.9rem;
+}
+@media (max-width: 980px) {
+  .webhook-grid {
+    grid-template-columns: 1fr;
+  }
+  .webhook-card {
+    min-height: auto;
+  }
+}
+@media (max-width: 520px) {
+  .webhook-management__heading,
+  .webhook-card__actions,
+  .webhook-dialog > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .webhook-security {
+    align-self: flex-start;
+  }
+}
