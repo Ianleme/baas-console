@@ -181,10 +181,10 @@
 ## Handoff
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
-- **Phase / Task**: Tasks / `tasks.md` draft aguardando aprovacao
-- **Completed**: spec e design aprovados; fonte fixada por SHA-256; 53 tarefas em 8 fases; 133 requisitos e 69 linhas-fonte mapeados; checks de granularidade, dependencias e testes co-localizados preparados
+- **Phase / Task**: Execute / Batch 1, Phase 1, T001-T010
+- **Completed**: spec, design, tasks e ferramentas aprovados; fonte fixada por SHA-256; 53 tarefas em 8 fases; 133 requisitos e 69 linhas-fonte mapeados
 - **In-progress** (file:line): none
-- **Next step**: obter aprovacao explicita do `tasks.md` e das ferramentas propostas antes de iniciar T001
-- **Blockers**: implementacao bloqueada ate aprovacao; T011 exige autorizacao/segredos live e continua gate antes dos adapters financeiros
-- **Uncommitted files**: none after tasks-planning commit
+- **Next step**: executar T001-T010 sequencialmente, com gate e commit atomico por tarefa
+- **Blockers**: nenhum para Phase 1; T011 exige autorizacao/segredos live e continua gate antes dos adapters financeiros
+- **Uncommitted files**: none after execution-start commit
 - **Branch**: main

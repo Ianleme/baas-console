@@ -8,7 +8,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Design**: `.specs/features/baas-console/design.md`
 
-**Status**: Draft for user approval
+**Status**: In Progress
 
 **Planning baseline**: commit `c64d904`; challenge SHA-256 `E409D659A2762556CB2CCBC854B7A55497A7F471286D99F3659C74EA8AD63B98`.
 
