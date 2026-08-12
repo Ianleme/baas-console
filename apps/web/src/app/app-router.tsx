@@ -39,7 +39,9 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
       auth: createAuthJourneyClient(options) as AuthJourneyApi,
       dashboard: createDashboardClient(options) as DashboardApi,
       links: createPaymentLinksClient(options) as PaymentLinksApi,
-      transactions: createTransactionsClient(options) as TransactionStatementApi,
+      transactions: (createTransactionsClient as (opts: unknown) => TransactionStatementApi)(
+        options
+      ),
       webhooks: createWebhooksClient(options) as WebhookManagementApi,
       reconciliation: createReconciliationClient(options) as ReconciliationApi
     };

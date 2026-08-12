@@ -274,12 +274,14 @@ export function createDashboardClient(options: BaasClientOptions) {
 export function createTransactionsClient(options: BaasClientOptions) {
   const request = options.fetch ?? globalThis.fetch;
   return {
-    async list(query?: Record<string, unknown>) {
+    async list(query?: Record<string, unknown>): Promise<unknown> {
       const accessToken = options.accessToken?.();
       const params = new URLSearchParams();
       if (query) {
         for (const [key, val] of Object.entries(query)) {
-          if (val !== undefined && val !== null) params.set(key, String(val));
+          if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
+            params.set(key, String(val));
+          }
         }
       }
       const queryString = params.toString() ? `?${params.toString()}` : '';
@@ -288,7 +290,7 @@ export function createTransactionsClient(options: BaasClientOptions) {
         headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
       });
       if (!response.ok) throw new Error('TRANSACTIONS_UNAVAILABLE');
-      return response.json();
+      return (await response.json()) as unknown;
     }
   };
 }

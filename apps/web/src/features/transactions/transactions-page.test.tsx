@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import axe from 'axe-core';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
