@@ -5,17 +5,29 @@ interface SandboxNoticeProps {
 export function SandboxNotice({ variant }: SandboxNoticeProps) {
   if (variant === 'banner') {
     return (
-      <header className="sandbox-banner">
-        <strong>Sandbox</strong>
-        <span>Ambiente de teste — nenhuma operação usa dinheiro real</span>
-        <span className="sandbox-banner__signal" aria-hidden="true" />
+      <header className="fixed inset-x-0 top-0 z-30 flex h-11 items-center justify-between bg-[#ff9f1c] px-6 text-sm text-slate-950 font-medium">
+        <span className="rounded bg-slate-950 px-2 py-0.5 text-[0.7rem] font-extrabold uppercase tracking-wider text-white">
+          SANDBOX
+        </span>
+        <span className="hidden sm:inline font-semibold">
+          Você está operando em um Ambiente de teste
+        </span>
+        <a
+          className="rounded-md border border-slate-950 px-3 py-1 text-xs font-semibold text-slate-950 hover:bg-black/10 transition-colors"
+          href="/docs"
+          target="_blank"
+          rel="noopener noreferrer"
+          tabIndex={-1}
+        >
+          Ver documentação
+        </a>
       </header>
     );
   }
 
   return (
-    <div className="sandbox-badge" role="status">
-      <span className="sandbox-badge__dot" aria-hidden="true" />
+    <div className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900" role="status">
+      <span className="h-2 w-2 rounded-full bg-amber-600" aria-hidden="true" />
       Ambiente Sandbox
     </div>
   );

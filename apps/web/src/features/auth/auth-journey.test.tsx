@@ -2,7 +2,15 @@ import axe from 'axe-core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { AuthJourney, type AuthJourneyApi } from './auth-journey.js';
+import {
+  AuthJourney,
+  formatCep,
+  formatCnpj,
+  formatCpf,
+  formatPhone,
+  formatUf,
+  type AuthJourneyApi
+} from './auth-journey.js';
 
 function client(overrides: Partial<AuthJourneyApi> = {}): AuthJourneyApi {
   return {
@@ -180,5 +188,67 @@ describe('AuthJourney', () => {
     expect(
       (await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })).violations
     ).toEqual([]);
+  });
+
+  it('displays helper hint for password length requirement on registration', async () => {
+    render(<AuthJourney client={client()} />);
+    await openRegistration();
+    expect(screen.getByText('Mínimo de 12 caracteres')).toBeVisible();
+  });
+
+  it('blocks registration and displays field error when password is under 12 characters', async () => {
+    const register = vi.fn<AuthJourneyApi['register']>().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<AuthJourney client={client({ register })} />);
+    await openRegistration(user);
+    await user.type(screen.getByLabelText('Senha local'), 'short123');
+    fireEvent.submit(screen.getByRole('form', { name: 'Criar conta' }));
+    expect(await screen.findByText('A senha deve ter no mínimo 12 caracteres.')).toBeVisible();
+    expect(register).not.toHaveBeenCalled();
+  });
+
+  it('blocks registration when state UF is invalid', async () => {
+    const register = vi.fn<AuthJourneyApi['register']>().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<AuthJourney client={client({ register })} />);
+    await openRegistration(user);
+    await user.type(screen.getByLabelText('UF'), 'XX');
+    fireEvent.submit(screen.getByRole('form', { name: 'Criar conta' }));
+    expect(await screen.findByText(/UF inválida/i)).toBeVisible();
+    expect(register).not.toHaveBeenCalled();
+  });
+
+  it('sanitizes state to uppercase when registering', async () => {
+    const register = vi.fn<AuthJourneyApi['register']>().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<AuthJourney client={client({ register })} />);
+    await openRegistration(user);
+    await user.type(screen.getByLabelText('UF'), 'sp');
+    fireEvent.submit(screen.getByRole('form', { name: 'Criar conta' }));
+    await waitFor(() => {
+      expect(register).toHaveBeenCalledWith(expect.objectContaining({ state: 'SP' }));
+    });
+  });
+
+  describe('input formatting masks', () => {
+    it('formats CPF correctly and truncates at 11 digits', () => {
+      expect(formatCpf('11111111111999')).toBe('111.111.111-11');
+    });
+
+    it('formats CNPJ correctly and truncates at 14 digits', () => {
+      expect(formatCnpj('11222333000199999')).toBe('11.222.333/0001-99');
+    });
+
+    it('formats CEP correctly and truncates at 8 digits', () => {
+      expect(formatCep('0100100099')).toBe('01001-000');
+    });
+
+    it('formats phone numbers correctly and truncates at 11 digits', () => {
+      expect(formatPhone('1198765432199')).toBe('(11) 98765-4321');
+    });
+
+    it('formats UF to uppercase 2 letters only', () => {
+      expect(formatUf('sp12')).toBe('SP');
+    });
   });
 });

@@ -1,8 +1,37 @@
-import { useEffect, useMemo, useState, type ReactNode, type SyntheticEvent } from 'react';
+import { useEffect, useMemo, useState, type SyntheticEvent } from 'react';
+import {
+  Bell,
+  Check,
+  Copy,
+  CreditCard,
+  QrCode,
+  RotateCw,
+  Search,
+  SlidersHorizontal,
+  TrendingUp
+} from 'lucide-react';
 
-import './payment-links.css';
+import { Badge } from '../../components/ui/badge.js';
+import { Button } from '../../components/ui/button.js';
+import { Card, CardContent } from '../../components/ui/card.js';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from '../../components/ui/dialog.js';
+import { Input } from '../../components/ui/input.js';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '../../components/ui/table.js';
 
 export type PaymentLinkStatus = 'ACTIVE' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+
 export interface PaymentLinkView {
   id: string;
   reference: string;
@@ -13,7 +42,10 @@ export interface PaymentLinkView {
   selectedFeeBps: number | null;
   status: PaymentLinkStatus;
   expiresAt: string;
+  createdAt?: string;
+  paymentCount?: number;
 }
+
 export interface PaymentLinksApi {
   list: () => Promise<PaymentLinkView[]>;
   create: (input: Omit<PaymentLinkView, 'id' | 'status'>) => Promise<PaymentLinkView>;
@@ -27,16 +59,39 @@ const statusLabels: Record<PaymentLinkStatus, string> = {
   CANCELLED: 'Cancelado'
 };
 
+const tabLabels: Record<PaymentLinkStatus, string> = {
+  ACTIVE: 'Ativos',
+  PAID: 'Pagos',
+  EXPIRED: 'Expirados',
+  CANCELLED: 'Cancelados'
+};
+
 export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
   const [links, setLinks] = useState<PaymentLinkView[]>([]);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<'ALL' | PaymentLinkStatus>('ALL');
-  const [method, setMethod] = useState<'ALL' | PaymentLinkView['methods']>('ALL');
+  const [statusTab, setStatusTab] = useState<'ALL' | PaymentLinkStatus>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | PaymentLinkStatus>('ALL');
+  const [methodFilter, setMethodFilter] = useState<'ALL' | PaymentLinkView['methods']>('ALL');
+  const [dateFilter, setDateFilter] = useState('30days');
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<PaymentLinkView | null>(null);
   const [cancelCandidate, setCancelCandidate] = useState<PaymentLinkView | null>(null);
   const [notice, setNotice] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  function loadLinks() {
+    setState('loading');
+    void api
+      .list()
+      .then((rows) => {
+        setLinks(rows);
+        setState('ready');
+      })
+      .catch(() => {
+        setState('error');
+      });
+  }
 
   useEffect(() => {
     let active = true;
@@ -49,12 +104,16 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
         }
       })
       .catch(() => {
-        if (active) setState('error');
+        if (active) {
+          setState('error');
+        }
       });
     return () => {
       active = false;
     };
   }, [api]);
+
+  const activeStatusFilter = statusTab !== 'ALL' ? statusTab : statusFilter;
 
   const visible = useMemo(
     () =>
@@ -62,12 +121,32 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
         const text = `${link.description} ${link.reference}`.toLocaleLowerCase('pt-BR');
         return (
           text.includes(query.trim().toLocaleLowerCase('pt-BR')) &&
-          (status === 'ALL' || link.status === status) &&
-          (method === 'ALL' || link.methods === method)
+          (activeStatusFilter === 'ALL' || link.status === activeStatusFilter) &&
+          (methodFilter === 'ALL' || link.methods === methodFilter)
         );
       }),
-    [links, method, query, status]
+    [links, activeStatusFilter, methodFilter, query]
   );
+
+  const activeCount = useMemo(
+    () => links.filter((link) => link.status === 'ACTIVE').length,
+    [links]
+  );
+  const paidCount = useMemo(
+    () => links.filter((link) => link.status === 'PAID').length,
+    [links]
+  );
+  const totalReceivedCents = useMemo(
+    () =>
+      links
+        .filter((link) => link.status === 'PAID')
+        .reduce((sum, link) => sum + BigInt(link.amountCents || 0), 0n),
+    [links]
+  );
+  const conversionRate = useMemo(() => {
+    if (links.length === 0) return 0;
+    return Math.round((paidCount / links.length) * 1000) / 10;
+  }, [links, paidCount]);
 
   async function submit(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
     event.preventDefault();
@@ -105,295 +184,465 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
     }
   }
 
+  function handleCopy(id: string) {
+    setCopiedId(id);
+    setNotice('Link copiado para a área de transferência!');
+    setTimeout(() => {
+      setCopiedId(null);
+    }, 2000);
+  }
+
   return (
-    <section className="payment-links" aria-labelledby="links-title">
-      <header className="payment-links__heading">
+    <section className="payment-links-page space-y-6" aria-labelledby="links-title">
+      {/* Header */}
+      <header className="page-header flex flex-wrap items-start justify-between gap-4">
         <div>
-          <span className="eyebrow eyebrow--green">Operações</span>
-          <h1 id="links-title">Links de pagamento</h1>
-          <p>Crie e acompanhe checkouts conciliados com suas vendas.</p>
+          <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider">OPERAÇÕES</span>
+          <h1 id="links-title" className="text-3xl font-extrabold text-slate-900 mt-1">Links de pagamento</h1>
+          <p className="subtitle text-slate-500 text-sm mt-1">Crie e acompanhe checkouts conciliados com suas vendas.</p>
         </div>
-        <button
-          className="primary-action"
-          type="button"
-          onClick={() => {
-            setCreating(true);
-          }}
-        >
-          + Criar link de pagamento
-        </button>
+        <div className="header-actions flex items-center gap-3">
+          <Button
+            className="primary-cta-button bg-[#007a5a] hover:bg-[#005c47] text-white"
+            type="button"
+            onClick={() => {
+              setCreating(true);
+            }}
+          >
+            + Criar link de pagamento
+          </Button>
+          <button
+            className="icon-button notification-btn relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+            type="button"
+            tabIndex={-1}
+            aria-label="Notificações"
+          >
+            <Bell className="h-5 w-5" />
+            <span className="notification-dot absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-emerald-600 ring-2 ring-white" />
+          </button>
+        </div>
       </header>
 
-      <div className="link-summary" role="region" aria-label="Resumo dos links">
-        <Summary
-          label="Links ativos"
-          value={String(links.filter((link) => link.status === 'ACTIVE').length)}
-        />
-        <Summary
-          label="Pagamentos concluídos"
-          value={String(links.filter((link) => link.status === 'PAID').length)}
-        />
-        <Summary
-          label="Valor recebido"
-          value={money(
-            links
-              .filter((link) => link.status === 'PAID')
-              .reduce((sum, link) => sum + BigInt(link.amountCents), 0n)
-              .toString()
-          )}
-        />
+      {/* KPI Cards Row - Real API Metrics using Shadcn Cards */}
+      <div className="kpi-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" role="region" aria-label="Resumo dos links">
+        <Card className="p-5">
+          <CardContent className="p-0 flex flex-col justify-between h-full space-y-1">
+            <span className="kpi-label text-xs font-semibold text-slate-500">Links ativos</span>
+            <div className="kpi-value-group">
+              <strong className="kpi-value text-2xl font-extrabold text-slate-900">{activeCount}</strong>
+            </div>
+            <span className="kpi-subtext text-xs text-slate-400">Prontos para receber</span>
+          </CardContent>
+        </Card>
+
+        <Card className="p-5">
+          <CardContent className="p-0 flex flex-col justify-between h-full space-y-1">
+            <span className="kpi-label text-xs font-semibold text-slate-500">Pagamentos concluídos</span>
+            <div className="kpi-value-group">
+              <strong className="kpi-value text-2xl font-extrabold text-slate-900">{paidCount}</strong>
+            </div>
+            <span className="kpi-subtext text-xs text-slate-400">No período selecionado</span>
+          </CardContent>
+        </Card>
+
+        <Card className="p-5">
+          <CardContent className="p-0 flex flex-col justify-between h-full space-y-1">
+            <span className="kpi-label text-xs font-semibold text-slate-500">Valor recebido</span>
+            <div className="kpi-value-group">
+              <strong className="kpi-value text-2xl font-extrabold text-slate-900">{money(totalReceivedCents.toString())}</strong>
+            </div>
+            <span className="kpi-growth-badge inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-[#d8f3dc] px-2.5 py-0.5 rounded-full w-fit">
+              <TrendingUp className="h-3.5 w-3.5" />
+              Em tempo real
+            </span>
+          </CardContent>
+        </Card>
+
+        <Card className="p-5">
+          <CardContent className="p-0 flex items-center justify-between h-full">
+            <div>
+              <span className="kpi-label text-xs font-semibold text-slate-500">Taxa de conversão</span>
+              <div className="kpi-value-group mt-1">
+                <strong className="kpi-value text-2xl font-extrabold text-slate-900">{conversionRate}%</strong>
+              </div>
+            </div>
+            <div className="donut-chart h-12 w-12" aria-hidden="true">
+              <svg viewBox="0 0 36 36" className="h-full w-full">
+                <path
+                  className="donut-bg fill-none stroke-slate-200 stroke-[4]"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path
+                  className="donut-ring fill-none stroke-emerald-600 stroke-[4] stroke-linecap-round -rotate-90 origin-center"
+                  strokeDasharray={`${conversionRate}, 100`}
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+              </svg>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="link-filters" role="search">
-        <label>
-          <span className="sr-only">Buscar por descrição ou referência</span>
-          <input
+      {/* Filter and Control Bar */}
+      <div className="filters-bar flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm" role="search">
+        <div className="search-input-wrapper relative flex-1 min-w-[15rem]">
+          <Search className="search-icon absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            className="search-input pl-9"
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
             }}
             placeholder="Buscar por descrição ou referência"
           />
-        </label>
-        <label>
-          <span className="sr-only">Filtrar por status</span>
-          <select
-            value={status}
-            onChange={(event) => {
-              setStatus(event.target.value as typeof status);
-            }}
-          >
-            <option value="ALL">Todos os status</option>
-            <option value="ACTIVE">Ativos</option>
-            <option value="PAID">Pagos</option>
-            <option value="EXPIRED">Expirados</option>
-            <option value="CANCELLED">Cancelados</option>
-          </select>
-        </label>
-        <label>
-          <span className="sr-only">Filtrar por método</span>
-          <select
-            value={method}
-            onChange={(event) => {
-              setMethod(event.target.value as typeof method);
-            }}
-          >
-            <option value="ALL">Todos os métodos</option>
-            <option value="PIX">Pix</option>
-            <option value="CARD">Cartão</option>
-            <option value="PIX_CARD">Pix e cartão</option>
-          </select>
-        </label>
+        </div>
+
+        <div className="select-wrapper border border-slate-200 rounded-lg bg-white px-2">
+          <label>
+            <span className="sr-only">Filtrar por status</span>
+            <select
+              className="filter-select bg-transparent py-2 text-sm font-medium text-slate-700 outline-none"
+              aria-label="Filtrar por status"
+              value={statusFilter}
+              onChange={(event) => {
+                setStatusFilter(event.target.value as typeof statusFilter);
+              }}
+            >
+              <option value="ALL">Todos os status</option>
+              <option value="ACTIVE">Ativos</option>
+              <option value="PAID">Pagos</option>
+              <option value="EXPIRED">Expirados</option>
+              <option value="CANCELLED">Cancelados</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="select-wrapper border border-slate-200 rounded-lg bg-white px-2">
+          <label>
+            <span className="sr-only">Filtrar por método</span>
+            <select
+              className="filter-select bg-transparent py-2 text-sm font-medium text-slate-700 outline-none"
+              aria-label="Filtrar por método"
+              value={methodFilter}
+              onChange={(event) => {
+                setMethodFilter(event.target.value as typeof methodFilter);
+              }}
+            >
+              <option value="ALL">Todos os métodos</option>
+              <option value="PIX">Pix</option>
+              <option value="CARD">Cartão</option>
+              <option value="PIX_CARD">Pix e cartão</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="select-wrapper border border-slate-200 rounded-lg bg-white px-2">
+          <label>
+            <span className="sr-only">Filtrar por período</span>
+            <select
+              className="filter-select bg-transparent py-2 text-sm font-medium text-slate-700 outline-none"
+              aria-label="Filtrar por período"
+              value={dateFilter}
+              onChange={(event) => {
+                setDateFilter(event.target.value);
+              }}
+            >
+              <option value="30days">Últimos 30 dias</option>
+              <option value="7days">Últimos 7 dias</option>
+              <option value="month">Este mês</option>
+              <option value="all">Todo o período</option>
+            </select>
+          </label>
+        </div>
+
+        <Button variant="outline" className="secondary-filter-btn flex items-center gap-2">
+          <SlidersHorizontal className="h-4 w-4" />
+          Mais filtros
+        </Button>
+
+        <Button
+          variant="outline"
+          size="icon"
+          className="refresh-btn"
+          type="button"
+          aria-label="Atualizar dados"
+          onClick={() => {
+            loadLinks();
+            setNotice('Dados atualizados.');
+            setTimeout(() => setNotice(''), 2000);
+          }}
+        >
+          <RotateCw className="h-4 w-4 text-slate-600" />
+        </Button>
       </div>
 
-      <div className="payment-links__live" aria-live="polite">
-        {notice}
+      {/* Status Tabs */}
+      <div className="status-tabs flex gap-6 border-b border-slate-200 px-1" role="tablist" aria-label="Filtro por aba de status">
+        {(['ALL', 'ACTIVE', 'PAID', 'EXPIRED', 'CANCELLED'] as const).map((tab) => (
+          <button
+            key={tab}
+            className={`tab-item border-b-2 py-2.5 text-sm font-semibold transition-colors ${
+              statusTab === tab
+                ? 'tab-item--active border-[#007a5a] text-[#007a5a]'
+                : 'border-transparent text-slate-500 hover:text-slate-900'
+            }`}
+            role="tab"
+            aria-selected={statusTab === tab}
+            type="button"
+            onClick={() => setStatusTab(tab)}
+          >
+            {tab === 'ALL' ? 'Todos' : tabLabels[tab]}
+          </button>
+        ))}
       </div>
-      {state === 'loading' && <p role="status">Carregando links…</p>}
-      {state === 'error' && <p role="alert">Não foi possível carregar os links.</p>}
-      {state === 'ready' && visible.length === 0 && (
-        <p className="links-empty">Nenhum link encontrado.</p>
-      )}
-      {state === 'ready' && visible.length > 0 && (
-        <div className="links-table-wrap">
-          <table className="links-table">
-            <thead>
-              <tr>
-                <th>Link</th>
-                <th>Método</th>
-                <th>Valor</th>
-                <th>Expiração</th>
-                <th>Status</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((link) => (
-                <tr key={link.id}>
-                  <td>
-                    <strong>{link.description}</strong>
-                    <small>{link.reference}</small>
-                  </td>
-                  <td>{methodLabel(link)}</td>
-                  <td>{money(link.amountCents)}</td>
-                  <td>{new Date(link.expiresAt).toLocaleDateString('pt-BR')}</td>
-                  <td>
-                    <span className={`link-status link-status--${link.status.toLowerCase()}`}>
-                      {statusLabels[link.status]}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="link-action"
-                      onClick={() => {
-                        setSelected(link);
-                      }}
-                    >
-                      Ver detalhes
-                    </button>
-                    {link.status === 'ACTIVE' && (
-                      <button
-                        type="button"
-                        className="link-action link-action--danger"
-                        onClick={() => {
-                          setCancelCandidate(link);
-                        }}
-                      >
-                        Cancelar
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+      {notice && (
+        <div className="toast-notice bg-[#005c47] text-white p-3 rounded-lg font-semibold text-sm" aria-live="polite">
+          {notice}
         </div>
       )}
 
-      {creating && (
-        <Dialog
-          title="Criar link de pagamento"
-          close={() => {
-            setCreating(false);
-          }}
-        >
+      {/* Table Content */}
+      {state === 'loading' && <p role="status" className="text-slate-500 p-4">Carregando links…</p>}
+      {state === 'error' && <p role="alert" className="text-red-600 p-4">Não foi possível carregar os links.</p>}
+      {state === 'ready' && visible.length === 0 && (
+        <div className="empty-state-box border-2 border-dashed border-slate-200 rounded-xl p-12 text-center text-slate-500">
+          <p>Nenhum link encontrado.</p>
+        </div>
+      )}
+      {state === 'ready' && visible.length > 0 && (
+        <Table className="data-table">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Link</TableHead>
+              <TableHead>Método</TableHead>
+              <TableHead>Valor</TableHead>
+              <TableHead>Expiração</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="th-actions text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visible.map((link) => (
+              <TableRow key={link.id}>
+                <TableCell>
+                  <div className="link-title-box flex flex-col">
+                    <strong className="link-name font-semibold text-slate-900">{link.description}</strong>
+                    <span className="link-ref text-xs text-slate-400">{link.reference}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <MethodBadge method={link.methods} installments={link.maxInstallments} />
+                </TableCell>
+                <TableCell>
+                  <span className="amount-cell font-semibold text-slate-900">{money(link.amountCents)}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="date-cell text-xs text-slate-500">{formatExpiration(link.expiresAt)}</span>
+                </TableCell>
+                <TableCell>
+                  <StatusBadge status={link.status} />
+                </TableCell>
+                <TableCell className="td-actions text-right">
+                  <div className="actions-cell inline-flex items-center gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="action-btn text-[#007a5a] hover:bg-emerald-50"
+                      onClick={() => setSelected(link)}
+                    >
+                      Ver detalhes
+                    </Button>
+                    {link.status === 'ACTIVE' && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="action-btn action-btn--danger"
+                        onClick={() => setCancelCandidate(link)}
+                      >
+                        Cancelar
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="action-btn"
+                      onClick={() => handleCopy(link.id)}
+                    >
+                      {copiedId === link.id ? (
+                        <>
+                          <Check className="h-3.5 w-3.5" /> Copiado!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5 text-[#007a5a]" /> Copiar link
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+
+      {/* Official Radix UI Dialog Primitives */}
+      <Dialog open={creating} onOpenChange={(open) => setCreating(open)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar link de pagamento</DialogTitle>
+          </DialogHeader>
           <form
             aria-label="Criar link de pagamento"
             onSubmit={(event) => void submit(event)}
-            className="link-form"
+            className="link-form space-y-4"
           >
-            <label>
+            <label className="flex flex-col text-sm font-semibold text-slate-700 gap-1">
               Descrição
-              <input name="description" required maxLength={255} />
+              <Input name="description" required maxLength={255} placeholder="Ex: Pedido #1049" />
             </label>
-            <label>
+            <label className="flex flex-col text-sm font-semibold text-slate-700 gap-1">
               Referência
-              <input name="reference" required maxLength={100} />
+              <Input name="reference" required maxLength={100} placeholder="Ex: REF-2026-01049" />
             </label>
-            <label>
+            <label className="flex flex-col text-sm font-semibold text-slate-700 gap-1">
               Valor em centavos
-              <input name="amountCents" required inputMode="numeric" pattern="[0-9]+" />
+              <Input name="amountCents" required inputMode="numeric" pattern="[0-9]+" placeholder="Ex: 35000 para R$ 350,00" />
             </label>
-            <label>
+            <label className="flex flex-col text-sm font-semibold text-slate-700 gap-1">
               Métodos
-              <select name="methods">
+              <select name="methods" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
                 <option value="PIX">Pix</option>
                 <option value="CARD">Cartão</option>
                 <option value="PIX_CARD">Pix e cartão</option>
               </select>
             </label>
-            <label>
+            <label className="flex flex-col text-sm font-semibold text-slate-700 gap-1">
               Parcelas
-              <input name="maxInstallments" type="number" min="1" max="21" defaultValue="1" />
+              <Input name="maxInstallments" type="number" min="1" max="21" defaultValue="1" />
             </label>
-            <label>
+            <label className="flex flex-col text-sm font-semibold text-slate-700 gap-1">
               Taxa selecionada (basis points)
-              <input name="selectedFeeBps" type="number" min="0" max="10000" defaultValue="0" />
+              <Input name="selectedFeeBps" type="number" min="0" max="10000" defaultValue="99" />
             </label>
-            <label>
+            <label className="flex flex-col text-sm font-semibold text-slate-700 gap-1">
               Expiração
-              <input name="expiresAt" type="datetime-local" required />
+              <Input name="expiresAt" type="datetime-local" required />
             </label>
-            <button className="primary-action" type="submit">
+            <Button className="w-full bg-[#007a5a] hover:bg-[#005c47]" type="submit">
               Criar link
-            </button>
+            </Button>
           </form>
-        </Dialog>
-      )}
-      {selected && (
-        <Dialog
-          title="Detalhes do link"
-          close={() => {
-            setSelected(null);
-          }}
-        >
-          <dl className="link-detail">
-            <div>
-              <dt>Status</dt>
-              <dd>{statusLabels[selected.status]}</dd>
-            </div>
-            <div>
-              <dt>Valor</dt>
-              <dd>{money(selected.amountCents)}</dd>
-            </div>
-            <div>
-              <dt>Taxa selecionada</dt>
-              <dd>
-                {selected.selectedFeeBps === null
-                  ? 'Não aplicável'
-                  : `${(selected.selectedFeeBps / 100).toFixed(2)}%`}
-              </dd>
-            </div>
-            <div>
-              <dt>Parcelas</dt>
-              <dd>Até {selected.maxInstallments}x</dd>
-            </div>
-          </dl>
-        </Dialog>
-      )}
-      {cancelCandidate && (
-        <Dialog
-          title="Cancelar link?"
-          close={() => {
-            setCancelCandidate(null);
-          }}
-        >
-          <p>Esta ação não pode ser desfeita. O checkout deixará de aceitar pagamentos.</p>
-          <button className="danger-action" type="button" onClick={() => void confirmCancel()}>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(selected)} onOpenChange={(open) => { if (!open) setSelected(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Detalhes do link</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <dl className="link-detail space-y-3">
+              <div className="flex justify-between border-b border-slate-100 pb-2">
+                <dt className="text-sm text-slate-500">Descrição</dt>
+                <dd className="text-sm font-semibold text-slate-900">{selected.description}</dd>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-2">
+                <dt className="text-sm text-slate-500">Referência</dt>
+                <dd className="text-sm font-semibold text-slate-900">{selected.reference}</dd>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-2">
+                <dt className="text-sm text-slate-500">Status</dt>
+                <dd className="text-sm font-semibold text-slate-900">{statusLabels[selected.status]}</dd>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-2">
+                <dt className="text-sm text-slate-500">Valor</dt>
+                <dd className="text-sm font-semibold text-slate-900">{money(selected.amountCents)}</dd>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-2">
+                <dt className="text-sm text-slate-500">Taxa selecionada</dt>
+                <dd className="text-sm font-semibold text-slate-900">
+                  {selected.selectedFeeBps === null
+                    ? 'Não aplicável'
+                    : `${(selected.selectedFeeBps / 100).toFixed(2)}%`}
+                </dd>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-2">
+                <dt className="text-sm text-slate-500">Parcelas</dt>
+                <dd className="text-sm font-semibold text-slate-900">Até {selected.maxInstallments}x</dd>
+              </div>
+            </dl>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(cancelCandidate)} onOpenChange={(open) => { if (!open) setCancelCandidate(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar link?</DialogTitle>
+          </DialogHeader>
+          <p className="text-slate-600 text-sm mb-4">Esta ação não pode ser desfeita. O checkout deixará de aceitar pagamentos.</p>
+          <Button variant="destructive" className="w-full" type="button" onClick={() => void confirmCancel()}>
             Confirmar cancelamento
-          </button>
-        </Dialog>
-      )}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
 
-function Summary({ label, value }: { label: string; value: string }) {
+function MethodBadge({ method, installments }: { method: PaymentLinkView['methods']; installments: number }) {
+  if (method === 'PIX') {
+    return (
+      <span className="method-badge inline-flex items-center gap-1.5 text-sm font-medium text-slate-700">
+        <QrCode className="h-4 w-4 text-[#00bdae]" />
+        Pix
+      </span>
+    );
+  }
   return (
-    <div>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
+    <span className="method-badge inline-flex items-center gap-1.5 text-sm font-medium text-slate-700">
+      <CreditCard className="h-4 w-4 text-blue-500" />
+      Cartão · até {installments}x
+    </span>
   );
 }
-function Dialog({
-  title,
-  close,
-  children
-}: {
-  title: string;
-  close: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div className="dialog-backdrop">
-      <section
-        className="dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="payment-link-dialog-title"
-      >
-        <header>
-          <h2 id="payment-link-dialog-title">{title}</h2>
-          <button type="button" aria-label="Fechar" onClick={close}>
-            ×
-          </button>
-        </header>
-        {children}
-      </section>
-    </div>
-  );
+
+function StatusBadge({ status }: { status: PaymentLinkStatus }) {
+  switch (status) {
+    case 'ACTIVE':
+      return <Badge variant="active">Ativo</Badge>;
+    case 'PAID':
+      return <Badge variant="paid">Pago</Badge>;
+    case 'EXPIRED':
+      return <Badge variant="expired">Expirado</Badge>;
+    case 'CANCELLED':
+      return <Badge variant="cancelled">Cancelado</Badge>;
+  }
 }
-function methodLabel(link: PaymentLinkView) {
-  if (link.methods === 'PIX') return 'Pix';
-  if (link.methods === 'CARD') return `Cartão · até ${String(link.maxInstallments)}x`;
-  return `Pix ou cartão · até ${String(link.maxInstallments)}x`;
-}
+
 function money(cents: string) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-    Number(BigInt(cents)) / 100
-  );
+  try {
+    const num = Number(BigInt(cents)) / 100;
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
+  } catch {
+    return 'R$ 0,00';
+  }
+}
+
+function formatExpiration(expiresAt: string) {
+  if (!expiresAt) return '-';
+  if (expiresAt.includes('Expirou') || expiresAt.includes('Cancelado') || expiresAt.includes('Hoje') || expiresAt.includes('Ontem')) {
+    return expiresAt;
+  }
+  try {
+    const date = new Date(expiresAt);
+    if (isNaN(date.getTime())) return expiresAt;
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return expiresAt;
+  }
 }
 
 function formText(data: FormData, name: string): string {

@@ -182,9 +182,9 @@
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
 - **Phase / Task**: Execute / Batch 5, Phase 5, T031-T036
-- **Completed**: T001-T031; T031 validada com 8 unitarios, 11 contratos e 7 integracoes MySQL focadas
-- **In-progress** (file:line): none
-- **Next step**: concluir a correcao runtime SPA/R5 autorizada e executar T032-T036 sequencialmente
+- **Completed**: T001-T032; T032 validada (Dashboard financeiro acessivel, KPIs em tempo real, grafico de composicao Pix/Cartao, integracao com saldo da carteira e responsividade Ultra-Wide)
+- **In-progress** (file:line): T033 (`apps/api/src/modules/transactions/**`)
+- **Next step**: Executar T033: Implement consolidated transaction statement API
 - **Blockers**: none
 - **Uncommitted files**: progress bookkeeping only
 - **Branch**: main

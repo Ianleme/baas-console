@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
-
-import './webhook-management.css';
+import { Badge } from '../../components/ui/badge.js';
+import { Button } from '../../components/ui/button.js';
+import { Card, CardContent } from '../../components/ui/card.js';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from '../../components/ui/dialog.js';
 
 export type WebhookEvent = 'PAYMENT_PIX' | 'PAYMENT_CARD' | 'WITHDRAWAL';
 export interface WebhookView {
@@ -80,144 +87,151 @@ export function WebhookManagement({ api }: { api: WebhookManagementApi }) {
   }
 
   return (
-    <section className="webhook-management" aria-labelledby="webhooks-title">
-      <header className="webhook-management__heading">
+    <section className="webhook-management space-y-6" aria-labelledby="webhooks-title">
+      <header className="webhook-management__heading flex flex-wrap items-start justify-between gap-4">
         <div>
-          <span className="eyebrow eyebrow--green">Integrações</span>
-          <h1 id="webhooks-title">Webhooks</h1>
-          <p>Receba atualizações conciliadas da Lera Box em endpoints protegidos.</p>
+          <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider">Integrações</span>
+          <h1 id="webhooks-title" className="text-3xl font-extrabold text-slate-900 mt-1">Webhooks</h1>
+          <p className="text-slate-500 text-sm mt-1">Receba atualizações conciliadas da Lera Box em endpoints protegidos.</p>
         </div>
-        <span className="webhook-security">Segredos protegidos</span>
+        <span className="webhook-security inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+          Segredos protegidos
+        </span>
       </header>
 
-      <div className="webhook-management__live" aria-live="polite">
-        {notice}
-      </div>
-      {state === 'loading' && <p role="status">Carregando webhooks…</p>}
-      {state === 'error' && <p role="alert">Não foi possível carregar os webhooks.</p>}
+      {notice && (
+        <div className="webhook-management__live bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-lg text-sm font-semibold" aria-live="polite">
+          {notice}
+        </div>
+      )}
+
+      {state === 'loading' && <p role="status" className="text-slate-500 p-4">Carregando webhooks…</p>}
+      {state === 'error' && <p role="alert" className="text-red-600 p-4">Não foi possível carregar os webhooks.</p>}
       {state === 'ready' && configured.length === 0 && (
-        <p className="webhook-empty">
+        <p className="webhook-empty text-slate-500 p-8 border-2 border-dashed border-slate-200 rounded-xl text-center">
           Nenhum webhook configurado. Ative os eventos necessários abaixo.
         </p>
       )}
 
       {state === 'ready' && (
-        <div className="webhook-grid">
+        <div className="webhook-grid grid grid-cols-1 md:grid-cols-3 gap-4">
           {events.map(({ event, title, detail }, index) => {
             const current = configured.find((item) => item.event === event);
             return (
-              <article className="webhook-card" key={event}>
-                <span className="webhook-card__number" aria-hidden="true">
-                  0{index + 1}
-                </span>
-                <div>
-                  <h2>{title}</h2>
-                  <p>{detail}</p>
-                </div>
-                <dl>
-                  <div>
-                    <dt>Status</dt>
-                    <dd className={current?.status === 'ACTIVE' ? 'status-active' : 'status-idle'}>
+              <article className="webhook-card rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm p-5 flex flex-col justify-between" key={event}>
+                <CardContent className="p-0 space-y-4 flex-1 flex flex-col justify-between">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="webhook-card__number text-xs font-bold text-slate-400" aria-hidden="true">
+                      0{index + 1}
+                    </span>
+                    <Badge variant={current?.status === 'ACTIVE' ? 'active' : 'secondary'}>
                       {current?.status === 'ACTIVE'
                         ? 'Ativo'
                         : current
                           ? 'Desativado'
                           : 'Não configurado'}
-                    </dd>
+                    </Badge>
                   </div>
                   <div>
-                    <dt>Configurado em</dt>
-                    <dd>{current ? formatDate(current.configuredAt) : '—'}</dd>
+                    <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+                    <p className="text-xs text-slate-500 mt-1">{detail}</p>
                   </div>
-                  <div>
-                    <dt>Último evento</dt>
-                    <dd>
-                      {current?.lastReceivedAt
-                        ? formatDate(current.lastReceivedAt)
-                        : 'Nenhum recebido'}
-                    </dd>
+                  <dl className="space-y-2 border-t border-slate-100 pt-3 text-xs">
+                    <div className="flex justify-between">
+                      <dt className="text-slate-400">Configurado em</dt>
+                      <dd className="font-semibold text-slate-700">{current ? formatDate(current.configuredAt) : '—'}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-slate-400">Último evento</dt>
+                      <dd className="font-semibold text-slate-700">
+                        {current?.lastReceivedAt
+                          ? formatDate(current.lastReceivedAt)
+                          : 'Nenhum recebido'}
+                      </dd>
+                    </div>
+                  </dl>
+                  <div className="webhook-card__actions flex items-center gap-2 pt-2">
+                    {current ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          disabled={busy === event}
+                          onClick={() => {
+                            setConfirm({ event, action: 'reconfigure' });
+                          }}
+                        >
+                          Reconfigurar
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="webhook-remove flex-1"
+                          disabled={busy === event}
+                          onClick={() => {
+                            setConfirm({ event, action: 'remove' });
+                          }}
+                        >
+                          Remover
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        className="primary-action w-full bg-[#007a5a] hover:bg-[#005c47]"
+                        size="sm"
+                        disabled={busy === event}
+                        onClick={() => void configure(event)}
+                      >
+                        {busy === event ? 'Configurando…' : 'Configurar webhook'}
+                      </Button>
+                    )}
                   </div>
-                </dl>
-                <div className="webhook-card__actions">
-                  {current ? (
-                    <>
-                      <button
-                        type="button"
-                        disabled={busy === event}
-                        onClick={() => {
-                          setConfirm({ event, action: 'reconfigure' });
-                        }}
-                      >
-                        Reconfigurar
-                      </button>
-                      <button
-                        className="webhook-remove"
-                        type="button"
-                        disabled={busy === event}
-                        onClick={() => {
-                          setConfirm({ event, action: 'remove' });
-                        }}
-                      >
-                        Remover
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className="primary-action"
-                      type="button"
-                      disabled={busy === event}
-                      onClick={() => void configure(event)}
-                    >
-                      {busy === event ? 'Configurando…' : 'Configurar webhook'}
-                    </button>
-                  )}
-                </div>
+                </CardContent>
               </article>
             );
           })}
         </div>
       )}
 
-      {confirm && (
-        <div className="webhook-dialog-backdrop">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="webhook-confirm-title"
-            className="webhook-dialog"
-          >
-            <h2 id="webhook-confirm-title">
-              {confirm.action === 'remove' ? 'Remover webhook?' : 'Reconfigurar webhook?'}
-            </h2>
-            <p>
-              {confirm.action === 'remove'
-                ? 'O recebimento deste evento será interrompido.'
-                : 'O endpoint e o segredo atuais serão substituídos e não poderão ser recuperados.'}
-            </p>
-            <div>
-              <button
-                type="button"
-                onClick={() => {
-                  setConfirm(null);
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                className={confirm.action === 'remove' ? 'danger-action' : 'primary-action'}
-                type="button"
-                onClick={() =>
-                  void (confirm.action === 'remove'
-                    ? remove(confirm.event)
-                    : configure(confirm.event))
-                }
-              >
-                {confirm.action === 'remove' ? 'Confirmar remoção' : 'Confirmar reconfiguração'}
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
+      <Dialog open={Boolean(confirm)} onOpenChange={(open) => { if (!open) setConfirm(null); }}>
+        <DialogContent aria-describedby="webhook-confirm-desc">
+          <DialogHeader>
+            <DialogTitle>
+              {confirm?.action === 'remove' ? 'Remover webhook?' : 'Reconfigurar webhook?'}
+            </DialogTitle>
+          </DialogHeader>
+          <p id="webhook-confirm-desc" className="text-slate-600 text-sm mb-4">
+            {confirm?.action === 'remove'
+              ? 'O recebimento deste evento será interrompido.'
+              : 'O endpoint e o segredo atuais serão substituídos e não poderão ser recuperados.'}
+          </p>
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => {
+                setConfirm(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant={confirm?.action === 'remove' ? 'destructive' : 'default'}
+              className={confirm?.action === 'remove' ? 'danger-action' : 'primary-action bg-[#007a5a] hover:bg-[#005c47]'}
+              type="button"
+              onClick={() =>
+                confirm &&
+                void (confirm.action === 'remove'
+                  ? remove(confirm.event)
+                  : configure(confirm.event))
+              }
+            >
+              {confirm?.action === 'remove' ? 'Confirmar remoção' : 'Confirmar reconfiguração'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

@@ -21,7 +21,9 @@ services:
       timeout: 3s
       retries: 30
       start_period: 20s
-    networks: [data]
+    ports:
+      - '127.0.0.1:3306:3306'
+    networks: [data, edge]
     volumes:
       - mysql-data:/var/lib/mysql
 

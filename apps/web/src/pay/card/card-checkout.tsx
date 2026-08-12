@@ -1,6 +1,6 @@
 import { useState, type SyntheticEvent } from 'react';
-
-import './card-checkout.css';
+import { Button } from '../../components/ui/button.js';
+import { Input } from '../../components/ui/input.js';
 
 export interface CardQuoteView {
   quoteId: string;
@@ -103,61 +103,64 @@ export function CardCheckout({
     setState('editing');
   }
   return (
-    <section className="card-checkout" aria-labelledby="card-title">
-      <span className="eyebrow eyebrow--green">Cartão sandbox</span>
-      <h1 id="card-title">Pague com cartão</h1>
-      <div role="note" className="card-warning">
-        <strong>Use somente cartões de teste.</strong> Nunca informe dados de um cartão real.
+    <section className="card-checkout space-y-4" aria-labelledby="card-title">
+      <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider">Cartão sandbox</span>
+      <h1 id="card-title" className="text-2xl font-bold text-slate-900">Pague com cartão</h1>
+      <div role="note" className="card-warning rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+        <strong className="font-bold">Use somente cartões de teste.</strong> Nunca informe dados de um cartão real.
       </div>
       <form
         onSubmit={(event) => {
           void confirm(event);
         }}
         autoComplete="on"
+        className="space-y-4"
       >
-        <label>
+        <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
           Número do cartão
-          <input name="cardNumber" inputMode="numeric" autoComplete="cc-number" required />
+          <Input name="cardNumber" inputMode="numeric" autoComplete="cc-number" required />
         </label>
-        <label>
+        <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
           Nome impresso
-          <input name="cardHolder" autoComplete="cc-name" required />
+          <Input name="cardHolder" autoComplete="cc-name" required />
         </label>
-        <div className="card-row">
-          <label>
+        <div className="card-row grid grid-cols-3 gap-3">
+          <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
             Mês
-            <input name="expiryMonth" inputMode="numeric" autoComplete="cc-exp-month" required />
+            <Input name="expiryMonth" inputMode="numeric" autoComplete="cc-exp-month" required />
           </label>
-          <label>
+          <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
             Ano
-            <input name="expiryYear" inputMode="numeric" autoComplete="cc-exp-year" required />
+            <Input name="expiryYear" inputMode="numeric" autoComplete="cc-exp-year" required />
           </label>
-          <label>
+          <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
             CVV
-            <input name="cvv" type="password" inputMode="numeric" autoComplete="cc-csc" required />
+            <Input name="cvv" type="password" inputMode="numeric" autoComplete="cc-csc" required />
           </label>
         </div>
-        <div className="card-row">
-          <label>
+        <div className="card-row grid grid-cols-2 gap-3">
+          <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
             Bandeira
             <select
               value={brand}
               onChange={(event) => {
                 changeSelection(event.target.value as CardQuoteView['brand'], installments);
               }}
+              className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
             >
               <option>VISA</option>
               <option>MASTERCARD</option>
               <option>ELO</option>
             </select>
           </label>
-          <label>
+          <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
             Parcelas
             <select
               value={installments}
               onChange={(event) => {
                 changeSelection(brand, Number(event.target.value));
               }}
+              className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
             >
               {Array.from({ length: maxInstallments }, (_, index) => (
                 <option key={index + 1} value={index + 1}>
@@ -168,20 +171,21 @@ export function CardCheckout({
           </label>
         </div>
         {quote && (
-          <aside className="card-summary" aria-label="Resumo do pagamento">
-            <p>
-              Valor: <strong>{money(quote.grossAmountCents)}</strong>
+          <aside className="card-summary rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-1.5 text-xs text-slate-600" aria-label="Resumo do pagamento">
+            <p className="flex justify-between">
+              Valor: <strong className="text-slate-900 font-bold">{money(quote.grossAmountCents)}</strong>
             </p>
-            <p>
-              Taxa: <strong>{bps(quote.feeBps)}</strong>
+            <p className="flex justify-between">
+              Taxa: <strong className="text-slate-900 font-bold">{bps(quote.feeBps)}</strong>
             </p>
-            <p>
-              Líquido ao lojista: <strong>{money(quote.netAmountCents)}</strong>
+            <p className="flex justify-between pt-1 border-t border-slate-200">
+              Líquido ao lojista: <strong className="text-emerald-700 font-extrabold">{money(quote.netAmountCents)}</strong>
             </p>
           </aside>
         )}
-        <button
+        <Button
           type={quote ? 'submit' : 'button'}
+          className="w-full bg-[#007a5a] hover:bg-[#005c47]"
           onClick={
             quote
               ? undefined
@@ -192,9 +196,9 @@ export function CardCheckout({
           disabled={state === 'quoting' || state === 'confirming'}
         >
           {quote ? 'Confirmar pagamento' : 'Calcular parcelas e taxa'}
-        </button>
+        </Button>
       </form>
-      <div role="status" aria-live="polite" className={`card-state card-state--${state}`}>
+      <div role="status" aria-live="polite" className={`card-state card-state--${state} text-xs font-medium p-3 rounded-lg bg-slate-100 text-slate-700`}>
         {message(state)}
       </div>
     </section>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   createAuthJourneyClient,
+  createDashboardClient,
   createPaymentLinksClient,
   createReconciliationClient,
   createWebhooksClient,
@@ -8,6 +9,7 @@ import {
 } from '@baas/api-client';
 
 import { AuthJourney, type AuthJourneyApi } from '../features/auth/auth-journey.js';
+import { Dashboard, type DashboardApi } from '../features/dashboard/dashboard.js';
 import { PaymentLinks, type PaymentLinksApi } from '../features/payment-links/payment-links.js';
 import {
   ReconciliationPage,
@@ -30,6 +32,7 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
     };
     return {
       auth: createAuthJourneyClient(options) as AuthJourneyApi,
+      dashboard: createDashboardClient(options) as DashboardApi,
       links: createPaymentLinksClient(options) as PaymentLinksApi,
       webhooks: createWebhooksClient(options) as WebhookManagementApi,
       reconciliation: createReconciliationClient(options) as ReconciliationApi
@@ -57,6 +60,7 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
       />
     );
   }
+  if (hash === '#/') return <AppShell content={<Dashboard api={clients.dashboard} />} />;
   if (hash === '#/links') return <AppShell content={<PaymentLinks api={clients.links} />} />;
   if (hash === '#/webhooks')
     return <AppShell content={<WebhookManagement api={clients.webhooks} />} />;

@@ -49,7 +49,21 @@ export function createAuthJourneyClient(options: BaasClientOptions) {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body)
     });
-    if (!response.ok) throw new Error('BAAS_REQUEST_FAILED');
+    if (!response.ok) {
+      let code = 'BAAS_REQUEST_FAILED';
+      let detail: string | undefined;
+      try {
+        const problem = (await response.json()) as { code?: string; detail?: string };
+        if (typeof problem.code === 'string') code = problem.code;
+        if (typeof problem.detail === 'string') detail = problem.detail;
+      } catch {
+        // ignore JSON parse failure
+      }
+      const error = new Error(code) as Error & { code?: string; detail?: string };
+      error.code = code;
+      if (detail) error.detail = detail;
+      throw error;
+    }
     const result =
       response.status === 204 ? {} : ((await response.json()) as { accessToken?: unknown });
     if (typeof result.accessToken === 'string') {
@@ -226,6 +240,34 @@ export function createReconciliationClient(options: BaasClientOptions) {
       json(`/api/v1/reconciliation/${encodeURIComponent(operationId)}/verify`, {
         method: 'POST'
       }) as Promise<never>
+  };
+}
+
+export function createDashboardClient(options: BaasClientOptions) {
+  const request = options.fetch ?? globalThis.fetch;
+  return {
+    async load() {
+      const accessToken = options.accessToken?.();
+      const response = await request(`${options.baseUrl}/api/v1/wallet`, {
+        credentials: 'include',
+        headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
+      });
+      if (!response.ok) throw new Error('DASHBOARD_UNAVAILABLE');
+      return {
+        wallet: (await response.json()) as {
+          balanceCents: string;
+          capturedAt: string;
+          stale: boolean;
+        },
+        receivedCents: '0',
+        approvedCount: 0,
+        deniedCount: 0,
+        pendingCount: 0,
+        pixReceivedCents: '0',
+        cardReceivedCents: '0',
+        operations: []
+      };
+    }
   };
 }
 
