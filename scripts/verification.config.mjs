@@ -12,7 +12,8 @@ const prStages = [
   { name: 'unit', script: 'test:unit', enabled: true, ownerTask: 'T014' },
   { name: 'integration', script: 'test:integration', enabled: true },
   { name: 'contract', script: 'test:contract', enabled: true },
-  { name: 'gherkin', script: 'test:gherkin', enabled: true, ownerTask: 'T016' }
+  { name: 'gherkin', script: 'test:gherkin', enabled: true, ownerTask: 'T016' },
+  { name: 'e2e', script: 'test:e2e', enabled: true, ownerTask: 'T017' }
 ];
 
 export const verificationProfiles = {
@@ -20,7 +21,6 @@ export const verificationProfiles = {
   pr: prStages,
   full: [
     ...prStages,
-    { name: 'e2e', script: 'test:e2e', enabled: false, ownerTask: 'T017' },
     { name: 'mutation', script: 'test:mutation', enabled: false, ownerTask: 'T045' },
     { name: 'smoke', script: 'test:smoke', enabled: true, ownerTask: 'T010' },
     {

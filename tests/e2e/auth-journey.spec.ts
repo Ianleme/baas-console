@@ -1,0 +1,67 @@
+import { expect, test, type Page } from '@playwright/test';
+
+async function mockApi(page: Page, connectStatus = 'ACTIVE'): Promise<void> {
+  await page.route('**/api/v1/**', async (route) => {
+    await route.fulfill({
+      status: route.request().url().endsWith('/connect') ? 200 : 204,
+      contentType: 'application/json',
+      body: route.request().url().endsWith('/connect')
+        ? JSON.stringify({ status: connectStatus })
+        : ''
+    });
+  });
+}
+
+async function submitRegistration(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Criar conta' }).click();
+  const values: Record<string, string> = {
+    'Nome completo': 'Cliente Sandbox',
+    'Nome da loja': 'Loja Aurora',
+    'E-mail': 'owner@example.test',
+    Telefone: '11999999999',
+    CPF: '12345678909',
+    CEP: '01001000',
+    Endereço: 'Praça da Sé',
+    Número: '100',
+    Bairro: 'Centro',
+    Cidade: 'São Paulo',
+    UF: 'SP',
+    'Senha local': 'StrongPassword123'
+  };
+  for (const [label, value] of Object.entries(values))
+    await page.getByLabel(label, { exact: true }).fill(value);
+  await page.getByRole('button', { name: 'Criar conta segura' }).click();
+  await expect(page.getByRole('heading', { name: 'Confira seu e-mail' })).toBeVisible();
+}
+
+test('authenticates an existing merchant', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/app.html');
+  await page.getByLabel('E-mail').fill('owner@example.test');
+  await page.getByLabel('Senha').fill('StrongPassword123');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByRole('heading', { name: 'Sua operação está pronta' })).toBeVisible();
+});
+
+test('completes registration and one-time gateway connection', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/app.html');
+  await submitRegistration(page);
+  await page.getByRole('button', { name: 'Já recebi minhas credenciais' }).click();
+  await page.getByLabel('CPF ou CNPJ').fill('12345678909');
+  await page.getByLabel('Senha temporária da Lera Box').fill('temporary-secret');
+  await page.getByRole('button', { name: 'Verificar e conectar' }).click();
+  await expect(page.getByRole('heading', { name: 'Sua operação está pronta' })).toBeVisible();
+});
+
+test('keeps a divergent gateway profile disconnected', async ({ page }) => {
+  await mockApi(page, 'PROFILE_MISMATCH');
+  await page.goto('/app.html');
+  await submitRegistration(page);
+  await page.getByRole('button', { name: 'Já recebi minhas credenciais' }).click();
+  await page.getByLabel('CPF ou CNPJ').fill('00000000000');
+  await page.getByLabel('Senha temporária da Lera Box').fill('temporary-secret');
+  await page.getByRole('button', { name: 'Verificar e conectar' }).click();
+  await expect(page.getByRole('alert')).toContainText('outro perfil');
+  await expect(page.getByRole('heading', { name: 'Sua operação está pronta' })).toHaveCount(0);
+});

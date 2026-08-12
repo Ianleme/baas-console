@@ -26,6 +26,7 @@
     "test:unit": "npm run test:unit --workspace @baas/api",
     "test:live": "node scripts/live-contract-evidence.mjs test",
     "test:contract": "npm run build --workspace @baas/api && node --test --test-isolation=none scripts/generate-api-client.test.mjs && npm run test:consumer --workspace @baas/api-client && npm run test --workspace @baas/test-support && npm run test:contract --workspace @baas/api",
+    "test:e2e": "playwright test",
     "test:gherkin": "npm run build --workspace @baas/api && cucumber-js --config cucumber.mjs",
     "test:quality": "node --test --test-isolation=none scripts/validate-quality.test.mjs",
     "test:smoke": "node --test --test-isolation=none tests/smoke/development-stack.test.mjs",
@@ -40,8 +41,8 @@
   },
   "devDependencies": {
     "@cucumber/cucumber": "12.6.0",
-    "@cucumber/cucumber": "12.6.0",
     "@eslint/js": "9.39.2",
+    "@playwright/test": "1.55.1",
     "@types/node": "24.10.9",
     "eslint": "9.39.2",
     "eslint-config-prettier": "10.1.8",
