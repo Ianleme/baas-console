@@ -30,16 +30,33 @@ function sortRecursively(value) {
 }
 
 export async function loadOpenApiDocument() {
-  const [{ AppModule }, { createOpenApiDocument }] = await Promise.all([
-    import('../apps/api/dist/app.module.js'),
-    import('../apps/api/dist/platform/configure-application.js')
-  ]);
-  const app = await NestFactory.create(AppModule, { logger: false });
+  const defaults = {
+    AUTH_TOKEN_SECRET: 'openapi-generation-secret-at-least-32-bytes',
+    ENCRYPTION_KEY_BASE64: Buffer.alloc(32, 1).toString('base64'),
+    LERA_BOX_BASE_URL: 'https://gateway.openapi.invalid',
+    PUBLIC_API_BASE_URL: 'https://api.openapi.invalid'
+  };
+  const inserted = [];
+  for (const [name, value] of Object.entries(defaults)) {
+    if (!process.env[name]) {
+      process.env[name] = value;
+      inserted.push(name);
+    }
+  }
   try {
-    await app.init();
-    return sortRecursively(createOpenApiDocument(app));
+    const [{ AppModule }, { createOpenApiDocument }] = await Promise.all([
+      import('../apps/api/dist/app.module.js'),
+      import('../apps/api/dist/platform/configure-application.js')
+    ]);
+    const app = await NestFactory.create(AppModule, { logger: false });
+    try {
+      await app.init();
+      return sortRecursively(createOpenApiDocument(app));
+    } finally {
+      await app.close();
+    }
   } finally {
-    await app.close();
+    for (const name of inserted) delete process.env[name];
   }
 }
 

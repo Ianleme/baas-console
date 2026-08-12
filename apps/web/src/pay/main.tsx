@@ -11,15 +11,23 @@ import { PayShell } from './pay-shell.js';
 
 const root = document.querySelector('#pay-root');
 if (!root) throw new Error('PAY_ROOT_MISSING');
+let csrfToken = '';
+const options = {
+  baseUrl: '',
+  csrfToken: () => csrfToken,
+  onCsrfToken: (token: string) => {
+    csrfToken = token;
+  }
+};
 
 createRoot(root).render(
   <StrictMode>
     <PayShell
       content={
         <CheckoutSession
-          api={createCheckoutSessionClient({ baseUrl: '' })}
-          pixApi={createPixStatusClient({ baseUrl: '' })}
-          cardApi={createCardCheckoutClient({ baseUrl: '' })}
+          api={createCheckoutSessionClient(options)}
+          pixApi={createPixStatusClient(options)}
+          cardApi={createCardCheckoutClient(options)}
         />
       }
     />

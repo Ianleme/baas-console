@@ -39,7 +39,13 @@ function formText(data: FormData, name: string): string {
   return typeof value === 'string' ? value : '';
 }
 
-export function AuthJourney({ client = api }: { client?: AuthJourneyApi }) {
+export function AuthJourney({
+  client = api,
+  onAuthenticated
+}: {
+  client?: AuthJourneyApi;
+  onAuthenticated?: () => void;
+}) {
   const [screen, setScreen] = useState<Screen>('login');
   const [personType, setPersonType] = useState<PersonType>('PF');
   const [showPassword, setShowPassword] = useState(false);
@@ -69,6 +75,7 @@ export function AuthJourney({ client = api }: { client?: AuthJourneyApi }) {
         remember: data.get('remember') === 'on'
       });
       setScreen('active');
+      onAuthenticated?.();
     });
   }
 

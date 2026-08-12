@@ -145,7 +145,7 @@ export class PaymentsController {
       });
       response.status(result.httpStatus);
       setPublicHeaders(response);
-      return result.attempt;
+      return pixAttemptView(result.attempt, session.link.amountCents, session.link.expiresAt);
     } catch (error) {
       throw paymentProblem(error);
     }
@@ -163,7 +163,7 @@ export class PaymentsController {
     if (attempt.checkoutLinkId !== session.link.id)
       throw new ProblemException('PAYMENT_NOT_FOUND', 404, 'Payment attempt was not found.');
     setPublicHeaders(response);
-    return attempt;
+    return pixAttemptView(attempt, session.link.amountCents, session.link.expiresAt);
   }
 
   @Post('payments/card/quote')
@@ -256,6 +256,13 @@ function cookie(request: Request, name: string): string {
 function setPublicHeaders(response: Response): void {
   for (const [name, value] of Object.entries(publicCheckoutHeaders()))
     response.setHeader(name, value);
+}
+function pixAttemptView(
+  attempt: Awaited<ReturnType<TypeOrmPixAttemptStore['required']>>,
+  amountCents: string,
+  expiresAt: Date
+) {
+  return { ...attempt, amountCents, expiresAt: expiresAt.toISOString() };
 }
 function paymentProblem(error: unknown): ProblemException {
   if (error instanceof ProblemException) return error;

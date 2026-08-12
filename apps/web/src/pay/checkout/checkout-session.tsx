@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 
 import type { PublicCheckoutView } from '@baas/api-client';
 import { CardCheckout, type CardCheckoutApi } from '../card/card-checkout.js';
@@ -27,6 +27,8 @@ export function CheckoutSession({
   const [state, setState] = useState<'loading' | 'invalid' | 'ready'>('loading');
   const [checkout, setCheckout] = useState<PublicCheckoutView | null>(null);
   const [pixAttempt, setPixAttempt] = useState<PixCheckoutAttempt | null>(null);
+  const [pixSelected, setPixSelected] = useState(false);
+  const [pixBusy, setPixBusy] = useState(false);
   const [cardSelected, setCardSelected] = useState(false);
 
   useEffect(() => {
@@ -67,6 +69,18 @@ export function CheckoutSession({
   if (state === 'loading') return <p role="status">Preparando checkout seguro…</p>;
   if (state === 'invalid' || !checkout) return <CheckoutUnavailable label="Link indisponível" />;
   if (checkout.state !== 'READY') return <CheckoutUnavailable label={stateLabel(checkout.state)} />;
+  async function createPix(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
+    event.preventDefault();
+    if (!pixApi?.create || pixBusy) return;
+    const payerDocument = new FormData(event.currentTarget).get('payerDocument');
+    if (typeof payerDocument !== 'string') return;
+    setPixBusy(true);
+    try {
+      setPixAttempt(await pixApi.create({ payerDocument }));
+    } finally {
+      setPixBusy(false);
+    }
+  }
   return (
     <section className="checkout-content" aria-labelledby="public-checkout-title">
       <span className="eyebrow eyebrow--green">Pagamento seguro</span>
@@ -74,7 +88,16 @@ export function CheckoutSession({
       <strong className="checkout-amount">{money(checkout.amountCents)}</strong>
       <p>Escolha como pagar neste ambiente controlado.</p>
       <div className="checkout-methods">
-        {checkout.methods !== 'CARD' && <button type="button">Pagar com Pix</button>}
+        {checkout.methods !== 'CARD' && !pixSelected && (
+          <button
+            type="button"
+            onClick={() => {
+              setPixSelected(true);
+            }}
+          >
+            Pagar com Pix
+          </button>
+        )}
         {checkout.methods !== 'PIX' && (
           <button
             type="button"
@@ -86,6 +109,17 @@ export function CheckoutSession({
           </button>
         )}
       </div>
+      {pixSelected && pixApi?.create && (
+        <form aria-label="Gerar pagamento Pix" onSubmit={(event) => void createPix(event)}>
+          <label>
+            CPF ou CNPJ do pagador
+            <input name="payerDocument" inputMode="numeric" required />
+          </label>
+          <button type="submit" disabled={pixBusy}>
+            {pixBusy ? 'Gerando Pixâ€¦' : 'Gerar Pix'}
+          </button>
+        </form>
+      )}
     </section>
   );
 }

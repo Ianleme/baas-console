@@ -110,11 +110,11 @@ test('runs explicit migrations before API readiness', () => {
     '--batch',
     '--skip-column-names',
     '-e',
-    "SELECT COUNT(*) FROM migrations; SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('merchants','checkout_links','withdrawals','webhook_events');"
+    "SELECT COUNT(*) FROM migrations; SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('merchants','checkout_links','checkout_sessions','withdrawals','webhook_events');"
   ])
     .trim()
     .split(/\r?\n/u);
-  assert.deepEqual(output, ['4', '4']);
+  assert.deepEqual(output, ['6', '5']);
 });
 
 test('reports API readiness only after database and schema checks succeed', async () => {
@@ -147,6 +147,34 @@ test('forwards same-origin API requests to the API container', async () => {
     detail: 'The requested resource was not found.',
     instance: '/api/v1/__proxy_probe__'
   });
+});
+
+test('publishes the composed API surface and proxies login instead of returning a static 404', async () => {
+  const document = await fetch(`http://127.0.0.1:${environment.API_PORT}/docs-json`).then(
+    (response) => response.json()
+  );
+  assert.ok(Object.keys(document.paths).length >= 21);
+  for (const path of [
+    '/api/v1/auth/login',
+    '/api/v1/checkout-links',
+    '/api/v1/public/payments/pix',
+    '/api/v1/public/payments/card/confirm',
+    '/api/v1/wallet'
+  ]) {
+    assert.ok(document.paths[path], `Swagger path missing: ${path}`);
+  }
+
+  const login = await fetch(`http://127.0.0.1:${environment.WEB_PORT}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      email: 'missing@example.test',
+      password: 'StrongPassword123',
+      remember: false
+    })
+  });
+  assert.equal(login.status, 401);
+  assert.equal((await login.json()).code, 'INVALID_CREDENTIALS');
 });
 
 test('exposes healthy Mailpit HTTP and SMTP services only on loopback', async () => {

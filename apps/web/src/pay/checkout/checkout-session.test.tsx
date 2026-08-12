@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { PublicCheckoutView } from '@baas/api-client';
 
 import { CheckoutSession, type CheckoutExchangeApi } from './checkout-session.js';
@@ -39,6 +40,31 @@ describe('CheckoutSession', () => {
     expect(await screen.findByText('R$ 320,00')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Pagar com Pix' })).toBeVisible();
     expect(screen.getByRole('button', { name: /Pagar com cartão · até 3x/ })).toBeVisible();
+  });
+  test('creates Pix once with the payer document before showing the attempt', async () => {
+    const create = vi.fn().mockResolvedValue({
+      id: 'attempt-1',
+      status: 'PENDING',
+      amountCents: '32000',
+      emv: 'PIX-CODE',
+      qrCodeBase64: null,
+      txid: 'txid',
+      expiresAt: new Date(Date.now() + 300_000).toISOString()
+    });
+    render(
+      <CheckoutSession
+        api={client()}
+        pixApi={{ create, status: vi.fn() }}
+        fragment={`#/checkout/${token}`}
+      />
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Pagar com Pix' }));
+    await userEvent.type(screen.getByLabelText('CPF ou CNPJ do pagador'), '12345678901');
+    await userEvent.click(screen.getByRole('button', { name: 'Gerar Pix' }));
+    await waitFor(() => {
+      expect(create).toHaveBeenCalledWith({ payerDocument: '12345678901' });
+    });
+    expect(await screen.findByLabelText('Código Pix copia e cola')).toHaveValue('PIX-CODE');
   });
   test('maps an invalid token to a generic unavailable view', async () => {
     render(<CheckoutSession api={client()} fragment="#/checkout/short" />);

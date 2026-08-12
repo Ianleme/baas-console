@@ -9,6 +9,8 @@ export interface BaasClientOptions {
   fetch?: typeof globalThis.fetch;
   accessToken?: () => string;
   onAccessToken?: (token: string) => void;
+  csrfToken?: () => string;
+  onCsrfToken?: (token: string) => void;
 }
 
 export interface BaasMemorySession {
@@ -97,22 +99,76 @@ export function createPaymentLinksClient(options: BaasClientOptions) {
     const response = await request(`${options.baseUrl}${path}`, {
       credentials: 'include',
       ...init,
-      headers
+      headers: Object.fromEntries(headers)
     });
     if (!response.ok) throw new Error('BAAS_REQUEST_FAILED');
     return response.json() as Promise<unknown>;
   }
   return {
-    list: () => json('/api/v1/checkout-links') as Promise<never[]>,
-    create: (input: unknown) =>
-      json('/api/v1/checkout-links', {
-        method: 'POST',
-        body: JSON.stringify(input)
-      }) as Promise<never>,
-    cancel: (id: string) =>
-      json(`/api/v1/checkout-links/${encodeURIComponent(id)}/cancel`, {
-        method: 'POST'
-      }) as Promise<never>
+    list: async () => mapPaymentLinks(await json('/api/v1/checkout-links')),
+    create: async (input: PaymentLinkInput) =>
+      mapPaymentLink(
+        await json('/api/v1/checkout-links', {
+          method: 'POST',
+          body: JSON.stringify({
+            publicReference: input.reference,
+            description: input.description,
+            amountCents: input.amountCents,
+            allowedMethods: input.methods,
+            maxInstallments: input.maxInstallments,
+            expiresAt: input.expiresAt
+          })
+        })
+      ),
+    cancel: async (id: string) =>
+      mapPaymentLink(
+        await json(`/api/v1/checkout-links/${encodeURIComponent(id)}/cancel`, {
+          method: 'POST'
+        })
+      )
+  };
+}
+
+export interface PaymentLinkInput {
+  reference: string;
+  description: string;
+  amountCents: string;
+  methods: 'PIX' | 'CARD' | 'PIX_CARD';
+  maxInstallments: number;
+  selectedFeeBps: number | null;
+  expiresAt: string;
+}
+
+interface PaymentLinkResponse {
+  id: string;
+  publicReference: string;
+  description: string;
+  amountCents: string;
+  allowedMethods: PaymentLinkInput['methods'];
+  maxInstallments: number;
+  feeSnapshot: { installments: number; feeBps: number }[];
+  status: 'ACTIVE' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+  expiresAt: string;
+}
+
+function mapPaymentLinks(value: unknown) {
+  if (!Array.isArray(value)) throw new Error('BAAS_RESPONSE_INVALID');
+  return value.map(mapPaymentLink);
+}
+
+function mapPaymentLink(value: unknown) {
+  const link = value as PaymentLinkResponse;
+  const selectedFee = link.feeSnapshot.find((fee) => fee.installments === link.maxInstallments);
+  return {
+    id: link.id,
+    reference: link.publicReference,
+    description: link.description,
+    amountCents: link.amountCents,
+    methods: link.allowedMethods,
+    maxInstallments: link.maxInstallments,
+    selectedFeeBps: selectedFee?.feeBps ?? null,
+    status: link.status,
+    expiresAt: link.expiresAt
   };
 }
 
@@ -121,6 +177,8 @@ export function createWebhooksClient(options: BaasClientOptions) {
   async function json(path: string, init?: RequestInit): Promise<unknown> {
     const headers = new Headers(init?.headers);
     headers.set('content-type', 'application/json');
+    const accessToken = options.accessToken?.();
+    if (accessToken) headers.set('authorization', `Bearer ${accessToken}`);
     const response = await request(`${options.baseUrl}${path}`, {
       credentials: 'include',
       ...init,
@@ -147,6 +205,8 @@ export function createReconciliationClient(options: BaasClientOptions) {
   async function json(path: string, init?: RequestInit): Promise<unknown> {
     const headers = new Headers(init?.headers);
     headers.set('content-type', 'application/json');
+    const accessToken = options.accessToken?.();
+    if (accessToken) headers.set('authorization', `Bearer ${accessToken}`);
     const response = await request(`${options.baseUrl}${path}`, {
       credentials: 'include',
       ...init,
@@ -188,13 +248,25 @@ export function createCheckoutSessionClient(options: BaasClientOptions) {
         body: JSON.stringify({ token })
       });
       if (!response.ok) throw new Error('CHECKOUT_SESSION_UNAVAILABLE');
-      return response.json() as Promise<{ checkout: PublicCheckoutView; csrfToken: string }>;
+      const result = (await response.json()) as { checkout: PublicCheckoutView; csrfToken: string };
+      options.onCsrfToken?.(result.csrfToken);
+      return result;
     }
   };
 }
 export function createPixStatusClient(options: BaasClientOptions) {
   const request = options.fetch ?? globalThis.fetch;
   return {
+    async create(input: { payerDocument: string }): Promise<never> {
+      const response = await request(`${options.baseUrl}/api/v1/public/payments/pix`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: checkoutHeaders(options),
+        body: JSON.stringify(input)
+      });
+      if (!response.ok) throw new Error('PIX_CREATION_UNAVAILABLE');
+      return response.json() as Promise<never>;
+    },
     async status(attemptId: string): Promise<never> {
       const response = await request(
         `${options.baseUrl}/api/v1/public/payments/pix/${encodeURIComponent(attemptId)}`,
@@ -211,7 +283,7 @@ export function createCardCheckoutClient(options: BaasClientOptions) {
     const response = await request(`${options.baseUrl}${path}`, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'content-type': 'application/json' },
+      headers: checkoutHeaders(options),
       body: JSON.stringify(body)
     });
     if (!response.ok) {
@@ -229,7 +301,35 @@ export function createCardCheckoutClient(options: BaasClientOptions) {
     return response.json() as Promise<never>;
   }
   return {
-    quote: (input: unknown) => post('/api/v1/public/payments/card/quote', input),
-    confirm: (input: unknown) => post('/api/v1/public/payments/card/confirm', input)
+    quote: (input: { amountCents: string; brand: string; installments: number }) =>
+      post('/api/v1/public/payments/card/quote', {
+        brand: input.brand,
+        installments: input.installments
+      }),
+    confirm: (input: {
+      quoteId: string;
+      cardNumber: string;
+      cardHolder: string;
+      expiryMonth: number;
+      expiryYear: number;
+      cvv: string;
+    }) =>
+      post('/api/v1/public/payments/card/confirm', {
+        quoteId: input.quoteId,
+        card: {
+          number: input.cardNumber,
+          holder: input.cardHolder,
+          expiryMonth: input.expiryMonth,
+          expiryYear: input.expiryYear,
+          cvv: input.cvv
+        }
+      })
   };
+}
+
+function checkoutHeaders(options: BaasClientOptions): Record<string, string> {
+  const headers: Record<string, string> = { 'content-type': 'application/json' };
+  const csrfToken = options.csrfToken?.();
+  if (csrfToken) headers['x-csrf-token'] = csrfToken;
+  return headers;
 }

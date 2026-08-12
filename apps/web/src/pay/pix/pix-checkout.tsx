@@ -18,6 +18,7 @@ export interface PixCheckoutAttempt {
   expiresAt: string;
 }
 export interface PixCheckoutApi {
+  create?: (input: { payerDocument: string }) => Promise<PixCheckoutAttempt>;
   status: (attemptId: string) => Promise<PixCheckoutAttempt>;
 }
 export function PixCheckout({

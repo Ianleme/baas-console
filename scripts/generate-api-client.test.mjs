@@ -18,6 +18,27 @@ test('generates schema paths from the real Nest OpenAPI document', async () => {
   assert.match(source, /['"]\/health\/ready['"]/u);
 });
 
+test('loads the OpenAPI document without incidental runtime secrets', async () => {
+  const names = [
+    'AUTH_TOKEN_SECRET',
+    'ENCRYPTION_KEY_BASE64',
+    'LERA_BOX_BASE_URL',
+    'PUBLIC_API_BASE_URL'
+  ];
+  const previous = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+  for (const name of names) delete process.env[name];
+  try {
+    const document = await loadOpenApiDocument();
+    assert.ok(Object.keys(document.paths).length >= 21);
+  } finally {
+    for (const name of names) {
+      const value = previous[name];
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  }
+});
+
 test('generates byte-identical client source for the same contract', async () => {
   const document = await loadOpenApiDocument();
   const first = await generateClientSource(document);
