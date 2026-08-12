@@ -562,4 +562,59 @@ describe('checkout and payment persistence on MySQL 8.4', () => {
       insertLink(merchantId, { allowedMethods: 'CARD', maxInstallments: 21 })
     ).resolves.toBeDefined();
   });
+
+  test('persists only the allowlisted card brand and last four digits', async () => {
+    const merchantId = await insertMerchant();
+    const linkId = await insertLink(merchantId);
+    const attemptId = randomUUID();
+    await dataSource.query(
+      'INSERT INTO payment_attempts (id, merchant_id, checkout_link_id, method, status, external_reference, installments, fee_bps, gross_amount_cents, fee_amount_cents, net_amount_cents, card_brand, card_last4) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        attemptId,
+        merchantId,
+        linkId,
+        'CARD',
+        'APPROVED',
+        `PAY-${randomUUID()}`,
+        3,
+        319,
+        '32000',
+        '1021',
+        '30979',
+        'VISA',
+        '1111'
+      ]
+    );
+    const rows = await dataSource.query<Record<string, unknown>[]>(
+      'SELECT * FROM payment_attempts WHERE id = ?',
+      [attemptId]
+    );
+    expect(rows[0]).toMatchObject({ card_brand: 'VISA', card_last4: '1111' });
+    expect(JSON.stringify(rows)).not.toMatch(/4111111111111111|CLIENTE SANDBOX|"cvv"/u);
+  });
+
+  test('rejects card identifiers other than exactly four digits', async () => {
+    const merchantId = await insertMerchant();
+    const linkId = await insertLink(merchantId);
+    await expectConstraintViolation(
+      dataSource.query(
+        'INSERT INTO payment_attempts (id, merchant_id, checkout_link_id, method, status, external_reference, installments, fee_bps, gross_amount_cents, fee_amount_cents, net_amount_cents, card_brand, card_last4) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          randomUUID(),
+          merchantId,
+          linkId,
+          'CARD',
+          'DENIED',
+          `PAY-${randomUUID()}`,
+          1,
+          250,
+          '100',
+          '3',
+          '97',
+          'VISA',
+          '4111111111111111'
+        ]
+      )
+    );
+  });
 });
