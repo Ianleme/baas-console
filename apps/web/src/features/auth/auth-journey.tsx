@@ -248,15 +248,16 @@ export function AuthJourney({
     try {
       await task();
     } catch (err: unknown) {
-      const code = (err as { code?: string })?.code;
-      const detail = (err as { detail?: string })?.detail;
+      const errObj = (err ?? {}) as { code?: string; detail?: string };
+      const code = errObj.code;
+      const detail = errObj.detail;
 
       if (code === 'GATEWAY_CREDENTIALS_INVALID') {
         setError(
           'Credenciais da Lera Box inválidas. Verifique o documento e a senha enviados por e-mail.'
         );
       } else if (code === 'VALIDATION_FAILED') {
-        setError(detail || 'Dados inválidos. Verifique se a senha possui no mínimo 12 caracteres.');
+        setError(detail ?? 'Dados inválidos. Verifique se a senha possui no mínimo 12 caracteres.');
       } else {
         setError('Não foi possível concluir. Revise os dados e tente novamente.');
       }

@@ -66,19 +66,23 @@ export class TransactionsService {
 
     // Check if remote gateway synchronization is available
     try {
-      const auth = await this.credentials.getActiveGatewayAuth(merchantId);
+      const auth = (await this.credentials.getActiveGatewayAuth(merchantId)) as
+        | { accessToken?: string }
+        | undefined;
       if (auth?.accessToken) {
         const remoteTransactions = await this.gateway.listStatement(auth.accessToken);
         const remoteMap = new Map(remoteTransactions.map((item) => [item.id, item]));
 
         // Merge remote status updates into local projections in memory
         for (const record of records) {
-          if (record.gatewayTransactionId && remoteMap.has(record.gatewayTransactionId)) {
-            const remote = remoteMap.get(record.gatewayTransactionId)!;
-            if (remote.status === 'APPROVED' && record.status !== 'APPROVED') {
-              record.status = 'APPROVED';
-            } else if (remote.status === 'DENIED' && record.status !== 'DENIED') {
-              record.status = 'DENIED';
+          if (record.gatewayTransactionId) {
+            const remote = remoteMap.get(record.gatewayTransactionId);
+            if (remote) {
+              if (remote.status === 'APPROVED' && record.status !== 'APPROVED') {
+                record.status = 'APPROVED';
+              } else if (remote.status === 'DENIED' && record.status !== 'DENIED') {
+                record.status = 'DENIED';
+              }
             }
           }
         }
@@ -95,9 +99,9 @@ export class TransactionsService {
       gatewayTransactionId: record.gatewayTransactionId,
       type: record.type,
       status: record.status,
-      grossAmountCents: String(record.grossAmountCents),
-      feeAmountCents: String(record.feeAmountCents),
-      netAmountCents: String(record.netAmountCents),
+      grossAmountCents: record.grossAmountCents,
+      feeAmountCents: record.feeAmountCents,
+      netAmountCents: record.netAmountCents,
       occurredAt: record.occurredAt.toISOString()
     }));
 

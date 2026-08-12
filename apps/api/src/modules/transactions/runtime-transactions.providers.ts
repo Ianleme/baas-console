@@ -9,7 +9,7 @@ export class BearerTransactionsPrincipal implements TransactionsPrincipalProvide
   constructor(@Inject(REQUEST) private readonly request: { merchant?: { id?: string } }) {}
 
   current(): { merchantId: string } {
-    const merchantId = this.request?.merchant?.id;
+    const merchantId = this.request.merchant?.id;
     if (!merchantId) {
       throw new ProblemException(
         'UNAUTHENTICATED',

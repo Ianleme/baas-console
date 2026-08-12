@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method -- Jest mocks are inspected without invocation. */
 import type { DataSource, SelectQueryBuilder } from 'typeorm';
 import type { GatewayCredentialService } from '../../../src/modules/gateway-accounts/gateway-credential.service.js';
 import type { StatementGatewayAdapter } from '../../../src/modules/transactions/adapters/lera-box-statement.adapter.js';
@@ -33,7 +32,7 @@ describe('TransactionsService', () => {
     receiptTokenVersion: 0,
     createdAt: new Date('2026-08-12T14:00:00.000Z'),
     updatedAt: new Date('2026-08-12T14:00:00.000Z'),
-    merchant: undefined as any
+    merchant: {} as TransactionEntity['merchant']
   };
 
   beforeEach(() => {
