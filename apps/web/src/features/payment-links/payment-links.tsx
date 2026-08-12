@@ -14,12 +14,7 @@ import {
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Card, CardContent } from '../../components/ui/card.js';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle
-} from '../../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
 import { Input } from '../../components/ui/input.js';
 import {
   Table,
@@ -132,10 +127,7 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
     () => links.filter((link) => link.status === 'ACTIVE').length,
     [links]
   );
-  const paidCount = useMemo(
-    () => links.filter((link) => link.status === 'PAID').length,
-    [links]
-  );
+  const paidCount = useMemo(() => links.filter((link) => link.status === 'PAID').length, [links]);
   const totalReceivedCents = useMemo(
     () =>
       links
@@ -197,9 +189,15 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
       {/* Header */}
       <header className="page-header flex flex-wrap items-start justify-between gap-4">
         <div>
-          <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider">OPERAÇÕES</span>
-          <h1 id="links-title" className="text-3xl font-extrabold text-slate-900 mt-1">Links de pagamento</h1>
-          <p className="subtitle text-slate-500 text-sm mt-1">Crie e acompanhe checkouts conciliados com suas vendas.</p>
+          <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider">
+            OPERAÇÕES
+          </span>
+          <h1 id="links-title" className="text-3xl font-extrabold text-slate-900 mt-1">
+            Links de pagamento
+          </h1>
+          <p className="subtitle text-slate-500 text-sm mt-1">
+            Crie e acompanhe checkouts conciliados com suas vendas.
+          </p>
         </div>
         <div className="header-actions flex items-center gap-3">
           <Button
@@ -224,12 +222,18 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
       </header>
 
       {/* KPI Cards Row - Real API Metrics using Shadcn Cards */}
-      <div className="kpi-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" role="region" aria-label="Resumo dos links">
+      <div
+        className="kpi-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        role="region"
+        aria-label="Resumo dos links"
+      >
         <Card className="p-5">
           <CardContent className="p-0 flex flex-col justify-between h-full space-y-1">
             <span className="kpi-label text-xs font-semibold text-slate-500">Links ativos</span>
             <div className="kpi-value-group">
-              <strong className="kpi-value text-2xl font-extrabold text-slate-900">{activeCount}</strong>
+              <strong className="kpi-value text-2xl font-extrabold text-slate-900">
+                {activeCount}
+              </strong>
             </div>
             <span className="kpi-subtext text-xs text-slate-400">Prontos para receber</span>
           </CardContent>
@@ -237,9 +241,13 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
 
         <Card className="p-5">
           <CardContent className="p-0 flex flex-col justify-between h-full space-y-1">
-            <span className="kpi-label text-xs font-semibold text-slate-500">Pagamentos concluídos</span>
+            <span className="kpi-label text-xs font-semibold text-slate-500">
+              Pagamentos concluídos
+            </span>
             <div className="kpi-value-group">
-              <strong className="kpi-value text-2xl font-extrabold text-slate-900">{paidCount}</strong>
+              <strong className="kpi-value text-2xl font-extrabold text-slate-900">
+                {paidCount}
+              </strong>
             </div>
             <span className="kpi-subtext text-xs text-slate-400">No período selecionado</span>
           </CardContent>
@@ -249,7 +257,9 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
           <CardContent className="p-0 flex flex-col justify-between h-full space-y-1">
             <span className="kpi-label text-xs font-semibold text-slate-500">Valor recebido</span>
             <div className="kpi-value-group">
-              <strong className="kpi-value text-2xl font-extrabold text-slate-900">{money(totalReceivedCents.toString())}</strong>
+              <strong className="kpi-value text-2xl font-extrabold text-slate-900">
+                {money(totalReceivedCents.toString())}
+              </strong>
             </div>
             <span className="kpi-growth-badge inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-[#d8f3dc] px-2.5 py-0.5 rounded-full w-fit">
               <TrendingUp className="h-3.5 w-3.5" />
@@ -261,9 +271,13 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
         <Card className="p-5">
           <CardContent className="p-0 flex items-center justify-between h-full">
             <div>
-              <span className="kpi-label text-xs font-semibold text-slate-500">Taxa de conversão</span>
+              <span className="kpi-label text-xs font-semibold text-slate-500">
+                Taxa de conversão
+              </span>
               <div className="kpi-value-group mt-1">
-                <strong className="kpi-value text-2xl font-extrabold text-slate-900">{conversionRate}%</strong>
+                <strong className="kpi-value text-2xl font-extrabold text-slate-900">
+                  {conversionRate}%
+                </strong>
               </div>
             </div>
             <div className="donut-chart h-12 w-12" aria-hidden="true">
@@ -284,7 +298,10 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
       </div>
 
       {/* Filter and Control Bar */}
-      <div className="filters-bar flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm" role="search">
+      <div
+        className="filters-bar flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+        role="search"
+      >
         <div className="search-input-wrapper relative flex-1 min-w-[15rem]">
           <Search className="search-icon absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
@@ -377,7 +394,11 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
       </div>
 
       {/* Status Tabs */}
-      <div className="status-tabs flex gap-6 border-b border-slate-200 px-1" role="tablist" aria-label="Filtro por aba de status">
+      <div
+        className="status-tabs flex gap-6 border-b border-slate-200 px-1"
+        role="tablist"
+        aria-label="Filtro por aba de status"
+      >
         {(['ALL', 'ACTIVE', 'PAID', 'EXPIRED', 'CANCELLED'] as const).map((tab) => (
           <button
             key={tab}
@@ -397,14 +418,25 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
       </div>
 
       {notice && (
-        <div className="toast-notice bg-[#005c47] text-white p-3 rounded-lg font-semibold text-sm" aria-live="polite">
+        <div
+          className="toast-notice bg-[#005c47] text-white p-3 rounded-lg font-semibold text-sm"
+          aria-live="polite"
+        >
           {notice}
         </div>
       )}
 
       {/* Table Content */}
-      {state === 'loading' && <p role="status" className="text-slate-500 p-4">Carregando links…</p>}
-      {state === 'error' && <p role="alert" className="text-red-600 p-4">Não foi possível carregar os links.</p>}
+      {state === 'loading' && (
+        <p role="status" className="text-slate-500 p-4">
+          Carregando links…
+        </p>
+      )}
+      {state === 'error' && (
+        <p role="alert" className="text-red-600 p-4">
+          Não foi possível carregar os links.
+        </p>
+      )}
       {state === 'ready' && visible.length === 0 && (
         <div className="empty-state-box border-2 border-dashed border-slate-200 rounded-xl p-12 text-center text-slate-500">
           <p>Nenhum link encontrado.</p>
@@ -427,7 +459,9 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
               <TableRow key={link.id}>
                 <TableCell>
                   <div className="link-title-box flex flex-col">
-                    <strong className="link-name font-semibold text-slate-900">{link.description}</strong>
+                    <strong className="link-name font-semibold text-slate-900">
+                      {link.description}
+                    </strong>
                     <span className="link-ref text-xs text-slate-400">{link.reference}</span>
                   </div>
                 </TableCell>
@@ -435,10 +469,14 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
                   <MethodBadge method={link.methods} installments={link.maxInstallments} />
                 </TableCell>
                 <TableCell>
-                  <span className="amount-cell font-semibold text-slate-900">{money(link.amountCents)}</span>
+                  <span className="amount-cell font-semibold text-slate-900">
+                    {money(link.amountCents)}
+                  </span>
                 </TableCell>
                 <TableCell>
-                  <span className="date-cell text-xs text-slate-500">{formatExpiration(link.expiresAt)}</span>
+                  <span className="date-cell text-xs text-slate-500">
+                    {formatExpiration(link.expiresAt)}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={link.status} />
@@ -508,11 +546,20 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
             </label>
             <label className="flex flex-col text-sm font-semibold text-slate-700 gap-1">
               Valor em centavos
-              <Input name="amountCents" required inputMode="numeric" pattern="[0-9]+" placeholder="Ex: 35000 para R$ 350,00" />
+              <Input
+                name="amountCents"
+                required
+                inputMode="numeric"
+                pattern="[0-9]+"
+                placeholder="Ex: 35000 para R$ 350,00"
+              />
             </label>
             <label className="flex flex-col text-sm font-semibold text-slate-700 gap-1">
               Métodos
-              <select name="methods" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+              <select
+                name="methods"
+                className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+              >
                 <option value="PIX">Pix</option>
                 <option value="CARD">Cartão</option>
                 <option value="PIX_CARD">Pix e cartão</option>
@@ -537,7 +584,12 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(selected)} onOpenChange={(open) => { if (!open) setSelected(null); }}>
+      <Dialog
+        open={Boolean(selected)}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Detalhes do link</DialogTitle>
@@ -554,11 +606,15 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
               </div>
               <div className="flex justify-between border-b border-slate-100 pb-2">
                 <dt className="text-sm text-slate-500">Status</dt>
-                <dd className="text-sm font-semibold text-slate-900">{statusLabels[selected.status]}</dd>
+                <dd className="text-sm font-semibold text-slate-900">
+                  {statusLabels[selected.status]}
+                </dd>
               </div>
               <div className="flex justify-between border-b border-slate-100 pb-2">
                 <dt className="text-sm text-slate-500">Valor</dt>
-                <dd className="text-sm font-semibold text-slate-900">{money(selected.amountCents)}</dd>
+                <dd className="text-sm font-semibold text-slate-900">
+                  {money(selected.amountCents)}
+                </dd>
               </div>
               <div className="flex justify-between border-b border-slate-100 pb-2">
                 <dt className="text-sm text-slate-500">Taxa selecionada</dt>
@@ -570,20 +626,34 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
               </div>
               <div className="flex justify-between border-b border-slate-100 pb-2">
                 <dt className="text-sm text-slate-500">Parcelas</dt>
-                <dd className="text-sm font-semibold text-slate-900">Até {selected.maxInstallments}x</dd>
+                <dd className="text-sm font-semibold text-slate-900">
+                  Até {selected.maxInstallments}x
+                </dd>
               </div>
             </dl>
           )}
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(cancelCandidate)} onOpenChange={(open) => { if (!open) setCancelCandidate(null); }}>
+      <Dialog
+        open={Boolean(cancelCandidate)}
+        onOpenChange={(open) => {
+          if (!open) setCancelCandidate(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancelar link?</DialogTitle>
           </DialogHeader>
-          <p className="text-slate-600 text-sm mb-4">Esta ação não pode ser desfeita. O checkout deixará de aceitar pagamentos.</p>
-          <Button variant="destructive" className="w-full" type="button" onClick={() => void confirmCancel()}>
+          <p className="text-slate-600 text-sm mb-4">
+            Esta ação não pode ser desfeita. O checkout deixará de aceitar pagamentos.
+          </p>
+          <Button
+            variant="destructive"
+            className="w-full"
+            type="button"
+            onClick={() => void confirmCancel()}
+          >
             Confirmar cancelamento
           </Button>
         </DialogContent>
@@ -592,7 +662,13 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
   );
 }
 
-function MethodBadge({ method, installments }: { method: PaymentLinkView['methods']; installments: number }) {
+function MethodBadge({
+  method,
+  installments
+}: {
+  method: PaymentLinkView['methods'];
+  installments: number;
+}) {
   if (method === 'PIX') {
     return (
       <span className="method-badge inline-flex items-center gap-1.5 text-sm font-medium text-slate-700">
@@ -633,13 +709,23 @@ function money(cents: string) {
 
 function formatExpiration(expiresAt: string) {
   if (!expiresAt) return '-';
-  if (expiresAt.includes('Expirou') || expiresAt.includes('Cancelado') || expiresAt.includes('Hoje') || expiresAt.includes('Ontem')) {
+  if (
+    expiresAt.includes('Expirou') ||
+    expiresAt.includes('Cancelado') ||
+    expiresAt.includes('Hoje') ||
+    expiresAt.includes('Ontem')
+  ) {
     return expiresAt;
   }
   try {
     const date = new Date(expiresAt);
     if (isNaN(date.getTime())) return expiresAt;
-    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   } catch {
     return expiresAt;
   }

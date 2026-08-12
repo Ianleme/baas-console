@@ -64,12 +64,22 @@ export function PixCheckout({
   }
   return (
     <section className="pix-checkout space-y-4" aria-labelledby="pix-title">
-      <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider">Pix sandbox</span>
-      <h1 id="pix-title" className="text-2xl font-bold text-slate-900">Pague com Pix</h1>
-      <div className="pix-sandbox rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900" role="note">
-        <strong className="font-bold">Ambiente de teste.</strong> Não use dados pessoais de terceiros.
+      <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider">
+        Pix sandbox
+      </span>
+      <h1 id="pix-title" className="text-2xl font-bold text-slate-900">
+        Pague com Pix
+      </h1>
+      <div
+        className="pix-sandbox rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"
+        role="note"
+      >
+        <strong className="font-bold">Ambiente de teste.</strong> Não use dados pessoais de
+        terceiros.
       </div>
-      <strong className="pix-value text-3xl font-extrabold text-slate-900 block">{money(attempt.amountCents)}</strong>
+      <strong className="pix-value text-3xl font-extrabold text-slate-900 block">
+        {money(attempt.amountCents)}
+      </strong>
       {(attempt.status === 'PENDING' || attempt.status === 'RECONCILIATION_PENDING') && (
         <div className="space-y-4">
           {attempt.qrCodeBase64 && (
@@ -79,24 +89,43 @@ export function PixCheckout({
                 alt="QR Code Pix para pagamento sandbox"
                 className="h-44 w-44 rounded-lg shadow-sm"
               />
-              <figcaption className="text-xs text-slate-500 font-medium">Escaneie o QR Code ou copie o código Pix abaixo.</figcaption>
+              <figcaption className="text-xs text-slate-500 font-medium">
+                Escaneie o QR Code ou copie o código Pix abaixo.
+              </figcaption>
             </figure>
           )}
           {attempt.emv && (
             <div className="pix-copy flex flex-col gap-2">
-              <label htmlFor="pix-emv" className="text-xs font-semibold text-slate-700">Código Pix copia e cola</label>
-              <textarea id="pix-emv" readOnly value={attempt.emv} className="h-20 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs font-mono text-slate-800 outline-none" />
-              <Button type="button" variant="outline" className="w-full" onClick={() => void copy()}>
+              <label htmlFor="pix-emv" className="text-xs font-semibold text-slate-700">
+                Código Pix copia e cola
+              </label>
+              <textarea
+                id="pix-emv"
+                readOnly
+                value={attempt.emv}
+                className="h-20 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs font-mono text-slate-800 outline-none"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => void copy()}
+              >
                 Copiar código Pix
               </Button>
             </div>
           )}
           {attempt.txid && (
             <p className="text-xs text-slate-500">
-              Identificador Pix: <span className="font-mono text-slate-800 font-semibold">{attempt.txid}</span>
+              Identificador Pix:{' '}
+              <span className="font-mono text-slate-800 font-semibold">{attempt.txid}</span>
             </p>
           )}
-          <p className="pix-timer text-xs font-semibold text-amber-800 bg-amber-50 p-2 rounded-md" role="timer" aria-live="off">
+          <p
+            className="pix-timer text-xs font-semibold text-amber-800 bg-amber-50 p-2 rounded-md"
+            role="timer"
+            aria-live="off"
+          >
             Tempo restante: {clock(remaining)}
           </p>
         </div>

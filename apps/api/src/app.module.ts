@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module, type NestModule, RequestMethod } from '@nes
 
 import { AuthModule } from './modules/auth/auth.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
+import { TransactionsModule } from './modules/transactions/transactions.module.js';
 import { WalletModule } from './modules/wallet/wallet.module.js';
 import { WebhooksModule } from './modules/webhooks/webhooks.module.js';
 import { HealthController } from './platform/health/health.controller.js';
@@ -11,7 +12,7 @@ import { platformLoggerProvider } from './platform/logging/platform-logger.js';
 import { RequestContextMiddleware } from './platform/request-context/request-context.middleware.js';
 
 @Module({
-  imports: [AuthModule, PaymentsModule, WebhooksModule, WalletModule],
+  imports: [AuthModule, PaymentsModule, WebhooksModule, WalletModule, TransactionsModule],
   controllers: [HealthController],
   providers: [HealthProbe, platformLoggerProvider]
 })

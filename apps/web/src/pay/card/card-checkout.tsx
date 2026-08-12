@@ -104,10 +104,18 @@ export function CardCheckout({
   }
   return (
     <section className="card-checkout space-y-4" aria-labelledby="card-title">
-      <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider">Cartão sandbox</span>
-      <h1 id="card-title" className="text-2xl font-bold text-slate-900">Pague com cartão</h1>
-      <div role="note" className="card-warning rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-        <strong className="font-bold">Use somente cartões de teste.</strong> Nunca informe dados de um cartão real.
+      <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider">
+        Cartão sandbox
+      </span>
+      <h1 id="card-title" className="text-2xl font-bold text-slate-900">
+        Pague com cartão
+      </h1>
+      <div
+        role="note"
+        className="card-warning rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"
+      >
+        <strong className="font-bold">Use somente cartões de teste.</strong> Nunca informe dados de
+        um cartão real.
       </div>
       <form
         onSubmit={(event) => {
@@ -171,15 +179,22 @@ export function CardCheckout({
           </label>
         </div>
         {quote && (
-          <aside className="card-summary rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-1.5 text-xs text-slate-600" aria-label="Resumo do pagamento">
+          <aside
+            className="card-summary rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-1.5 text-xs text-slate-600"
+            aria-label="Resumo do pagamento"
+          >
             <p className="flex justify-between">
-              Valor: <strong className="text-slate-900 font-bold">{money(quote.grossAmountCents)}</strong>
+              Valor:{' '}
+              <strong className="text-slate-900 font-bold">{money(quote.grossAmountCents)}</strong>
             </p>
             <p className="flex justify-between">
               Taxa: <strong className="text-slate-900 font-bold">{bps(quote.feeBps)}</strong>
             </p>
             <p className="flex justify-between pt-1 border-t border-slate-200">
-              Líquido ao lojista: <strong className="text-emerald-700 font-extrabold">{money(quote.netAmountCents)}</strong>
+              Líquido ao lojista:{' '}
+              <strong className="text-emerald-700 font-extrabold">
+                {money(quote.netAmountCents)}
+              </strong>
             </p>
           </aside>
         )}
@@ -198,7 +213,11 @@ export function CardCheckout({
           {quote ? 'Confirmar pagamento' : 'Calcular parcelas e taxa'}
         </Button>
       </form>
-      <div role="status" aria-live="polite" className={`card-state card-state--${state} text-xs font-medium p-3 rounded-lg bg-slate-100 text-slate-700`}>
+      <div
+        role="status"
+        aria-live="polite"
+        className={`card-state card-state--${state} text-xs font-medium p-3 rounded-lg bg-slate-100 text-slate-700`}
+      >
         {message(state)}
       </div>
     </section>

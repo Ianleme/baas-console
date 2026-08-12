@@ -108,7 +108,10 @@ export function formatCep(value: string): string {
 }
 
 export function formatUf(value: string): string {
-  return value.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 2);
+  return value
+    .replace(/[^a-zA-Z]/g, '')
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 export function formatDocument(value: string, personType: PersonType): string {
@@ -255,9 +258,7 @@ export function AuthJourney({
           'Credenciais da Lera Box inválidas. Verifique o documento e a senha enviados por e-mail.'
         );
       } else if (code === 'VALIDATION_FAILED') {
-        setError(
-          detail || 'Dados inválidos. Verifique se a senha possui no mínimo 12 caracteres.'
-        );
+        setError(detail || 'Dados inválidos. Verifique se a senha possui no mínimo 12 caracteres.');
       } else {
         setError('Não foi possível concluir. Revise os dados e tente novamente.');
       }
@@ -350,7 +351,7 @@ export function AuthJourney({
         <BrandMark />
         <SandboxNotice variant="badge" />
       </header>
-      
+
       <div className="auth-stage flex-1 flex items-center justify-center py-8">
         {screen === 'login' && (
           <AuthCard
@@ -386,7 +387,12 @@ export function AuthJourney({
               </div>
               <div className="form-row flex items-center justify-between text-xs text-slate-600">
                 <label className="check flex items-center gap-2 cursor-pointer">
-                  <input name="remember" type="checkbox" className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" /> Manter conectado
+                  <input
+                    name="remember"
+                    type="checkbox"
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />{' '}
+                  Manter conectado
                 </label>
                 <span className="quiet-link text-slate-400">Recuperação em breve</span>
               </div>
@@ -420,7 +426,10 @@ export function AuthJourney({
               <fieldset className="person-switch flex gap-2 bg-slate-100 p-1 rounded-xl mb-4 border-0">
                 <legend className="sr-only">Tipo de pessoa</legend>
                 {(['PF', 'PJ'] as const).map((type) => (
-                  <label key={type} className={`flex-1 text-center py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${personType === type ? 'selected bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}>
+                  <label
+                    key={type}
+                    className={`flex-1 text-center py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${personType === type ? 'selected bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                  >
                     <input
                       type="radio"
                       name="personType"
@@ -631,7 +640,12 @@ export function AuthJourney({
               A senha será enviada diretamente ao gateway e descartada da memória após esta
               solicitação.
             </div>
-            <form ref={gatewayForm} onSubmit={onConnect} aria-label="Conectar gateway" className="space-y-4">
+            <form
+              ref={gatewayForm}
+              onSubmit={onConnect}
+              aria-label="Conectar gateway"
+              className="space-y-4"
+            >
               <Field
                 label="CPF ou CNPJ"
                 name="document"
@@ -673,7 +687,10 @@ export function AuthJourney({
             title="Sua operação está pronta"
             description="O perfil da Lera Box foi confirmado e os dados de acesso foram protegidos."
           >
-            <a className="primary-button inline-flex items-center justify-center rounded-lg bg-[#007a5a] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#005c47] w-full" href="#/">
+            <a
+              className="primary-button inline-flex items-center justify-center rounded-lg bg-[#007a5a] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#005c47] w-full"
+              href="#/"
+            >
               Ir para o dashboard
             </a>
           </StatusCard>
@@ -699,7 +716,9 @@ function AuthCard({
   wide?: boolean;
 }) {
   return (
-    <Card className={`auth-card w-full ${wide ? 'max-w-2xl' : 'max-w-md'} p-6 sm:p-8 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-4`}>
+    <Card
+      className={`auth-card w-full ${wide ? 'max-w-2xl' : 'max-w-md'} p-6 sm:p-8 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-4`}
+    >
       <div className="card-mark flex justify-center pb-2">
         <BrandMark compact />
       </div>
@@ -730,7 +749,9 @@ function Field({
 } & Omit<InputHTMLAttributes<HTMLInputElement>, 'name' | 'type'>) {
   const inputId = props.id ?? `field-${name}`;
   return (
-    <div className={`field flex flex-col gap-1.5 text-xs font-semibold text-slate-700${error ? ' field--error' : ''}`}>
+    <div
+      className={`field flex flex-col gap-1.5 text-xs font-semibold text-slate-700${error ? ' field--error' : ''}`}
+    >
       <label htmlFor={inputId}>{label}</label>
       <Input
         id={inputId}
@@ -745,14 +766,20 @@ function Field({
           {error}
         </span>
       )}
-      {!error && hint && <span className="field-hint text-xs text-slate-400 font-normal">{hint}</span>}
+      {!error && hint && (
+        <span className="field-hint text-xs text-slate-400 font-normal">{hint}</span>
+      )}
     </div>
   );
 }
 
 function SubmitButton({ busy, children }: { busy: boolean; children: React.ReactNode }) {
   return (
-    <Button className="primary-button w-full bg-[#007a5a] hover:bg-[#005c47] text-white font-semibold py-2.5 rounded-lg shadow-sm" type="submit" disabled={busy}>
+    <Button
+      className="primary-button w-full bg-[#007a5a] hover:bg-[#005c47] text-white font-semibold py-2.5 rounded-lg shadow-sm"
+      type="submit"
+      disabled={busy}
+    >
       {busy ? 'Processando…' : children}
     </Button>
   );
@@ -760,7 +787,10 @@ function SubmitButton({ busy, children }: { busy: boolean; children: React.React
 
 function ErrorMessage({ message }: { message: string }) {
   return message ? (
-    <div className="form-error bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-xs font-semibold" role="alert">
+    <div
+      className="form-error bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-xs font-semibold"
+      role="alert"
+    >
       {message}
     </div>
   ) : null;
@@ -784,7 +814,9 @@ function StatusCard({
       <div className="status-icon text-4xl mb-2" aria-hidden="true">
         {icon}
       </div>
-      <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider block">{eyebrow}</span>
+      <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider block">
+        {eyebrow}
+      </span>
       <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{title}</h1>
       <p className="auth-subtitle text-xs text-slate-500">{description}</p>
       <div className="pt-2">{children}</div>

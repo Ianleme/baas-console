@@ -69,13 +69,14 @@ function useUserProfile() {
       const rawName = data.userName || (data.email ? data.email.split('@')[0] : undefined);
       const userName = rawName ?? 'Conta do lojista';
       const merchantName = data.tradingName || userName;
-      const initials = userName
-        .split(' ')
-        .filter((part): part is string => Boolean(part && part[0]))
-        .map((part) => part[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase() || 'CL';
+      const initials =
+        userName
+          .split(' ')
+          .filter((part): part is string => Boolean(part && part[0]))
+          .map((part) => part[0])
+          .slice(0, 2)
+          .join('')
+          .toUpperCase() || 'CL';
       const verified = data.status === 'ACTIVE';
       return {
         merchantName,
@@ -106,7 +107,10 @@ export function AppShell({ content, activePath }: AppShellProps) {
 
   return (
     <div className="app-surface bg-slate-50 min-h-screen pt-11">
-      <a className="skip-link fixed left-4 top-[-5rem] z-[100] bg-slate-900 px-4 py-2 text-white focus:top-2" href="#main-content">
+      <a
+        className="skip-link fixed left-4 top-[-5rem] z-[100] bg-slate-900 px-4 py-2 text-white focus:top-2"
+        href="#main-content"
+      >
         Pular para o conteúdo
       </a>
       <SandboxNotice variant="banner" />
@@ -141,8 +145,12 @@ export function AppShell({ content, activePath }: AppShellProps) {
           </button>
         </div>
         <div className="merchant-context border-b border-slate-200 pb-4 mb-4 flex flex-col gap-1">
-          <span className="eyebrow text-[0.68rem] font-bold tracking-wider text-slate-400 uppercase">CONTA</span>
-          <strong className="merchant-name text-base font-bold text-slate-900">{profile.merchantName}</strong>
+          <span className="eyebrow text-[0.68rem] font-bold tracking-wider text-slate-400 uppercase">
+            CONTA
+          </span>
+          <strong className="merchant-name text-base font-bold text-slate-900">
+            {profile.merchantName}
+          </strong>
           <span
             className={`merchant-context__state flex items-center gap-1.5 text-xs font-semibold ${
               profile.verified ? 'text-emerald-600' : 'text-slate-500'
@@ -160,7 +168,11 @@ export function AppShell({ content, activePath }: AppShellProps) {
             )}
           </span>
         </div>
-        <nav id="primary-navigation" aria-label="Navegação principal" className="flex-1 space-y-4 overflow-y-auto">
+        <nav
+          id="primary-navigation"
+          aria-label="Navegação principal"
+          className="flex-1 space-y-4 overflow-y-auto"
+        >
           {navSections.map((section) => (
             <div key={section.title} className="sidebar-section space-y-1">
               <span className="eyebrow text-[0.68rem] font-bold tracking-wider text-slate-400 uppercase px-2">
@@ -183,7 +195,9 @@ export function AppShell({ content, activePath }: AppShellProps) {
                         }`}
                         href={item.href}
                       >
-                        <Icon className={`h-4 w-4 ${isActive ? 'text-[#005c47]' : 'text-slate-400'}`} />
+                        <Icon
+                          className={`h-4 w-4 ${isActive ? 'text-[#005c47]' : 'text-slate-400'}`}
+                        />
                         <span>{item.label}</span>
                       </a>
                     </li>
@@ -202,7 +216,9 @@ export function AppShell({ content, activePath }: AppShellProps) {
               {profile.initials}
             </span>
             <div className="user-info flex flex-col">
-              <strong className="text-sm font-semibold text-slate-900 leading-tight">{profile.userName}</strong>
+              <strong className="text-sm font-semibold text-slate-900 leading-tight">
+                {profile.userName}
+              </strong>
               <small className="text-xs text-slate-500">Proprietário</small>
             </div>
           </div>
@@ -227,14 +243,24 @@ export function AppShell({ content, activePath }: AppShellProps) {
         />
       )}
       <div className="md:pl-64 w-full min-w-0 flex flex-col flex-1">
-        <main id="main-content" tabIndex={-1} className="flex-1 p-6 md:p-8 lg:p-10 w-full max-w-[1700px] mx-auto space-y-6">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 p-6 md:p-8 lg:p-10 w-full max-w-[1700px] mx-auto space-y-6"
+        >
           {content ?? (
             <>
               <div className="page-heading flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider">Visão geral</span>
-                  <h1 className="text-3xl font-extrabold text-slate-900 mt-1">Sua operação começa aqui</h1>
-                  <p className="text-slate-500 mt-1">Conecte a Lera Box para acompanhar sua movimentação financeira.</p>
+                  <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider">
+                    Visão geral
+                  </span>
+                  <h1 className="text-3xl font-extrabold text-slate-900 mt-1">
+                    Sua operação começa aqui
+                  </h1>
+                  <p className="text-slate-500 mt-1">
+                    Conecte a Lera Box para acompanhar sua movimentação financeira.
+                  </p>
                 </div>
                 <button
                   className="primary-action rounded-lg bg-[#007a5a] px-4 py-2.5 text-sm font-semibold text-white opacity-50 cursor-not-allowed"
@@ -244,14 +270,24 @@ export function AppShell({ content, activePath }: AppShellProps) {
                   Criar link de pagamento
                 </button>
               </div>
-              <section className="empty-ledger mt-8 rounded-xl border border-slate-200 bg-white p-8 shadow-sm max-w-2xl" aria-labelledby="empty-ledger-title">
-                <div className="empty-ledger__signal flex items-end gap-1.5 h-12 w-12 rounded-lg bg-slate-950 p-3 mb-6" aria-hidden="true">
+              <section
+                className="empty-ledger mt-8 rounded-xl border border-slate-200 bg-white p-8 shadow-sm max-w-2xl"
+                aria-labelledby="empty-ledger-title"
+              >
+                <div
+                  className="empty-ledger__signal flex items-end gap-1.5 h-12 w-12 rounded-lg bg-slate-950 p-3 mb-6"
+                  aria-hidden="true"
+                >
                   <span className="w-1.5 h-2/5 bg-lime-400 rounded-full" />
                   <span className="w-1.5 h-4/5 bg-lime-400 rounded-full" />
                   <span className="w-1.5 h-full bg-lime-400 rounded-full" />
                 </div>
-                <span className="eyebrow text-xs font-bold text-slate-400 uppercase tracking-wider">Painel financeiro</span>
-                <h2 id="empty-ledger-title" className="text-2xl font-bold text-slate-900 mt-2 mb-3">Pronto para receber dados conciliados</h2>
+                <span className="eyebrow text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Painel financeiro
+                </span>
+                <h2 id="empty-ledger-title" className="text-2xl font-bold text-slate-900 mt-2 mb-3">
+                  Pronto para receber dados conciliados
+                </h2>
                 <p className="text-slate-600 text-sm max-w-md">
                   Dados financeiros reais aparecerão somente depois da conexão segura com o gateway.
                   Nenhum saldo demonstrativo será apresentado como operação real.
