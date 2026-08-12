@@ -420,7 +420,12 @@ test('defines all four verification profiles and exposes deferred stages', () =>
   assert.deepEqual(Object.keys(verificationProfiles), ['quick', 'pr', 'full', 'live']);
   const fullStages = resolveProfileStages('full');
   assert.ok(fullStages.some((stage) => stage.name === 'mutation' && !stage.enabled));
-  assert.ok(fullStages.some((stage) => stage.name === 'smoke' && !stage.enabled));
+  // Authorized T010 transition: container smoke is now an enforced release gate.
+  assert.ok(
+    fullStages.some(
+      (stage) => stage.name === 'smoke' && stage.enabled && stage.script === 'test:smoke'
+    )
+  );
 });
 
 test('fails explicitly when an enabled verification stage has no npm script', () => {

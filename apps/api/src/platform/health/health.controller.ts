@@ -18,8 +18,8 @@ export class HealthController {
   @Get('ready')
   @ApiOkResponse({ schema: { example: { status: 'ready' } } })
   @ApiServiceUnavailableResponse({ description: 'Database or schema is not ready' })
-  ready(): { status: 'ready' } {
-    const failureCode = this.healthProbe.checkReadiness();
+  async ready(): Promise<{ status: 'ready' }> {
+    const failureCode = await this.healthProbe.checkReadiness();
     if (failureCode) {
       throw new ProblemException(
         failureCode,

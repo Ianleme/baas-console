@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module, type NestModule, RequestMethod } from '@nestjs/common';
 
+import { DatabaseService } from './database/database.service.js';
 import { HealthController } from './platform/health/health.controller.js';
 import { HealthProbe } from './platform/health/health.probe.js';
 import { HttpLoggingMiddleware } from './platform/logging/http-logging.middleware.js';
@@ -8,7 +9,7 @@ import { RequestContextMiddleware } from './platform/request-context/request-con
 
 @Module({
   controllers: [HealthController],
-  providers: [HealthProbe, platformLoggerProvider]
+  providers: [DatabaseService, HealthProbe, platformLoggerProvider]
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

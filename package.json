@@ -25,6 +25,7 @@
     "test:integration": "npm run test:integration --workspace @baas/api",
     "test:contract": "npm run build --workspace @baas/api && node --test --test-isolation=none scripts/generate-api-client.test.mjs && npm run test:consumer --workspace @baas/api-client",
     "test:quality": "node --test --test-isolation=none scripts/validate-quality.test.mjs",
+    "test:smoke": "node --test --test-isolation=none tests/smoke/development-stack.test.mjs",
     "test:web": "npm run test --workspace @baas/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "validate:quality": "node scripts/validate-quality.mjs",

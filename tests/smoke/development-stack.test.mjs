@@ -1,0 +1,149 @@
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { createServer } from 'node:net';
+import { after, before, test } from 'node:test';
+
+const projectName = `baas-smoke-${process.pid}`;
+const composeFile = 'docker-compose.yml';
+let composeConfig;
+let environment;
+
+function dockerCompose(args, options = {}) {
+  return execFileSync(
+    'docker',
+    ['compose', '--file', composeFile, '--project-name', projectName, ...args],
+    {
+      cwd: new URL('../..', import.meta.url),
+      encoding: 'utf8',
+      env: environment,
+      stdio: options.stdio ?? 'pipe'
+    }
+  );
+}
+
+async function freePort() {
+  return new Promise((resolve, reject) => {
+    const server = createServer();
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      if (!address || typeof address === 'string') {
+        server.close();
+        reject(new Error('SMOKE_PORT_ALLOCATION_FAILED'));
+        return;
+      }
+      const { port } = address;
+      server.close((error) => (error ? reject(error) : resolve(port)));
+    });
+  });
+}
+
+before(
+  async () => {
+    const [apiPort, webPort, mailpitHttpPort, mailpitSmtpPort] = await Promise.all([
+      freePort(),
+      freePort(),
+      freePort(),
+      freePort()
+    ]);
+    environment = {
+      ...process.env,
+      API_PORT: String(apiPort),
+      WEB_PORT: String(webPort),
+      MAILPIT_HTTP_PORT: String(mailpitHttpPort),
+      MAILPIT_SMTP_PORT: String(mailpitSmtpPort),
+      BAAS_DB_NAME: 'baas_smoke',
+      BAAS_DB_USER: 'baas',
+      BAAS_DB_PASSWORD: 'baas-smoke-password',
+      BAAS_DB_ROOT_PASSWORD: 'baas-smoke-root-password'
+    };
+    composeConfig = JSON.parse(dockerCompose(['config', '--format', 'json']));
+    dockerCompose(['up', '--build', '--wait', '--wait-timeout', '240'], { stdio: 'inherit' });
+  },
+  { timeout: 600_000 }
+);
+
+after(
+  () => {
+    if (environment) {
+      dockerCompose(['down', '--volumes', '--remove-orphans'], { stdio: 'inherit' });
+    }
+  },
+  { timeout: 120_000 }
+);
+
+test('defines the four development services plus a one-shot migration job', () => {
+  assert.deepEqual(Object.keys(composeConfig.services).sort(), [
+    'api',
+    'mailpit',
+    'migrate',
+    'mysql',
+    'web'
+  ]);
+  assert.equal(composeConfig.services.migrate.restart, 'no');
+  assert.equal(
+    composeConfig.services.api.depends_on.migrate.condition,
+    'service_completed_successfully'
+  );
+});
+
+test('defines container health checks for every long-running service', () => {
+  for (const service of ['api', 'web', 'mysql', 'mailpit']) {
+    assert.ok(composeConfig.services[service].healthcheck?.test, `${service} healthcheck missing`);
+  }
+});
+
+test('keeps MySQL private on the internal data network', () => {
+  assert.equal(composeConfig.services.mysql.ports, undefined);
+  assert.equal(composeConfig.networks.data.internal, true);
+});
+
+test('runs explicit migrations before API readiness', () => {
+  const output = dockerCompose([
+    'exec',
+    '-T',
+    'mysql',
+    'mysql',
+    `-u${environment.BAAS_DB_USER}`,
+    `-p${environment.BAAS_DB_PASSWORD}`,
+    environment.BAAS_DB_NAME,
+    '--batch',
+    '--skip-column-names',
+    '-e',
+    "SELECT COUNT(*) FROM migrations; SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('merchants','checkout_links','withdrawals','webhook_events');"
+  ])
+    .trim()
+    .split(/\r?\n/u);
+  assert.deepEqual(output, ['4', '4']);
+});
+
+test('reports API readiness only after database and schema checks succeed', async () => {
+  const response = await fetch(`http://127.0.0.1:${environment.API_PORT}/health/ready`);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { status: 'ready' });
+});
+
+test('serves the built web application and its real health endpoint', async () => {
+  const health = await fetch(`http://127.0.0.1:${environment.WEB_PORT}/healthz`);
+  assert.equal(health.status, 200);
+  assert.deepEqual(await health.json(), { status: 'ok' });
+  const app = await fetch(`http://127.0.0.1:${environment.WEB_PORT}/`);
+  assert.equal(app.status, 200);
+  // Authorized correction: T004's approved app shell mounts at app-root.
+  assert.match(await app.text(), /<div id="app-root"><\/div>/u);
+});
+
+test('exposes healthy Mailpit HTTP and SMTP services only on loopback', async () => {
+  const response = await fetch(`http://127.0.0.1:${environment.MAILPIT_HTTP_PORT}/readyz`);
+  assert.equal(response.status, 200);
+  for (const port of composeConfig.services.mailpit.ports) {
+    assert.equal(port.host_ip, '127.0.0.1');
+  }
+});
+
+test('runs both application containers as non-root users', () => {
+  for (const service of ['api', 'web']) {
+    const uid = dockerCompose(['exec', '-T', service, 'id', '-u']).trim();
+    assert.notEqual(uid, '0', `${service} must not run as root`);
+  }
+});
