@@ -9,7 +9,7 @@ const baseStages = [
 
 const prStages = [
   ...baseStages,
-  { name: 'unit', script: 'test:unit', enabled: false, ownerTask: 'T014' },
+  { name: 'unit', script: 'test:unit', enabled: true, ownerTask: 'T014' },
   { name: 'integration', script: 'test:integration', enabled: true },
   { name: 'contract', script: 'test:contract', enabled: true },
   { name: 'gherkin', script: 'test:gherkin', enabled: false, ownerTask: 'T016' }
