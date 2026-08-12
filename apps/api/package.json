@@ -9,6 +9,7 @@
     "start": "node dist/main.js",
     "test:integration": "node ../../scripts/run-mysql-integration.mjs",
     "test:integration:jest": "jest --config jest.integration.config.mjs --runInBand",
+    "test:contract": "jest --config jest.contract.config.mjs --runInBand",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
