@@ -14,6 +14,11 @@ export class DatabaseService implements OnApplicationShutdown {
     this.dataSource = dataSource;
   }
 
+  getDataSource(): DataSource {
+    if (!this.dataSource?.isInitialized) throw new Error('DATABASE_NOT_CONNECTED');
+    return this.dataSource;
+  }
+
   async checkSchemaReadiness(): Promise<boolean> {
     if (!this.dataSource?.isInitialized) return false;
     try {
