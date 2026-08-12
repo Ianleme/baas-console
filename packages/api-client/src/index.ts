@@ -108,3 +108,31 @@ export function createPixStatusClient(options: BaasClientOptions) {
     }
   };
 }
+export function createCardCheckoutClient(options: BaasClientOptions) {
+  const request = options.fetch ?? globalThis.fetch;
+  async function post(path: string, body: unknown): Promise<never> {
+    const response = await request(`${options.baseUrl}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+      let code = 'REQUEST_FAILED';
+      try {
+        const problem = (await response.json()) as { code?: unknown };
+        if (problem.code === 'FEE_CHANGED' || problem.code === 'CARD_COOLDOWN') code = problem.code;
+      } catch {
+        // Response content is deliberately ignored; no card field is included in the error.
+      }
+      const error = new Error(code) as Error & { code: string };
+      error.code = code;
+      throw error;
+    }
+    return response.json() as Promise<never>;
+  }
+  return {
+    quote: (input: unknown) => post('/api/v1/public/payments/card/quote', input),
+    confirm: (input: unknown) => post('/api/v1/public/payments/card/confirm', input)
+  };
+}

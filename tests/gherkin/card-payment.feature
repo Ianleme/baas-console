@@ -14,3 +14,13 @@ Funcionalidade: Cartão com taxa segura e tentativa única
     Dado um checkout cartão com taxa confirmada
     Quando o gateway cartão terminar sem resposta conclusiva
     Entao o cartão deve aguardar conciliação após uma única chamada
+
+  Cenario: Resumo apresenta taxa e valor líquido antes da confirmação
+    Dado um checkout cartão com taxa confirmada
+    Quando consultar o resumo parcelado
+    Entao o resumo deve mostrar bruto taxa e líquido exatos
+
+  Cenario: Cinco negativas bloqueiam nova confirmação
+    Dado um checkout cartão em cooldown
+    Quando tentar confirmar outro cartão
+    Entao deve orientar aguardar quinze minutos sem chamar o gateway

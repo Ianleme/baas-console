@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { PublicCheckoutView } from '@baas/api-client';
+import { CardCheckout, type CardCheckoutApi } from '../card/card-checkout.js';
 import { PixCheckout, type PixCheckoutApi, type PixCheckoutAttempt } from '../pix/pix-checkout.js';
 
 export interface CheckoutExchangeApi {
@@ -8,21 +9,25 @@ export interface CheckoutExchangeApi {
     checkout: PublicCheckoutView;
     csrfToken: string;
     pixAttempt?: PixCheckoutAttempt;
+    startMethod?: 'CARD';
   }>;
 }
 export function CheckoutSession({
   api,
   pixApi,
+  cardApi,
   fragment = globalThis.location.hash
 }: {
   api: CheckoutExchangeApi;
   pixApi?: PixCheckoutApi;
+  cardApi?: CardCheckoutApi;
   fragment?: string;
 }) {
   const started = useRef(false);
   const [state, setState] = useState<'loading' | 'invalid' | 'ready'>('loading');
   const [checkout, setCheckout] = useState<PublicCheckoutView | null>(null);
   const [pixAttempt, setPixAttempt] = useState<PixCheckoutAttempt | null>(null);
+  const [cardSelected, setCardSelected] = useState(false);
 
   useEffect(() => {
     if (started.current) return;
@@ -42,6 +47,7 @@ export function CheckoutSession({
       .then((result) => {
         setCheckout(result.checkout);
         setPixAttempt(result.pixAttempt ?? null);
+        setCardSelected(result.startMethod === 'CARD');
         setState('ready');
       })
       .catch(() => {
@@ -50,6 +56,14 @@ export function CheckoutSession({
   }, [api, fragment]);
 
   if (pixAttempt && pixApi) return <PixCheckout initial={pixAttempt} api={pixApi} />;
+  if (cardSelected && cardApi && checkout)
+    return (
+      <CardCheckout
+        amountCents={checkout.amountCents}
+        maxInstallments={checkout.maxInstallments}
+        api={cardApi}
+      />
+    );
   if (state === 'loading') return <p role="status">Preparando checkout seguro…</p>;
   if (state === 'invalid' || !checkout) return <CheckoutUnavailable label="Link indisponível" />;
   if (checkout.state !== 'READY') return <CheckoutUnavailable label={stateLabel(checkout.state)} />;
@@ -62,7 +76,14 @@ export function CheckoutSession({
       <div className="checkout-methods">
         {checkout.methods !== 'CARD' && <button type="button">Pagar com Pix</button>}
         {checkout.methods !== 'PIX' && (
-          <button type="button">Pagar com cartão · até {checkout.maxInstallments}x</button>
+          <button
+            type="button"
+            onClick={() => {
+              setCardSelected(true);
+            }}
+          >
+            Pagar com cartão · até {checkout.maxInstallments}x
+          </button>
         )}
       </div>
     </section>

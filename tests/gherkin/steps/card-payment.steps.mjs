@@ -27,6 +27,7 @@ function setup(world) {
   world.attempts = [];
   world.paid = new Set();
   world.currentFee = 319;
+  world.denialCount = 0;
   world.fees = {
     list: () =>
       Promise.resolve([{ id: 'fee', brand: 'VISA', installments: 3, feeBps: world.currentFee }])
@@ -38,7 +39,7 @@ function setup(world) {
     }
   };
   world.store = {
-    countRecentDenials: () => Promise.resolve(0),
+    countRecentDenials: () => Promise.resolve(world.denialCount),
     begin: (input) => {
       const attempt = { ...input, status: 'PROCESSING', gatewayPaymentId: null, failureCode: null };
       world.attempts.push(attempt);
@@ -77,6 +78,11 @@ Given('um checkout cartão com taxa confirmada', async function () {
   setup(this);
   this.input = await input(this);
 });
+Given('um checkout cartão em cooldown', async function () {
+  setup(this);
+  this.denialCount = 5;
+  this.input = await input(this);
+});
 When('o gateway aprovar o cartão', async function () {
   this.result = await this.service.confirm(this.input);
 });
@@ -92,6 +98,16 @@ When('o gateway cartão terminar sem resposta conclusiva', async function () {
   this.gatewayError = new LeraBoxTimeoutError('create-card');
   this.result = await this.service.confirm(this.input);
 });
+When('consultar o resumo parcelado', async function () {
+  this.result = await this.service.quote('100', 'VISA', 3);
+});
+When('tentar confirmar outro cartão', async function () {
+  try {
+    await this.service.confirm(this.input);
+  } catch (error) {
+    this.error = error;
+  }
+});
 Then('a tentativa cartão e o link devem ficar aprovados', function () {
   assert.equal(this.result.attempt.status, 'APPROVED');
   assert.equal(this.paid.has('link'), true);
@@ -104,4 +120,13 @@ Then('o cartão deve aguardar conciliação após uma única chamada', function 
   assert.equal(this.result.httpStatus, 202);
   assert.equal(this.result.attempt.status, 'RECONCILIATION_PENDING');
   assert.equal(this.calls, 1);
+});
+Then('o resumo deve mostrar bruto taxa e líquido exatos', function () {
+  assert.equal(this.result.grossAmountCents, '100');
+  assert.equal(this.result.feeAmountCents, '3');
+  assert.equal(this.result.netAmountCents, '97');
+});
+Then('deve orientar aguardar quinze minutos sem chamar o gateway', function () {
+  assert.equal(this.error.code, 'CARD_COOLDOWN');
+  assert.equal(this.calls, 0);
 });

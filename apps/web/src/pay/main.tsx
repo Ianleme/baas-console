@@ -1,7 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { createCheckoutSessionClient, createPixStatusClient } from '@baas/api-client';
+import {
+  createCardCheckoutClient,
+  createCheckoutSessionClient,
+  createPixStatusClient
+} from '@baas/api-client';
 import { CheckoutSession } from './checkout/checkout-session.js';
 import { PayShell } from './pay-shell.js';
 
@@ -15,6 +19,7 @@ createRoot(root).render(
         <CheckoutSession
           api={createCheckoutSessionClient({ baseUrl: '' })}
           pixApi={createPixStatusClient({ baseUrl: '' })}
+          cardApi={createCardCheckoutClient({ baseUrl: '' })}
         />
       }
     />
