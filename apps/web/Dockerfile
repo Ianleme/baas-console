@@ -8,6 +8,8 @@ COPY packages/api-client/package.json packages/api-client/package.json
 COPY packages/receipt-template/package.json packages/receipt-template/package.json
 COPY packages/test-support/package.json packages/test-support/package.json
 RUN npm ci
+COPY packages/api-client packages/api-client
+RUN npm run build --workspace @baas/api-client
 COPY apps/web apps/web
 WORKDIR /workspace/apps/web
 RUN npm run build
