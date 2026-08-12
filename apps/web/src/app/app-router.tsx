@@ -6,6 +6,7 @@ import {
   createReconciliationClient,
   createTransactionsClient,
   createWebhooksClient,
+  createWithdrawalsClient,
   type BaasMemorySession
 } from '@baas/api-client';
 
@@ -24,6 +25,7 @@ import {
   WebhookManagement,
   type WebhookManagementApi
 } from '../features/webhooks/webhook-management.js';
+import { WithdrawalsPage, type WithdrawalsApi } from '../features/withdrawals/withdrawals-page.js';
 import { AppShell } from './app-shell.js';
 
 export function AppRouter({ session }: { session: BaasMemorySession }) {
@@ -42,6 +44,7 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
       transactions: (createTransactionsClient as (opts: unknown) => TransactionStatementApi)(
         options
       ),
+      withdrawals: (createWithdrawalsClient as (opts: unknown) => WithdrawalsApi)(options),
       webhooks: createWebhooksClient(options) as WebhookManagementApi,
       reconciliation: createReconciliationClient(options) as ReconciliationApi
     };
@@ -72,6 +75,8 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
   if (hash === '#/links') return <AppShell content={<PaymentLinks api={clients.links} />} />;
   if (hash === '#/transactions')
     return <AppShell content={<TransactionsPage api={clients.transactions} />} />;
+  if (hash === '#/saques' || hash === '#/withdrawals')
+    return <AppShell content={<WithdrawalsPage api={clients.withdrawals} />} />;
   if (hash === '#/webhooks')
     return <AppShell content={<WebhookManagement api={clients.webhooks} />} />;
   if (hash === '#/reconciliation')

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method -- Jest mocks are inspected without invocation. */
 import type { DataSource, EntityManager, Repository } from 'typeorm';
 
 import { ProblemException } from '../../../src/platform/errors/problem.exception.js';

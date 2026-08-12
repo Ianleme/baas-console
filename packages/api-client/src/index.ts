@@ -295,6 +295,56 @@ export function createTransactionsClient(options: BaasClientOptions) {
   };
 }
 
+export function createWithdrawalsClient(options: BaasClientOptions) {
+  const request = options.fetch ?? globalThis.fetch;
+  return {
+    async list(): Promise<unknown> {
+      const accessToken = options.accessToken?.();
+      const response = await request(`${options.baseUrl}/api/v1/withdrawals`, {
+        credentials: 'include',
+        headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
+      });
+      if (!response.ok) throw new Error('WITHDRAWALS_UNAVAILABLE');
+      return (await response.json()) as unknown;
+    },
+    async request(input: unknown): Promise<unknown> {
+      const accessToken = options.accessToken?.();
+      const response = await request(`${options.baseUrl}/api/v1/withdrawals`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'content-type': 'application/json',
+          ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {})
+        },
+        body: JSON.stringify(input)
+      });
+      if (!response.ok) {
+        let code = 'WITHDRAWAL_FAILED';
+        try {
+          const problem = (await response.json()) as { code?: string };
+          if (typeof problem.code === 'string') code = problem.code;
+        } catch {
+          // ignore
+        }
+        const error = new Error(code) as Error & { code: string };
+        error.code = code;
+        throw error;
+      }
+      return (await response.json()) as unknown;
+    },
+    async getBalance(): Promise<{ balanceCents: string }> {
+      const accessToken = options.accessToken?.();
+      const response = await request(`${options.baseUrl}/api/v1/wallet`, {
+        credentials: 'include',
+        headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
+      });
+      if (!response.ok) throw new Error('WALLET_UNAVAILABLE');
+      const data = (await response.json()) as { balanceCents?: string };
+      return { balanceCents: data.balanceCents ?? '0' };
+    }
+  };
+}
+
 export interface PublicCheckoutView {
   id: string;
   description: string;
