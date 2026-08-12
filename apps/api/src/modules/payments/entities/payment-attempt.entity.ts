@@ -19,7 +19,8 @@ export type PaymentAttemptStatus =
   | 'RECONCILIATION_PENDING'
   | 'APPROVED'
   | 'DENIED'
-  | 'FAILED';
+  | 'EXPIRED'
+  | 'MANUAL_REVIEW';
 
 @Entity({ name: 'payment_attempts' })
 @Index('uq_payment_attempts_external_reference', ['merchantId', 'externalReference'], {
@@ -66,7 +67,15 @@ export class PaymentAttemptEntity {
 
   @Column({
     type: 'enum',
-    enum: ['PROCESSING', 'PENDING', 'RECONCILIATION_PENDING', 'APPROVED', 'DENIED', 'FAILED']
+    enum: [
+      'PROCESSING',
+      'PENDING',
+      'RECONCILIATION_PENDING',
+      'APPROVED',
+      'DENIED',
+      'EXPIRED',
+      'MANUAL_REVIEW'
+    ]
   })
   status!: PaymentAttemptStatus;
 
@@ -78,7 +87,7 @@ export class PaymentAttemptEntity {
     insert: false,
     update: false,
     asExpression:
-      "CASE WHEN status IN ('PROCESSING', 'PENDING', 'RECONCILIATION_PENDING') THEN checkout_link_id ELSE NULL END",
+      "CASE WHEN status IN ('PROCESSING', 'PENDING', 'RECONCILIATION_PENDING', 'MANUAL_REVIEW') THEN checkout_link_id ELSE NULL END",
     generatedType: 'STORED'
   })
   unresolvedCheckoutLinkId!: string | null;

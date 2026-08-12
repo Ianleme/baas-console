@@ -2,6 +2,9 @@ import { spawn, spawnSync } from 'node:child_process';
 
 const containerName = `baas-mysql-tests-${process.pid}-${Date.now()}`;
 const password = 'baas-test-password';
+const testDatabaseName = 'baas_test';
+
+if (!/^baas_test$/u.test(testDatabaseName)) throw new Error('UNSAFE_TEST_DATABASE_NAME');
 
 function docker(args, options = {}) {
   const result = spawnSync('docker', args, { encoding: 'utf8', ...options });
@@ -46,7 +49,7 @@ function runJest(port) {
     const child = spawn(executable, args, {
       env: {
         ...process.env,
-        MYSQL_TEST_DATABASE: 'baas_test',
+        MYSQL_TEST_DATABASE: testDatabaseName,
         MYSQL_TEST_HOST: '127.0.0.1',
         MYSQL_TEST_PASSWORD: password,
         MYSQL_TEST_PORT: port,
@@ -68,7 +71,7 @@ try {
     '--name',
     containerName,
     '--env',
-    'MYSQL_DATABASE=baas_test',
+    `MYSQL_DATABASE=${testDatabaseName}`,
     '--env',
     'MYSQL_USER=baas',
     '--env',

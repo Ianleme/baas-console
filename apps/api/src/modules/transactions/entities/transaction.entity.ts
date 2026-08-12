@@ -18,8 +18,10 @@ export type TransactionStatus =
   | 'PENDING'
   | 'APPROVED'
   | 'DENIED'
+  | 'EXPIRED'
+  | 'CANCELLED'
   | 'RECONCILIATION_PENDING'
-  | 'REVERSED';
+  | 'MANUAL_REVIEW';
 
 @Entity({ name: 'transactions' })
 @Index('uq_transactions_origin', ['merchantId', 'originType', 'originId'], { unique: true })
@@ -57,7 +59,15 @@ export class TransactionEntity {
 
   @Column({
     type: 'enum',
-    enum: ['PENDING', 'APPROVED', 'DENIED', 'RECONCILIATION_PENDING', 'REVERSED']
+    enum: [
+      'PENDING',
+      'APPROVED',
+      'DENIED',
+      'EXPIRED',
+      'CANCELLED',
+      'RECONCILIATION_PENDING',
+      'MANUAL_REVIEW'
+    ]
   })
   status!: TransactionStatus;
 

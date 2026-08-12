@@ -21,8 +21,8 @@ export class CreatePaymentPersistence1723501000000 implements MigrationInterface
     await queryRunner.query(`CREATE TABLE payment_attempts (
       id CHAR(36) NOT NULL, merchant_id CHAR(36) NOT NULL, checkout_link_id CHAR(36) NOT NULL,
       method ENUM('PIX', 'CARD') NOT NULL,
-      status ENUM('PROCESSING', 'PENDING', 'RECONCILIATION_PENDING', 'APPROVED', 'DENIED', 'FAILED') NOT NULL,
-      unresolved_checkout_link_id CHAR(36) GENERATED ALWAYS AS (CASE WHEN status IN ('PROCESSING', 'PENDING', 'RECONCILIATION_PENDING') THEN checkout_link_id ELSE NULL END) STORED,
+      status ENUM('PROCESSING', 'PENDING', 'RECONCILIATION_PENDING', 'APPROVED', 'DENIED', 'EXPIRED', 'MANUAL_REVIEW') NOT NULL,
+      unresolved_checkout_link_id CHAR(36) GENERATED ALWAYS AS (CASE WHEN status IN ('PROCESSING', 'PENDING', 'RECONCILIATION_PENDING', 'MANUAL_REVIEW') THEN checkout_link_id ELSE NULL END) STORED,
       external_reference VARCHAR(100) NOT NULL, gateway_payment_id VARCHAR(191) NULL, gateway_tx_id VARCHAR(191) NULL,
       installments TINYINT UNSIGNED NOT NULL, fee_bps SMALLINT UNSIGNED NOT NULL,
       gross_amount_cents BIGINT UNSIGNED NOT NULL, fee_amount_cents BIGINT UNSIGNED NOT NULL, net_amount_cents BIGINT UNSIGNED NOT NULL,
@@ -42,7 +42,7 @@ export class CreatePaymentPersistence1723501000000 implements MigrationInterface
     await queryRunner.query(`CREATE TABLE transactions (
       id CHAR(36) NOT NULL, merchant_id CHAR(36) NOT NULL, origin_type ENUM('PAYMENT', 'WITHDRAWAL') NOT NULL, origin_id CHAR(36) NOT NULL,
       external_reference VARCHAR(100) NOT NULL, gateway_transaction_id VARCHAR(191) NULL,
-      type ENUM('CREDIT', 'DEBIT') NOT NULL, status ENUM('PENDING', 'APPROVED', 'DENIED', 'RECONCILIATION_PENDING', 'REVERSED') NOT NULL,
+      type ENUM('CREDIT', 'DEBIT') NOT NULL, status ENUM('PENDING', 'APPROVED', 'DENIED', 'EXPIRED', 'CANCELLED', 'RECONCILIATION_PENDING', 'MANUAL_REVIEW') NOT NULL,
       gross_amount_cents BIGINT UNSIGNED NOT NULL, fee_amount_cents BIGINT UNSIGNED NOT NULL, net_amount_cents BIGINT UNSIGNED NOT NULL,
       occurred_at DATETIME(6) NOT NULL, projection_version INT UNSIGNED NOT NULL,
       receipt_token_hash VARBINARY(64) NULL, receipt_token_ciphertext VARBINARY(4096) NULL,
@@ -55,7 +55,9 @@ export class CreatePaymentPersistence1723501000000 implements MigrationInterface
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
     await queryRunner.query(`CREATE TABLE financial_events (
       id CHAR(36) NOT NULL, merchant_id CHAR(36) NOT NULL, payment_attempt_id CHAR(36) NULL, withdrawal_id CHAR(36) NULL,
-      event_type VARCHAR(64) NOT NULL, previous_status VARCHAR(64) NULL, new_status VARCHAR(64) NOT NULL,
+      event_type VARCHAR(64) NOT NULL,
+      previous_status ENUM('PROCESSING', 'PENDING', 'RECONCILIATION_PENDING', 'APPROVED', 'DENIED', 'EXPIRED', 'MANUAL_REVIEW') NULL,
+      new_status ENUM('PROCESSING', 'PENDING', 'RECONCILIATION_PENDING', 'APPROVED', 'DENIED', 'EXPIRED', 'MANUAL_REVIEW') NOT NULL,
       source ENUM('GATEWAY', 'WEBHOOK', 'RECONCILIATION', 'SYSTEM') NOT NULL, occurred_at DATETIME(6) NOT NULL, metadata_json JSON NOT NULL,
       created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), PRIMARY KEY (id), KEY idx_financial_events_merchant_occurred (merchant_id, occurred_at),
       KEY idx_financial_events_payment_tenant (payment_attempt_id, merchant_id),

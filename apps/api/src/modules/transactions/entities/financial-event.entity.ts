@@ -41,10 +41,35 @@ export class FinancialEventEntity {
   @Column({ name: 'event_type', type: 'varchar', length: 64 })
   eventType!: string;
 
-  @Column({ name: 'previous_status', type: 'varchar', length: 64, nullable: true })
+  @Column({
+    name: 'previous_status',
+    type: 'enum',
+    enum: [
+      'PROCESSING',
+      'PENDING',
+      'RECONCILIATION_PENDING',
+      'APPROVED',
+      'DENIED',
+      'EXPIRED',
+      'MANUAL_REVIEW'
+    ],
+    nullable: true
+  })
   previousStatus!: string | null;
 
-  @Column({ name: 'new_status', type: 'varchar', length: 64 })
+  @Column({
+    name: 'new_status',
+    type: 'enum',
+    enum: [
+      'PROCESSING',
+      'PENDING',
+      'RECONCILIATION_PENDING',
+      'APPROVED',
+      'DENIED',
+      'EXPIRED',
+      'MANUAL_REVIEW'
+    ]
+  })
   newStatus!: string;
 
   @Column({ type: 'enum', enum: ['GATEWAY', 'WEBHOOK', 'RECONCILIATION', 'SYSTEM'] })

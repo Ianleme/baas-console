@@ -51,6 +51,7 @@ describe('checkout and payment persistence on MySQL 8.4', () => {
   let dataSource: DataSource;
 
   beforeAll(async () => {
+    if (databaseName !== 'baas_test') throw new Error('UNSAFE_TEST_DATABASE_NAME');
     dataSource = createDataSource();
     await dataSource.initialize();
     await dataSource.dropDatabase();
@@ -60,20 +61,26 @@ describe('checkout and payment persistence on MySQL 8.4', () => {
   afterAll(async () => dataSource.destroy());
 
   beforeEach(async () => {
-    await dataSource.query('SET FOREIGN_KEY_CHECKS = 0');
-    for (const table of [
-      'financial_events',
-      'transactions',
-      'payment_attempts',
-      'checkout_links',
-      'gateway_accounts',
-      'auth_sessions',
-      'users',
-      'merchants'
-    ]) {
-      await dataSource.query(`DELETE FROM \`${table}\``);
+    const queryRunner = dataSource.createQueryRunner();
+    await queryRunner.connect();
+    try {
+      await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
+      for (const table of [
+        'financial_events',
+        'transactions',
+        'payment_attempts',
+        'checkout_links',
+        'gateway_accounts',
+        'auth_sessions',
+        'users',
+        'merchants'
+      ]) {
+        await queryRunner.query(`DELETE FROM \`${table}\``);
+      }
+      await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
+    } finally {
+      await queryRunner.release();
     }
-    await dataSource.query('SET FOREIGN_KEY_CHECKS = 1');
   });
 
   async function insertMerchant(id = randomUUID()): Promise<string> {
@@ -366,6 +373,174 @@ describe('checkout and payment persistence on MySQL 8.4', () => {
           randomUUID(),
           second,
           attemptId,
+          'STATUS_CHANGED',
+          'APPROVED',
+          'GATEWAY',
+          new Date(),
+          JSON.stringify({})
+        ]
+      )
+    );
+  });
+
+  test('matches every state in the approved payment-attempt machine', async () => {
+    const rows = await dataSource.query<{ COLUMN_TYPE: string }[]>(
+      "SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'payment_attempts' AND COLUMN_NAME = 'status'",
+      [databaseName]
+    );
+    expect(rows[0]?.COLUMN_TYPE).toBe(
+      "enum('PROCESSING','PENDING','RECONCILIATION_PENDING','APPROVED','DENIED','EXPIRED','MANUAL_REVIEW')"
+    );
+  });
+
+  test('rejects FAILED as a payment-attempt state', async () => {
+    const merchantId = await insertMerchant();
+    const linkId = await insertLink(merchantId);
+    await expectConstraintViolation(insertAttempt(merchantId, linkId, 'FAILED'));
+  });
+
+  test('keeps MANUAL_REVIEW unresolved and blocks a new attempt', async () => {
+    const merchantId = await insertMerchant();
+    const linkId = await insertLink(merchantId);
+    await insertAttempt(merchantId, linkId, 'MANUAL_REVIEW');
+    await expectConstraintViolation(insertAttempt(merchantId, linkId, 'PENDING'));
+  });
+
+  test('treats EXPIRED as terminal and permits a new attempt', async () => {
+    const merchantId = await insertMerchant();
+    const linkId = await insertLink(merchantId);
+    await insertAttempt(merchantId, linkId, 'EXPIRED');
+    await expect(insertAttempt(merchantId, linkId, 'PENDING')).resolves.toBeDefined();
+  });
+
+  test('supports expired and cancelled transaction projections', async () => {
+    const rows = await dataSource.query<{ COLUMN_TYPE: string }[]>(
+      "SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'transactions' AND COLUMN_NAME = 'status'",
+      [databaseName]
+    );
+    expect(rows[0]?.COLUMN_TYPE).toContain("'EXPIRED'");
+    expect(rows[0]?.COLUMN_TYPE).toContain("'CANCELLED'");
+  });
+
+  test('matches the exact approved transaction projection states', async () => {
+    const rows = await dataSource.query<{ COLUMN_TYPE: string }[]>(
+      "SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'transactions' AND COLUMN_NAME = 'status'",
+      [databaseName]
+    );
+    expect(rows[0]?.COLUMN_TYPE).toBe(
+      "enum('PENDING','APPROVED','DENIED','EXPIRED','CANCELLED','RECONCILIATION_PENDING','MANUAL_REVIEW')"
+    );
+  });
+
+  test('rejects REVERSED and arbitrary transaction projection states', async () => {
+    const merchantId = await insertMerchant();
+    for (const status of ['REVERSED', 'ARBITRARY_STATE']) {
+      await expectConstraintViolation(
+        dataSource.query(
+          'INSERT INTO transactions (id, merchant_id, origin_type, origin_id, external_reference, type, status, gross_amount_cents, fee_amount_cents, net_amount_cents, occurred_at, projection_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            randomUUID(),
+            merchantId,
+            'PAYMENT',
+            randomUUID(),
+            `TX-${randomUUID()}`,
+            'CREDIT',
+            status,
+            '1250',
+            '31',
+            '1219',
+            new Date(),
+            1
+          ]
+        )
+      );
+    }
+  });
+
+  test('restricts financial-event states to the payment and withdrawal union', async () => {
+    const rows = await dataSource.query<{ COLUMN_NAME: string; COLUMN_TYPE: string }[]>(
+      "SELECT COLUMN_NAME, COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'financial_events' AND COLUMN_NAME IN ('previous_status', 'new_status') ORDER BY COLUMN_NAME",
+      [databaseName]
+    );
+    const expected =
+      "enum('PROCESSING','PENDING','RECONCILIATION_PENDING','APPROVED','DENIED','EXPIRED','MANUAL_REVIEW')";
+    expect(rows).toEqual([
+      { COLUMN_NAME: 'new_status', COLUMN_TYPE: expected },
+      { COLUMN_NAME: 'previous_status', COLUMN_TYPE: expected }
+    ]);
+  });
+
+  test('rejects an arbitrary financial-event state', async () => {
+    const merchantId = await insertMerchant();
+    const linkId = await insertLink(merchantId);
+    const attemptId = await insertAttempt(merchantId, linkId, 'APPROVED');
+    await expectConstraintViolation(
+      dataSource.query(
+        'INSERT INTO financial_events (id, merchant_id, payment_attempt_id, event_type, new_status, source, occurred_at, metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          randomUUID(),
+          merchantId,
+          attemptId,
+          'STATUS_CHANGED',
+          'ARBITRARY_STATE',
+          'GATEWAY',
+          new Date(),
+          JSON.stringify({})
+        ]
+      )
+    );
+  });
+
+  test('accepts a null previous state and rejects an arbitrary previous state', async () => {
+    const merchantId = await insertMerchant();
+    const linkId = await insertLink(merchantId);
+    const attemptId = await insertAttempt(merchantId, linkId, 'APPROVED');
+    await expect(
+      dataSource.query(
+        'INSERT INTO financial_events (id, merchant_id, payment_attempt_id, event_type, previous_status, new_status, source, occurred_at, metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          randomUUID(),
+          merchantId,
+          attemptId,
+          'STATUS_CHANGED',
+          null,
+          'APPROVED',
+          'GATEWAY',
+          new Date(),
+          JSON.stringify({})
+        ]
+      )
+    ).resolves.toBeDefined();
+    await expectConstraintViolation(
+      dataSource.query(
+        'INSERT INTO financial_events (id, merchant_id, payment_attempt_id, event_type, previous_status, new_status, source, occurred_at, metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          randomUUID(),
+          merchantId,
+          attemptId,
+          'STATUS_CHANGED',
+          'ARBITRARY_STATE',
+          'APPROVED',
+          'GATEWAY',
+          new Date(),
+          JSON.stringify({})
+        ]
+      )
+    );
+  });
+
+  test('rejects a financial event with both payment and withdrawal origins', async () => {
+    const merchantId = await insertMerchant();
+    const linkId = await insertLink(merchantId);
+    const attemptId = await insertAttempt(merchantId, linkId, 'APPROVED');
+    await expectConstraintViolation(
+      dataSource.query(
+        'INSERT INTO financial_events (id, merchant_id, payment_attempt_id, withdrawal_id, event_type, new_status, source, occurred_at, metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          randomUUID(),
+          merchantId,
+          attemptId,
+          randomUUID(),
           'STATUS_CHANGED',
           'APPROVED',
           'GATEWAY',
