@@ -5,7 +5,7 @@ import { ProblemException } from '../../../src/platform/errors/problem.exception
 import type { GatewayCredentialService } from '../../../src/modules/gateway-accounts/gateway-credential.service.js';
 import type { WalletService } from '../../../src/modules/wallet/wallet.service.js';
 import type { WithdrawalGatewayAdapter } from '../../../src/modules/withdrawals/adapters/lera-box-withdrawal.adapter.js';
-import { WithdrawalEntity } from '../../../src/modules/withdrawals/entities/withdrawal.entity.js';
+import type { WithdrawalEntity } from '../../../src/modules/withdrawals/entities/withdrawal.entity.js';
 import { WithdrawalsService } from '../../../src/modules/withdrawals/withdrawals.service.js';
 
 describe('WithdrawalsService', () => {
@@ -42,9 +42,9 @@ describe('WithdrawalsService', () => {
       find: jest.fn().mockResolvedValue([mockWithdrawal]),
       create: jest.fn().mockImplementation((dto: Partial<WithdrawalEntity>) => ({
         ...dto,
-        id: dto.id || 'wth_gen_123',
-        createdAt: dto.createdAt || new Date('2026-08-12T14:00:00.000Z'),
-        updatedAt: dto.updatedAt || new Date('2026-08-12T14:00:00.000Z')
+        id: dto.id ?? 'wth_gen_123',
+        createdAt: dto.createdAt ?? new Date('2026-08-12T14:00:00.000Z'),
+        updatedAt: dto.updatedAt ?? new Date('2026-08-12T14:00:00.000Z')
       }))
     };
 

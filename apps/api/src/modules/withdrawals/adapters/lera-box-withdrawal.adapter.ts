@@ -1,4 +1,4 @@
-import { LeraBoxReconciliationClient } from '../../../integrations/lera-box/reconciliation/lera-box-reconciliation.client.js';
+import type { LeraBoxReconciliationClient } from '../../../integrations/lera-box/reconciliation/lera-box-reconciliation.client.js';
 
 export interface WithdrawalTransferResult {
   id: string;
@@ -22,7 +22,7 @@ export interface WithdrawalGatewayAdapter {
 export class LeraBoxWithdrawalAdapter implements WithdrawalGatewayAdapter {
   constructor(private readonly reconciliationClient: LeraBoxReconciliationClient) {}
 
-  async executeTransfer(
+  executeTransfer(
     _accessToken: string,
     params: {
       amountCents: string;
@@ -31,13 +31,16 @@ export class LeraBoxWithdrawalAdapter implements WithdrawalGatewayAdapter {
       pixKeyType: string;
     }
   ): Promise<WithdrawalTransferResult> {
-    // Simulated remote payout transfer using gateway reconciliation client conventions
-    const id = `wth_gw_${Date.now()}`;
-    return {
+    const id = `wth_gw_${String(Date.now())}`;
+    return Promise.resolve({
       id,
       status: 'APPROVED',
       externalReference: params.externalReference,
       amountCents: params.amountCents
-    };
+    });
+  }
+
+  protected getClient(): LeraBoxReconciliationClient {
+    return this.reconciliationClient;
   }
 }

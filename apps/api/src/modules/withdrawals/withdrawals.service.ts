@@ -49,7 +49,10 @@ export class WithdrawalsService {
       );
     }
 
-    const reference = dto.externalReference || `WTH-${Date.now()}-${randomUUID().slice(0, 8)}`;
+    const reference =
+      typeof dto.externalReference === 'string' && dto.externalReference.trim().length > 0
+        ? dto.externalReference.trim()
+        : `WTH-${String(Date.now())}-${randomUUID().slice(0, 8)}`;
 
     // 2. Check idempotency
     const existing = await this.dataSource.getRepository(WithdrawalEntity).findOne({
@@ -173,9 +176,11 @@ function maskPixKey(key: string, type: string): string {
     return `**.${key.slice(2, 5)}.${key.slice(5, 8)}/****-**`;
   }
   if (type === 'EMAIL' && key.includes('@')) {
-    const [user, domain] = key.split('@');
-    const userPrefix = user ? user.slice(0, 2) : '**';
-    return `${userPrefix}***@${domain ?? 'domain.com'}`;
+    const parts = key.split('@');
+    const user = parts[0] ?? '';
+    const domain = parts[1] ?? 'domain.com';
+    const userPrefix = user.length > 0 ? user.slice(0, 2) : '**';
+    return `${userPrefix}***@${domain}`;
   }
   if (key.length > 4) {
     return `***${key.slice(-4)}`;
