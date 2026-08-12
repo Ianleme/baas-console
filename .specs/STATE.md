@@ -182,9 +182,9 @@
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
 - **Phase / Task**: Execute / Batch 5, Phase 5, T031-T036
-- **Completed**: T001-T030; Phase 4 gate final com 208 unitarios, 146 integracao, 132 frontend, 59 contrato API, 13 stub, 16 cenarios Gherkin e 9 E2E, zero falhas
+- **Completed**: T001-T031; T031 validada com 8 unitarios, 11 contratos e 7 integracoes MySQL focadas
 - **In-progress** (file:line): none
-- **Next step**: executar T031-T036 sequencialmente, iniciando pela carteira autoritativa
+- **Next step**: concluir a correcao runtime SPA/R5 autorizada e executar T032-T036 sequencialmente
 - **Blockers**: none
 - **Uncommitted files**: progress bookkeeping only
 - **Branch**: main
