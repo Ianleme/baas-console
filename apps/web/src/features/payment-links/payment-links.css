@@ -1,0 +1,206 @@
+.payment-links {
+  color: var(--color-ink);
+}
+.payment-links__heading {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: space-between;
+}
+.payment-links__heading h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  margin: 0.25rem 0 0.4rem;
+}
+.payment-links__heading p {
+  color: var(--color-muted);
+}
+.link-summary {
+  background: white;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 1.8rem 0;
+}
+.link-summary > div {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 7.5rem;
+  padding: 1.6rem 2rem;
+}
+.link-summary > div + div {
+  border-left: 1px solid var(--color-line);
+}
+.link-summary span {
+  color: var(--color-muted);
+}
+.link-summary strong {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+}
+.link-filters {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(16rem, 2fr) repeat(2, minmax(10rem, 1fr));
+  margin-bottom: 1.5rem;
+}
+.link-filters input,
+.link-filters select,
+.link-form input,
+.link-form select {
+  background: white;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  min-height: 3.2rem;
+  padding: 0.7rem 0.9rem;
+  width: 100%;
+}
+.links-table-wrap {
+  border-top: 1px solid var(--color-line);
+  overflow-x: auto;
+}
+.links-table {
+  border-collapse: collapse;
+  min-width: 52rem;
+  width: 100%;
+}
+.links-table th {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  text-align: left;
+}
+.links-table th,
+.links-table td {
+  border-bottom: 1px solid var(--color-line);
+  padding: 1rem 0.65rem;
+}
+.links-table td:first-child {
+  display: grid;
+}
+.links-table small {
+  color: var(--color-muted);
+}
+.link-status {
+  border-radius: 0.4rem;
+  display: inline-block;
+  font-size: 0.82rem;
+  padding: 0.3rem 0.55rem;
+}
+.link-status--active,
+.link-status--paid {
+  background: var(--color-lime-soft);
+  color: var(--color-green-800);
+}
+.link-status--expired {
+  background: var(--color-sandbox-soft);
+  color: #8a5100;
+}
+.link-status--cancelled {
+  background: #ffe3e3;
+  color: #a00000;
+}
+.link-action {
+  background: transparent;
+  border: 0;
+  color: var(--color-green-700);
+  cursor: pointer;
+  padding: 0.35rem;
+}
+.link-action--danger {
+  color: #a00000;
+}
+.payment-links__live {
+  min-height: 1.5rem;
+}
+.links-empty {
+  background: white;
+  border: 1px dashed var(--color-line);
+  border-radius: var(--radius-lg);
+  padding: 3rem;
+  text-align: center;
+}
+.dialog-backdrop {
+  align-items: center;
+  background: rgb(0 30 25 / 42%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 80;
+}
+.dialog {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  max-height: calc(100vh - 2rem);
+  max-width: 34rem;
+  overflow: auto;
+  padding: 1.5rem;
+  width: 100%;
+}
+.dialog > header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+.dialog > header button {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 1.6rem;
+}
+.link-form {
+  display: grid;
+  gap: 0.9rem;
+}
+.link-form label {
+  display: grid;
+  font-weight: 650;
+  gap: 0.25rem;
+}
+.link-detail div {
+  border-bottom: 1px solid var(--color-line);
+  display: flex;
+  justify-content: space-between;
+  padding: 0.8rem 0;
+}
+.link-detail dt {
+  color: var(--color-muted);
+}
+.link-detail dd {
+  font-weight: 700;
+  margin: 0;
+}
+.danger-action {
+  background: #a00000;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+}
+.sr-only {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+}
+@media (max-width: 720px) {
+  .link-summary {
+    grid-template-columns: 1fr;
+  }
+  .link-summary > div + div {
+    border-left: 0;
+    border-top: 1px solid var(--color-line);
+  }
+  .link-filters {
+    grid-template-columns: 1fr;
+  }
+  .payment-links__heading .primary-action {
+    width: 100%;
+  }
+}

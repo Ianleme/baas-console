@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { BrandMark } from '../components/brand-mark.js';
 import { SandboxNotice } from '../components/sandbox-notice.js';
@@ -15,7 +15,7 @@ const navigation = [
   ['Configurações', '#/configuracoes']
 ] as const;
 
-export function AppShell() {
+export function AppShell({ content }: { content?: ReactNode }) {
   const [navigationOpen, setNavigationOpen] = useState(false);
 
   return (
@@ -98,29 +98,33 @@ export function AppShell() {
         />
       )}
       <main id="main-content" tabIndex={-1}>
-        <div className="page-heading">
-          <div>
-            <span className="eyebrow eyebrow--green">Visão geral</span>
-            <h1>Sua operação começa aqui</h1>
-            <p>Conecte a Lera Box para acompanhar sua movimentação financeira.</p>
-          </div>
-          <button className="primary-action" type="button" disabled>
-            Criar link de pagamento
-          </button>
-        </div>
-        <section className="empty-ledger" aria-labelledby="empty-ledger-title">
-          <div className="empty-ledger__signal" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
-          <span className="eyebrow">Painel financeiro</span>
-          <h2 id="empty-ledger-title">Pronto para receber dados conciliados</h2>
-          <p>
-            Dados financeiros reais aparecerão somente depois da conexão segura com o gateway.
-            Nenhum saldo demonstrativo será apresentado como operação real.
-          </p>
-        </section>
+        {content ?? (
+          <>
+            <div className="page-heading">
+              <div>
+                <span className="eyebrow eyebrow--green">Visão geral</span>
+                <h1>Sua operação começa aqui</h1>
+                <p>Conecte a Lera Box para acompanhar sua movimentação financeira.</p>
+              </div>
+              <button className="primary-action" type="button" disabled>
+                Criar link de pagamento
+              </button>
+            </div>
+            <section className="empty-ledger" aria-labelledby="empty-ledger-title">
+              <div className="empty-ledger__signal" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+              <span className="eyebrow">Painel financeiro</span>
+              <h2 id="empty-ledger-title">Pronto para receber dados conciliados</h2>
+              <p>
+                Dados financeiros reais aparecerão somente depois da conexão segura com o gateway.
+                Nenhum saldo demonstrativo será apresentado como operação real.
+              </p>
+            </section>
+          </>
+        )}
       </main>
     </div>
   );

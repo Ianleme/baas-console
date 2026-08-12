@@ -44,3 +44,30 @@ export function createAuthJourneyClient(options: BaasClientOptions) {
     }
   };
 }
+
+export function createPaymentLinksClient(options: BaasClientOptions) {
+  const request = options.fetch ?? globalThis.fetch;
+  async function json(path: string, init?: RequestInit): Promise<unknown> {
+    const headers = new Headers(init?.headers);
+    headers.set('content-type', 'application/json');
+    const response = await request(`${options.baseUrl}${path}`, {
+      credentials: 'include',
+      ...init,
+      headers
+    });
+    if (!response.ok) throw new Error('BAAS_REQUEST_FAILED');
+    return response.json() as Promise<unknown>;
+  }
+  return {
+    list: () => json('/api/v1/checkout-links') as Promise<never[]>,
+    create: (input: unknown) =>
+      json('/api/v1/checkout-links', {
+        method: 'POST',
+        body: JSON.stringify(input)
+      }) as Promise<never>,
+    cancel: (id: string) =>
+      json(`/api/v1/checkout-links/${encodeURIComponent(id)}/cancel`, {
+        method: 'POST'
+      }) as Promise<never>
+  };
+}
