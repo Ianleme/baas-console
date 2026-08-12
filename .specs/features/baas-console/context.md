@@ -36,7 +36,7 @@ Entregar uma plataforma BaaS web para um proprietario por lojista, integrada exc
 - O token publico possui 256 bits, chega no fragmento da URL, e trocado por sessao curta e removido da barra.
 - Pagador nao precisa criar conta.
 - E-mail e opcional e usado somente para entrega/comprovante.
-- Nome, documento ou telefone do comprador so serao coletados se o contrato real exigir.
+- Pix coleta `payerDocument` porque a referencia recebida o descreve como campo do request; nenhum nome, telefone ou campo adicional do comprador sera coletado sem evidencia.
 
 ### Pix and card
 
@@ -146,6 +146,7 @@ Entregar uma plataforma BaaS web para um proprietario por lojista, integrada exc
 
 ## Specific References
 
+- Referencia sanitizada da API: `docs/integrations/lera-box-api-reference.md`, derivada do documento fornecido pelo usuario e identificada por SHA-256.
 - Dashboard aprovado: sidebar clara, barra sandbox, KPIs, composicao, movimentacao, operacao e transacoes recentes.
 - Login aprovado: card central, marca no topo, badge sandbox e foco verde acessivel.
 - Lista de links aprovada: KPIs, busca, filtros, tabs, tabela densa e acoes contextuais.

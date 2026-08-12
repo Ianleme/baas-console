@@ -426,7 +426,7 @@ Todas as transicoes usam update condicional sobre o estado anterior esperado. Um
 
 ## Gateway Contract Strategy
 
-1. Congelar o OpenAPI conhecido como evidencia de referencia, nao como verdade completa.
+1. Usar `docs/integrations/lera-box-api-reference.md` e o OpenAPI conhecido como evidencias de referencia, nao como verdade completa.
 2. Criar conta sandbox com segredos apenas em env local ignorado.
 3. Executar chamadas controladas para cadastro/login, taxas, Pix, cartao, consulta, carteira, saque e webhooks.
 4. Capturar fixtures removendo e substituindo todos os identificadores, tokens, documentos, telefones e e-mails.
@@ -435,6 +435,19 @@ Todas as transicoes usam update condicional sobre o estado anterior esperado. Um
 7. Manter teste live manual separado por causa de resultados aleatorios.
 
 Nenhum campo de response, regra de retry do gateway ou formato de webhook sera inventado antes desse spike.
+
+### Documented request fields
+
+| Operation | Fields currently documented |
+| --- | --- |
+| Gateway registration | `personType`, identity/contact and address fields, `tradingName`, `complement` |
+| Gateway login | `document`, `password` |
+| Pix | `amount`, `payerDocument`, `description`, `externalReference` |
+| Card | `amount`, card instrument fields, `installments`, `feePercent`, `description`, `externalReference` |
+| Withdrawal | `amount`, `pixKey`, `document`, `description`, `externalReference` |
+| Webhook registration | `event`, `url`, `secret` |
+
+Exact response types and webhook/HMAC behavior remain unverified because the supplied saved examples contain empty response bodies.
 
 ## PDF Rendering Design
 

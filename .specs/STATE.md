@@ -182,9 +182,9 @@
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
 - **Phase / Task**: Design / gate de aprovacao do usuario
-- **Completed**: `STATE.md`, `spec.md`, `context.md` e `design.md`; 124 requisitos e 22 decisoes validados
+- **Completed**: `STATE.md`, `spec.md`, `context.md`, `design.md` e referencia sanitizada Lera Box; 124 requisitos e 22 decisoes validados
 - **In-progress** (file:line): none
 - **Next step**: obter aprovacao explicita do design antes de criar `tasks.md`
-- **Blockers**: nenhum para documentacao; contrato real da Lera Box e gate antes do adapter financeiro
+- **Blockers**: nenhum para documentacao; responses, webhooks e HMAC reais da Lera Box continuam como gate antes do adapter financeiro
 - **Uncommitted files**: none after documentation commit
 - **Branch**: main

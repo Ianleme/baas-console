@@ -43,7 +43,7 @@ Toda ambiguidade conhecida possui um default ou um gate verificavel; nenhuma ser
 | Encoding exato de `X-Lera-Box-Signature` | Bloquear implementacao final do verificador ate o contract spike confirmar bytes, encoding e comparacao | A documentacao conhecida informa HMAC-SHA256, mas nao fecha o encoding | Yes: gate approved |
 | Schemas reais de resposta e webhook | Capturar fixtures sanitizadas em sandbox e validar por testes de contrato | O OpenAPI conhecido nao descreve todas as respostas | Yes: gate approved |
 | Semantica de `feePercent` | Lojista absorve a taxa; nao adicionar surcharge ao pagador sem evidencia do contrato | Evita cobrar valor nao especificado | Yes |
-| Campos do comprador | Coletar apenas os campos comprovadamente exigidos pelo gateway; e-mail permanece opcional para comprovante | Minimizacao de dados | Yes |
+| Campos do comprador | Pix coleta `payerDocument`; cartao coleta os campos documentados do instrumento; e-mail permanece opcional para comprovante; nenhum outro campo e coletado sem evidencia | A referencia recebida descreve esses campos e a politica mantem minimizacao | Yes |
 | Provedor SMTP | Adapter SMTP generico; Mailpit local; provedor real escolhido depois do dominio | Evita acoplamento prematuro | Yes |
 | VPS e dominio | Configuracao por variaveis e tres hosts; dimensionamento final depende de benchmark | O fornecedor ainda nao foi comprado | Yes |
 | Licenca publica | Nao adicionar licenca ate confirmar as regras do desafio; usar MIT se nao houver restricao | Evita assumir direitos de redistribuicao | Yes |
@@ -111,7 +111,7 @@ Toda ambiguidade conhecida possui um default ou um gate verificavel; nenhuma ser
 
 **Acceptance Criteria**:
 
-1. **PAY-01** — WHEN um checkout Pix valido e confirmado THEN o backend SHALL criar uma tentativa e executar exatamente um `POST /api/payments/pix` com `externalReference` conciliavel.
+1. **PAY-01** — WHEN um checkout Pix valido com `payerDocument` validado e confirmado THEN o backend SHALL criar uma tentativa e executar exatamente um `POST /api/payments/pix` com valor em centavos, descricao e `externalReference` conciliavel.
 2. **PAY-02** — WHEN o gateway retorna EMV, QR ou txid THEN o checkout SHALL exibir os campos disponiveis, oferecer copia do EMV e manter a tentativa pendente ate resultado definitivo.
 3. **PAY-03** — WHEN o Pix esta pendente THEN o checkout SHALL atualizar o estado por webhook e consultas controladas sem criar outro Pix.
 4. **PAY-04** — WHEN o Pix expira ou e definitivamente negado THEN o sistema SHALL encerrar a tentativa e permitir nova tentativa se o link ainda estiver `ACTIVE`.
