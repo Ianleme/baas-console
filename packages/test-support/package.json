@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "test": "npm run build && node --test --test-isolation=none dist/lera-box-stub/lera-box-stub.test.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   }
 }
