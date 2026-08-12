@@ -107,3 +107,30 @@
     padding-top: 1rem;
   }
 }
+.checkout-content {
+  display: grid;
+  gap: 0.75rem;
+}
+.checkout-content h1 {
+  margin-bottom: 0;
+}
+.checkout-amount {
+  color: var(--color-green-800);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 7vw, 3.4rem);
+}
+.checkout-methods {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+.checkout-methods button {
+  background: var(--color-green-700);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 3.2rem;
+  padding: 0.75rem;
+}

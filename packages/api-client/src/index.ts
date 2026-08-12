@@ -71,3 +71,27 @@ export function createPaymentLinksClient(options: BaasClientOptions) {
       }) as Promise<never>
   };
 }
+
+export interface PublicCheckoutView {
+  id: string;
+  description: string;
+  amountCents: string;
+  methods: 'PIX' | 'CARD' | 'PIX_CARD';
+  maxInstallments: number;
+  state: 'READY' | 'EXPIRED' | 'PAID' | 'CANCELLED';
+}
+export function createCheckoutSessionClient(options: BaasClientOptions) {
+  const request = options.fetch ?? globalThis.fetch;
+  return {
+    async exchange(token: string): Promise<{ checkout: PublicCheckoutView; csrfToken: string }> {
+      const response = await request(`${options.baseUrl}/api/v1/public/checkout-sessions`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
+      if (!response.ok) throw new Error('CHECKOUT_SESSION_UNAVAILABLE');
+      return response.json() as Promise<{ checkout: PublicCheckoutView; csrfToken: string }>;
+    }
+  };
+}
