@@ -182,9 +182,9 @@
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
 - **Phase / Task**: Execute / Batch 5, Phase 5, T031-T036
-- **Completed**: T001-T033; T033 validada (API de extrato consolidado com mescla de adapter remoto da Lera Box, projeções TypeORM locais isoladas por tenant e 11 testes unitários com validação 100% verde no gate pr)
-- **In-progress** (file:line): T034 (`apps/web/src/features/transactions/**`)
-- **Next step**: Executar T034: Implement transaction screens and exact filters
+- **Completed**: T001-T034; T034 validada (Tela de extrato de transações no frontend com filtros por status/tipo/origem/referência, badges acessíveis, paginação e 14 testes web 100% verdes no gate pr)
+- **In-progress** (file:line): T035 (`apps/api/src/modules/withdrawals/**`)
+- **Next step**: Executar T035: Implement withdrawal backend logic and gateway transfer
 - **Blockers**: none
 - **Uncommitted files**: progress bookkeeping only
 - **Branch**: main
