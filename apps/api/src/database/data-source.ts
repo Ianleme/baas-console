@@ -2,6 +2,7 @@ import { DataSource } from 'typeorm';
 
 import { CreateAsyncPersistence1723503000000 } from '../migrations/1723503000000-CreateAsyncPersistence.js';
 import { AllowGatewayInstallments1723504000000 } from '../migrations/1723504000000-AllowGatewayInstallments.js';
+import { CreateCheckoutSessions1723505000000 } from '../migrations/1723505000000-CreateCheckoutSessions.js';
 import { CreateAuthPersistence1723500000000 } from '../migrations/1723500000000-CreateAuthPersistence.js';
 import { CreatePaymentPersistence1723501000000 } from '../migrations/1723501000000-CreatePaymentPersistence.js';
 import { CreateWalletWithdrawalPersistence1723502000000 } from '../migrations/1723502000000-CreateWalletWithdrawalPersistence.js';
@@ -15,6 +16,7 @@ import {
 import { CheckoutLinkEntity } from '../modules/checkout-links/entities/index.js';
 import { EmailDeliveryEntity } from '../modules/notifications/entities/index.js';
 import { PaymentAttemptEntity } from '../modules/payments/entities/index.js';
+import { CheckoutSessionEntity } from '../modules/public-checkout/entities/index.js';
 import { FinancialEventEntity, TransactionEntity } from '../modules/transactions/entities/index.js';
 import { WalletSnapshotEntity } from '../modules/wallet/entities/index.js';
 import { WebhookEndpointEntity, WebhookEventEntity } from '../modules/webhooks/entities/index.js';
@@ -42,6 +44,7 @@ export function createApplicationDataSource(): DataSource {
       GatewayAccountEntity,
       CheckoutLinkEntity,
       PaymentAttemptEntity,
+      CheckoutSessionEntity,
       TransactionEntity,
       FinancialEventEntity,
       WalletSnapshotEntity,
@@ -56,7 +59,8 @@ export function createApplicationDataSource(): DataSource {
       CreatePaymentPersistence1723501000000,
       CreateWalletWithdrawalPersistence1723502000000,
       CreateAsyncPersistence1723503000000,
-      AllowGatewayInstallments1723504000000
+      AllowGatewayInstallments1723504000000,
+      CreateCheckoutSessions1723505000000
     ],
     migrationsRun: false,
     migrationsTableName: 'migrations',

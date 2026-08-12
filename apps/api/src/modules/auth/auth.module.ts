@@ -45,7 +45,7 @@ import { TypeOrmAuthStore } from './typeorm-auth.store.js';
         new AuthService(store, undefined, required('AUTH_TOKEN_SECRET'))
     }
   ],
-  exports: [DatabaseService, AuthService]
+  exports: [DatabaseService, AuthService, EncryptionService]
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS requires a decorated runtime module class.
 export class AuthModule {}

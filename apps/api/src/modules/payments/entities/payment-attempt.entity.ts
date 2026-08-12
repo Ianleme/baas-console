@@ -125,6 +125,15 @@ export class PaymentAttemptEntity {
   @Column({ name: 'failure_code', type: 'varchar', length: 64, nullable: true })
   failureCode!: string | null;
 
+  @Column({ name: 'pix_txid', type: 'varchar', length: 191, nullable: true })
+  pixTxid!: string | null;
+
+  @Column({ name: 'pix_emv', type: 'text', nullable: true })
+  pixEmv!: string | null;
+
+  @Column({ name: 'pix_qr_code_base64', type: 'mediumtext', nullable: true })
+  pixQrCodeBase64!: string | null;
+
   @Column({ name: 'reconciliation_attempts', type: 'smallint', unsigned: true, default: 0 })
   reconciliationAttempts!: number;
 

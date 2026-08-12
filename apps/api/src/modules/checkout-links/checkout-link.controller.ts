@@ -1,0 +1,136 @@
+import { Body, Controller, Get, Headers, Param, Post } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags
+} from '@nestjs/swagger';
+import { IsDateString, IsIn, IsInt, IsString, Length, Max, Min } from 'class-validator';
+
+import { ProblemException } from '../../platform/errors/problem.exception.js';
+import { AuthError, AuthService } from '../auth/auth.service.js';
+import {
+  CheckoutLinkError,
+  CheckoutLinkService,
+  type CheckoutLinkRecord
+} from './checkout-link.service.js';
+
+class CreateCheckoutLinkDto {
+  @IsString() @Length(1, 100) publicReference!: string;
+  @IsString() @Length(1, 255) description!: string;
+  @IsString() amountCents!: string;
+  @IsIn(['PIX', 'CARD', 'PIX_CARD']) allowedMethods!: 'PIX' | 'CARD' | 'PIX_CARD';
+  @IsInt() @Min(1) @Max(21) maxInstallments!: number;
+  @IsDateString() expiresAt!: string;
+}
+
+@ApiTags('checkout-links')
+@ApiBearerAuth()
+@Controller('api/v1/checkout-links')
+export class CheckoutLinkController {
+  constructor(
+    private readonly links: CheckoutLinkService,
+    private readonly auth: AuthService
+  ) {}
+
+  @Get()
+  @ApiOperation({ summary: 'List checkout links for the authenticated merchant' })
+  @ApiOkResponse({ description: 'Tenant-scoped checkout links' })
+  async list(@Headers('authorization') authorization?: string) {
+    return (await this.links.list(this.merchant(authorization))).map(publicRecord);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a tenant-scoped checkout link' })
+  async detail(
+    @Headers('authorization') authorization: string | undefined,
+    @Param('id') id: string
+  ) {
+    try {
+      return publicRecord(await this.links.detail(this.merchant(authorization), id));
+    } catch (error) {
+      throw problem(error);
+    }
+  }
+
+  @Post()
+  @ApiCreatedResponse({ description: 'Checkout link and one-time public fragment token' })
+  async create(
+    @Headers('authorization') authorization: string | undefined,
+    @Body() input: CreateCheckoutLinkDto
+  ) {
+    try {
+      const created = await this.links.create(this.merchant(authorization), {
+        publicReference: input.publicReference,
+        description: input.description,
+        amountCents: input.amountCents,
+        allowedMethods: input.allowedMethods,
+        maxInstallments: input.maxInstallments,
+        expiresAt: new Date(input.expiresAt)
+      });
+      return { ...publicRecord(created.link), publicToken: created.publicToken };
+    } catch (error) {
+      throw problem(error);
+    }
+  }
+
+  @Post(':id/cancel')
+  @ApiOkResponse({ description: 'Checkout link cancelled when no unresolved attempt exists' })
+  async cancel(
+    @Headers('authorization') authorization: string | undefined,
+    @Param('id') id: string
+  ) {
+    try {
+      return publicRecord(await this.links.cancel(this.merchant(authorization), id));
+    } catch (error) {
+      throw problem(error);
+    }
+  }
+
+  private merchant(authorization: string | undefined): string {
+    try {
+      if (!authorization?.startsWith('Bearer ')) throw new AuthError('AUTH_REQUIRED');
+      return this.auth.verifyAccessToken(authorization.slice(7)).merchantId;
+    } catch {
+      throw new ProblemException('AUTH_REQUIRED', 401, 'Authentication is required.');
+    }
+  }
+}
+
+function publicRecord(link: CheckoutLinkRecord) {
+  return {
+    id: link.id,
+    publicReference: link.publicReference,
+    description: link.description,
+    amountCents: link.amountCents,
+    allowedMethods: link.allowedMethods,
+    maxInstallments: link.maxInstallments,
+    feeSnapshot: link.feeSnapshot,
+    status: link.status,
+    expiresAt: link.expiresAt.toISOString(),
+    createdAt: link.createdAt.toISOString()
+  };
+}
+function problem(error: unknown): ProblemException {
+  if (error instanceof ProblemException) return error;
+  if (error instanceof CheckoutLinkError) {
+    const status =
+      error.code === 'LINK_NOT_FOUND'
+        ? 404
+        : ['LINK_STATE_CONFLICT', 'PAYMENT_ATTEMPT_UNRESOLVED', 'LINK_NOT_ACTIVE'].includes(
+              error.code
+            )
+          ? 409
+          : 400;
+    return new ProblemException(error.code, status, 'Checkout link request was rejected.');
+  }
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'ER_DUP_ENTRY'
+  )
+    return new ProblemException('CHECKOUT_LINK_CONFLICT', 409, 'Checkout link already exists.');
+  throw error;
+}

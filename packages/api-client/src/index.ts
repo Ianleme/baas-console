@@ -7,6 +7,27 @@ export type { components, operations, paths } from './generated/schema.js';
 export interface BaasClientOptions {
   baseUrl: string;
   fetch?: typeof globalThis.fetch;
+  accessToken?: () => string;
+  onAccessToken?: (token: string) => void;
+}
+
+export interface BaasMemorySession {
+  readonly token: () => string;
+  readonly setToken: (token: string) => void;
+  readonly clear: () => void;
+}
+
+export function createBaasMemorySession(): BaasMemorySession {
+  let accessToken = '';
+  return {
+    token: () => accessToken,
+    setToken: (token) => {
+      accessToken = token;
+    },
+    clear: () => {
+      accessToken = '';
+    }
+  };
 }
 
 export function createBaasClient(options: BaasClientOptions) {
@@ -29,7 +50,10 @@ export function createAuthJourneyClient(options: BaasClientOptions) {
     if (!response.ok) throw new Error('BAAS_REQUEST_FAILED');
     const result =
       response.status === 204 ? {} : ((await response.json()) as { accessToken?: unknown });
-    if (typeof result.accessToken === 'string') accessToken = result.accessToken;
+    if (typeof result.accessToken === 'string') {
+      accessToken = result.accessToken;
+      options.onAccessToken?.(result.accessToken);
+    }
     return result;
   }
   return {
@@ -46,7 +70,10 @@ export function createAuthJourneyClient(options: BaasClientOptions) {
       const response = await request(`${options.baseUrl}/api/v1/gateway-account/connect`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${accessToken}` },
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${options.accessToken?.() ?? accessToken}`
+        },
         body: JSON.stringify(input)
       });
       if (!response.ok) {
@@ -65,6 +92,8 @@ export function createPaymentLinksClient(options: BaasClientOptions) {
   async function json(path: string, init?: RequestInit): Promise<unknown> {
     const headers = new Headers(init?.headers);
     headers.set('content-type', 'application/json');
+    const accessToken = options.accessToken?.();
+    if (accessToken) headers.set('authorization', `Bearer ${accessToken}`);
     const response = await request(`${options.baseUrl}${path}`, {
       credentials: 'include',
       ...init,
