@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, ArrowUpRight, TrendingUp, Wallet, CheckCircle2 } from 'lucide-react';
+import { ArrowUpRight, Wallet, CheckCircle2 } from 'lucide-react';
 
 import { Badge } from '../../components/ui/badge.js';
 import { Card, CardContent, CardHeader } from '../../components/ui/card.js';
@@ -50,16 +50,6 @@ const timestamp = new Intl.DateTimeFormat('pt-BR', {
 
 function money(cents: string) {
   return currency.format(Number(cents) / 100);
-}
-
-function statusLabel(status: DashboardOperation['status']) {
-  return {
-    APPROVED: 'Aprovada',
-    DENIED: 'Negada',
-    PENDING: 'Pendente',
-    EXPIRED: 'Expirada',
-    CANCELLED: 'Cancelada'
-  }[status];
 }
 
 export function Dashboard({ api }: { api: DashboardApi }) {

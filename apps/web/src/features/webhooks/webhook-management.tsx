@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
-import { Card, CardContent } from '../../components/ui/card.js';
+import { CardContent } from '../../components/ui/card.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
 
 export type WebhookEvent = 'PAYMENT_PIX' | 'PAYMENT_CARD' | 'WITHDRAWAL';
