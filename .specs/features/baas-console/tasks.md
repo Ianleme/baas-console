@@ -87,7 +87,8 @@ Coverage thresholds are non-negotiable: backend global 90% lines/statements/func
 | T028 | Complete | `f05eeec` |
 | T029 | Complete | `49edfab` |
 | T030 | Complete | `8e80308` |
-| T031-T053 | Pending | — |
+| T031 | Complete | `pending commit` |
+| T032-T053 | Pending | — |
 
 ## Execution Plan
 
