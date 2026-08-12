@@ -11,8 +11,17 @@ import { HttpLoggingMiddleware } from './platform/logging/http-logging.middlewar
 import { platformLoggerProvider } from './platform/logging/platform-logger.js';
 import { RequestContextMiddleware } from './platform/request-context/request-context.middleware.js';
 
+import { WithdrawalsModule } from './modules/withdrawals/withdrawals.module.js';
+
 @Module({
-  imports: [AuthModule, PaymentsModule, WebhooksModule, WalletModule, TransactionsModule],
+  imports: [
+    AuthModule,
+    PaymentsModule,
+    WebhooksModule,
+    WalletModule,
+    TransactionsModule,
+    WithdrawalsModule
+  ],
   controllers: [HealthController],
   providers: [HealthProbe, platformLoggerProvider]
 })

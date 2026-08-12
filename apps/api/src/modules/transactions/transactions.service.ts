@@ -66,7 +66,7 @@ export class TransactionsService {
 
     // Check if remote gateway synchronization is available
     try {
-      const creds = this.credentials as {
+      const creds = this.credentials as unknown as {
         getActiveGatewayAuth(id: string): Promise<{ accessToken?: string } | null>;
       };
       const auth = await creds.getActiveGatewayAuth(merchantId);
