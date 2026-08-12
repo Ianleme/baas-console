@@ -1,0 +1,11 @@
+{
+  "name": "@baas/receipt-template",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}
