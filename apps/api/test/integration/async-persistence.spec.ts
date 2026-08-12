@@ -266,6 +266,60 @@ describe('asynchronous processing persistence on MySQL 8.4', () => {
     expect(results.map(({ affectedRows }) => affectedRows).sort()).toEqual([0, 1]);
   });
 
+  test('recovers a processing webhook after its lease expires', async () => {
+    const merchantId = await insertMerchant();
+    const endpointId = await insertEndpoint(merchantId);
+    await insertWebhookEvent(endpointId, merchantId, 'expired-lease');
+    await dataSource.query(
+      "UPDATE webhook_events SET status = 'PROCESSING', lease_until = DATE_SUB(NOW(6), INTERVAL 1 SECOND) WHERE webhook_endpoint_id = ?",
+      [endpointId]
+    );
+    const result = await dataSource.query<{ affectedRows: number }>(
+      "UPDATE webhook_events SET lease_until = DATE_ADD(NOW(6), INTERVAL 1 MINUTE) WHERE webhook_endpoint_id = ? AND status = 'PROCESSING' AND lease_until < NOW(6)",
+      [endpointId]
+    );
+    expect(result.affectedRows).toBe(1);
+  });
+
+  test('acquires a scheduled retry only after its due time', async () => {
+    const merchantId = await insertMerchant();
+    const endpointId = await insertEndpoint(merchantId);
+    await insertWebhookEvent(endpointId, merchantId, 'future-retry');
+    await dataSource.query(
+      "UPDATE webhook_events SET status = 'RETRY_SCHEDULED', next_attempt_at = DATE_ADD(NOW(6), INTERVAL 1 HOUR) WHERE webhook_endpoint_id = ?",
+      [endpointId]
+    );
+    const early = await dataSource.query<{ affectedRows: number }>(
+      "UPDATE webhook_events SET status = 'PROCESSING' WHERE webhook_endpoint_id = ? AND status = 'RETRY_SCHEDULED' AND next_attempt_at <= NOW(6)",
+      [endpointId]
+    );
+    expect(early.affectedRows).toBe(0);
+    await dataSource.query(
+      'UPDATE webhook_events SET next_attempt_at = DATE_SUB(NOW(6), INTERVAL 1 SECOND) WHERE webhook_endpoint_id = ?',
+      [endpointId]
+    );
+    const due = await dataSource.query<{ affectedRows: number }>(
+      "UPDATE webhook_events SET status = 'PROCESSING' WHERE webhook_endpoint_id = ? AND status = 'RETRY_SCHEDULED' AND next_attempt_at <= NOW(6)",
+      [endpointId]
+    );
+    expect(due.affectedRows).toBe(1);
+  });
+
+  test('never reacquires a dead-letter webhook', async () => {
+    const merchantId = await insertMerchant();
+    const endpointId = await insertEndpoint(merchantId);
+    await insertWebhookEvent(endpointId, merchantId, 'dead-letter');
+    await dataSource.query(
+      "UPDATE webhook_events SET status = 'DEAD_LETTER', next_attempt_at = DATE_SUB(NOW(6), INTERVAL 1 SECOND) WHERE webhook_endpoint_id = ?",
+      [endpointId]
+    );
+    const result = await dataSource.query<{ affectedRows: number }>(
+      "UPDATE webhook_events SET status = 'PROCESSING' WHERE webhook_endpoint_id = ? AND status IN ('RECEIVED', 'RETRY_SCHEDULED') AND next_attempt_at <= NOW(6)",
+      [endpointId]
+    );
+    expect(result.affectedRows).toBe(0);
+  });
+
   test('represents webhook retry and encrypted-body retention indexes', async () => {
     const indexes = await dataSource.query<{ INDEX_NAME: string }[]>(
       "SELECT DISTINCT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'webhook_events' AND INDEX_NAME IN ('idx_webhook_events_lease', 'idx_webhook_events_purge') ORDER BY INDEX_NAME",
