@@ -4,7 +4,6 @@ import { In } from 'typeorm';
 import { DatabaseService } from '../../../database/database.service.js';
 import { PaymentAttemptEntity } from '../../payments/entities/payment-attempt.entity.js';
 import { WithdrawalEntity } from '../../withdrawals/entities/withdrawal.entity.js';
-import { WebhookEndpointEntity } from '../entities/webhook-endpoint.entity.js';
 import { WebhookEventEntity } from '../entities/webhook-event.entity.js';
 import type {
   LeasedWebhookEvent,
