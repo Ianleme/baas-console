@@ -1,0 +1,192 @@
+{
+  "login": {
+    "status": 201,
+    "body": {
+      "access_token": "fixture-access-token",
+      "token_type": "Bearer",
+      "codigoCliente": 100001,
+      "chaveLoja": "fixture-store-key",
+      "user": {
+        "id": "fixture-user-id",
+        "personType": "PF",
+        "name": "Cliente Sandbox",
+        "tradingName": "Loja Sandbox",
+        "email": "masked-at-example",
+        "document": "masked-document"
+      }
+    }
+  },
+  "profile": {
+    "status": 200,
+    "body": {
+      "id": "fixture-user-id",
+      "personType": "PF",
+      "name": "Cliente Sandbox",
+      "tradingName": "Loja Sandbox",
+      "email": "masked-at-example",
+      "phone": "masked-phone",
+      "document": "masked-document",
+      "codigoCliente": 100001,
+      "chaveLoja": "fixture-store-key",
+      "address": {
+        "zipCode": "masked-postal-code",
+        "address": "Endereco Sandbox",
+        "number": "masked-number",
+        "complement": "Ambiente de teste",
+        "neighborhood": "Centro",
+        "city": "Sao Paulo",
+        "state": "SP"
+      },
+      "emailConfirmed": true,
+      "wallet": { "balance": 0 },
+      "createdAt": "2026-08-12T00:00:00.000Z"
+    }
+  },
+  "fees": {
+    "status": 200,
+    "body": {
+      "total": 63,
+      "fees": [
+        {
+          "id": "fee-visa-1",
+          "brand": "VISA",
+          "installments": 1,
+          "feePercent": 2.49,
+          "feePercentFormatted": "2,49%"
+        },
+        {
+          "id": "fee-visa-3",
+          "brand": "VISA",
+          "installments": 3,
+          "feePercent": 3.19,
+          "feePercentFormatted": "3,19%"
+        },
+        {
+          "id": "fee-visa-21",
+          "brand": "VISA",
+          "installments": 21,
+          "feePercent": 9.49,
+          "feePercentFormatted": "9,49%"
+        },
+        {
+          "id": "fee-mastercard-1",
+          "brand": "MASTERCARD",
+          "installments": 1,
+          "feePercent": 2.69,
+          "feePercentFormatted": "2,69%"
+        },
+        {
+          "id": "fee-elo-1",
+          "brand": "ELO",
+          "installments": 1,
+          "feePercent": 2.89,
+          "feePercentFormatted": "2,89%"
+        }
+      ]
+    }
+  },
+  "wallet": {
+    "status": 200,
+    "body": {
+      "id": "fixture-wallet-id",
+      "userId": "fixture-user-id",
+      "balance": 97,
+      "balanceFormatted": "R$ 0,97",
+      "updatedAt": "2026-08-12T00:00:00.000Z"
+    }
+  },
+  "statement": {
+    "status": 200,
+    "body": {
+      "walletId": "fixture-wallet-id",
+      "balance": 97,
+      "balanceFormatted": "R$ 0,97",
+      "filters": { "status": null, "type": null },
+      "transactions": []
+    }
+  },
+  "pixDenied": {
+    "status": 201,
+    "body": {
+      "id": "fixture-pix-id",
+      "type": "PIX",
+      "status": "DENIED",
+      "denialReason": "INSUFFICIENT_BALANCE",
+      "amount": 100,
+      "amountFormatted": "R$ 1,00",
+      "description": "Contract fixture",
+      "message": "Pagamento negado",
+      "metadata": {
+        "method": "PIX",
+        "externalReference": "REF-PIX-FIXTURE",
+        "txid": "fixture-txid"
+      },
+      "createdAt": "2026-08-12T00:00:00.000Z",
+      "externalReference": "REF-PIX-FIXTURE"
+    }
+  },
+  "cardApproved": {
+    "status": 201,
+    "body": {
+      "id": "fixture-card-id",
+      "type": "CREDIT_CARD",
+      "status": "APPROVED",
+      "denialReason": null,
+      "amount": 100,
+      "amountFormatted": "R$ 1,00",
+      "description": "Contract fixture",
+      "message": "Pagamento aprovado",
+      "metadata": {
+        "method": "CREDIT_CARD",
+        "externalReference": "REF-CARD-FIXTURE",
+        "cardBrand": "VISA",
+        "cardLast4": "masked-last-four",
+        "installments": 3,
+        "feePercent": 3.19,
+        "feeAmountCents": 3,
+        "netAmountCents": 97,
+        "grossAmountCents": 100,
+        "installmentAmountCents": 34
+      },
+      "createdAt": "2026-08-12T00:00:00.000Z",
+      "externalReference": "REF-CARD-FIXTURE",
+      "fee": {
+        "brand": "VISA",
+        "installments": 3,
+        "feePercent": 3.19,
+        "feeAmount": 3,
+        "grossAmount": 100,
+        "netAmount": 97,
+        "installmentAmount": 34
+      }
+    }
+  },
+  "withdrawalApproved": {
+    "status": 201,
+    "body": {
+      "id": "fixture-withdrawal-id",
+      "type": "WITHDRAWAL",
+      "status": "APPROVED",
+      "denialReason": null,
+      "amount": 10,
+      "amountFormatted": "R$ 0,10",
+      "description": "Contract fixture",
+      "message": "Saque aprovado",
+      "metadata": { "externalReference": "REF-WITHDRAW-FIXTURE" },
+      "createdAt": "2026-08-12T00:00:00.000Z",
+      "externalReference": "REF-WITHDRAW-FIXTURE"
+    }
+  },
+  "validationError": {
+    "status": 400,
+    "body": {
+      "message": [
+        "amount must be a number conforming to the specified constraints",
+        "payerDocument must be a string"
+      ],
+      "error": "Bad Request",
+      "statusCode": 400
+    }
+  },
+  "unauthorized": { "status": 401 }
+}

@@ -31,7 +31,7 @@ export const verificationProfiles = {
     }
   ],
   live: [
-    { name: 'live-contract', script: 'test:live', enabled: false, ownerTask: 'T011' },
-    { name: 'live-evidence', script: 'validate:live', enabled: false, ownerTask: 'T011' }
+    { name: 'live-contract', script: 'test:live', enabled: true, ownerTask: 'T011' },
+    { name: 'live-evidence', script: 'validate:live', enabled: true, ownerTask: 'T011' }
   ]
 };

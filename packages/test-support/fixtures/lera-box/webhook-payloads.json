@@ -1,0 +1,57 @@
+{
+  "paymentCard": {
+    "event": "PAYMENT_CARD",
+    "status": "APPROVED",
+    "denialReason": null,
+    "transactionId": "fixture-card-id",
+    "externalReference": "REF-CARD-FIXTURE",
+    "txid": null,
+    "amount": 100,
+    "amountFormatted": "R$ 1,00",
+    "message": "Pagamento aprovado",
+    "CodigoCliente": 100001,
+    "ChaveLoja": "fixture-store-key",
+    "metadata": {
+      "method": "CREDIT_CARD",
+      "externalReference": "REF-CARD-FIXTURE",
+      "cardBrand": "VISA",
+      "cardLast4": "masked-last-four",
+      "installments": 3,
+      "feePercent": 3.19,
+      "feeAmountCents": 3,
+      "netAmountCents": 97,
+      "grossAmountCents": 100,
+      "installmentAmountCents": 34
+    },
+    "occurredAt": "2026-08-12T00:00:00.000Z"
+  },
+  "paymentPix": {
+    "event": "PAYMENT_PIX",
+    "status": "DENIED",
+    "denialReason": "INSUFFICIENT_BALANCE",
+    "transactionId": "fixture-pix-id",
+    "externalReference": "REF-PIX-FIXTURE",
+    "txid": "fixture-txid",
+    "amount": 100,
+    "amountFormatted": "R$ 1,00",
+    "message": "Pagamento negado",
+    "CodigoCliente": 100001,
+    "ChaveLoja": "fixture-store-key",
+    "metadata": { "method": "PIX", "externalReference": "REF-PIX-FIXTURE", "txid": "fixture-txid" },
+    "occurredAt": "2026-08-12T00:00:00.000Z"
+  },
+  "withdrawal": {
+    "event": "WITHDRAWAL",
+    "status": "APPROVED",
+    "denialReason": null,
+    "transactionId": "fixture-withdrawal-id",
+    "externalReference": "REF-WITHDRAW-FIXTURE",
+    "amount": 10,
+    "amountFormatted": "R$ 0,10",
+    "message": "Saque aprovado",
+    "CodigoCliente": 100001,
+    "ChaveLoja": "fixture-store-key",
+    "metadata": { "externalReference": "REF-WITHDRAW-FIXTURE" },
+    "occurredAt": "2026-08-12T00:00:00.000Z"
+  }
+}

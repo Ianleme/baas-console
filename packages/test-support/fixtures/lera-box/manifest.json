@@ -1,0 +1,23 @@
+{
+  "observedAt": "2026-08-12T00:00:00Z",
+  "baseUrl": "https://api.branchpay.com.br",
+  "openApi": {
+    "url": "/docs-json",
+    "version": "1.0",
+    "sha256": "f1a72c0493f90d73d0827e78d3071b77446c8c71c342ddca926b8d58b52b22db"
+  },
+  "rawEvidence": {
+    "location": "artifacts/live (git-ignored)",
+    "responsesSha256": "312adc17ea016609080db935fa5a60f5fd2e81a712c850a3840a0febc2e11648",
+    "eventsSha256": "749175d519e46be297c59692f602a8523f5cdea15fd0142490d15f33f5994bb3"
+  },
+  "hmac": {
+    "algorithm": "HMAC-SHA256",
+    "input": "exact raw HTTP request-body bytes",
+    "header": "x-lera-box-signature",
+    "eventHeader": "x-lera-box-event",
+    "encoding": "lowercase hexadecimal",
+    "encodedLength": 64
+  },
+  "fixtures": ["responses.json", "webhook-payloads.json"]
+}
