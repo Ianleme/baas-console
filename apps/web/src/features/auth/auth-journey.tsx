@@ -66,9 +66,7 @@ const BRAZIL_UFS = new Set([
   'TO'
 ]);
 
-export interface FormErrors {
-  [fieldName: string]: string | undefined;
-}
+export type FormErrors = Record<string, string | undefined>;
 
 export function formatCpf(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -454,7 +452,9 @@ export function AuthJourney({
                   label={personType === 'PF' ? 'Nome completo' : 'Razão social'}
                   name="name"
                   value={formValues.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  onChange={(e) => {
+                    handleInputChange('name', e.target.value);
+                  }}
                   maxLength={255}
                   placeholder={personType === 'PF' ? 'Ex: Maria Silva' : 'Ex: Empresa Exemplo Ltda'}
                   error={fieldErrors.name}
@@ -463,7 +463,9 @@ export function AuthJourney({
                   label="Nome da loja"
                   name="tradingName"
                   value={formValues.tradingName}
-                  onChange={(e) => handleInputChange('tradingName', e.target.value)}
+                  onChange={(e) => {
+                    handleInputChange('tradingName', e.target.value);
+                  }}
                   maxLength={120}
                   placeholder="Ex: Minha Loja"
                   error={fieldErrors.tradingName}
@@ -473,7 +475,9 @@ export function AuthJourney({
                   name="email"
                   type="email"
                   value={formValues.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  onChange={(e) => {
+                    handleInputChange('email', e.target.value);
+                  }}
                   maxLength={254}
                   placeholder="nome@empresa.com.br"
                   error={fieldErrors.email}
@@ -482,7 +486,9 @@ export function AuthJourney({
                   label="Telefone"
                   name="phone"
                   value={formValues.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  onChange={(e) => {
+                    handleInputChange('phone', e.target.value);
+                  }}
                   maxLength={15}
                   placeholder="(00) 90000-0000"
                   error={fieldErrors.phone}
@@ -491,7 +497,9 @@ export function AuthJourney({
                   label={personType === 'PF' ? 'CPF' : 'CNPJ'}
                   name="document"
                   value={formValues.document}
-                  onChange={(e) => handleInputChange('document', e.target.value)}
+                  onChange={(e) => {
+                    handleInputChange('document', e.target.value);
+                  }}
                   maxLength={personType === 'PF' ? 14 : 18}
                   placeholder={personType === 'PF' ? '000.000.000-00' : '00.000.000/0000-00'}
                   error={fieldErrors.document}
@@ -500,7 +508,9 @@ export function AuthJourney({
                   label="CEP"
                   name="zipCode"
                   value={formValues.zipCode}
-                  onChange={(e) => handleInputChange('zipCode', e.target.value)}
+                  onChange={(e) => {
+                    handleInputChange('zipCode', e.target.value);
+                  }}
                   maxLength={9}
                   placeholder="00000-000"
                   error={fieldErrors.zipCode}
@@ -509,7 +519,9 @@ export function AuthJourney({
                   label="Endereço"
                   name="address"
                   value={formValues.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  onChange={(e) => {
+                    handleInputChange('address', e.target.value);
+                  }}
                   maxLength={255}
                   placeholder="Ex: Av. Paulista"
                   error={fieldErrors.address}
@@ -518,7 +530,9 @@ export function AuthJourney({
                   label="Número"
                   name="number"
                   value={formValues.number}
-                  onChange={(e) => handleInputChange('number', e.target.value)}
+                  onChange={(e) => {
+                    handleInputChange('number', e.target.value);
+                  }}
                   maxLength={20}
                   placeholder="123"
                   error={fieldErrors.number}
@@ -527,7 +541,9 @@ export function AuthJourney({
                   label="Bairro"
                   name="neighborhood"
                   value={formValues.neighborhood}
-                  onChange={(e) => handleInputChange('neighborhood', e.target.value)}
+                  onChange={(e) => {
+                    handleInputChange('neighborhood', e.target.value);
+                  }}
                   maxLength={120}
                   placeholder="Ex: Centro"
                   error={fieldErrors.neighborhood}
@@ -538,7 +554,9 @@ export function AuthJourney({
                       label="Cidade"
                       name="city"
                       value={formValues.city}
-                      onChange={(e) => handleInputChange('city', e.target.value)}
+                      onChange={(e) => {
+                        handleInputChange('city', e.target.value);
+                      }}
                       maxLength={120}
                       placeholder="Ex: São Paulo"
                       error={fieldErrors.city}
@@ -549,7 +567,9 @@ export function AuthJourney({
                       label="UF"
                       name="state"
                       value={formValues.state}
-                      onChange={(e) => handleInputChange('state', e.target.value)}
+                      onChange={(e) => {
+                        handleInputChange('state', e.target.value);
+                      }}
                       maxLength={2}
                       placeholder="SP"
                       error={fieldErrors.state}
@@ -563,7 +583,9 @@ export function AuthJourney({
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   value={formValues.password}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  onChange={(e) => {
+                    handleInputChange('password', e.target.value);
+                  }}
                   autoComplete="new-password"
                   maxLength={128}
                   placeholder="Mínimo 12 caracteres"
@@ -650,7 +672,9 @@ export function AuthJourney({
                 label="CPF ou CNPJ"
                 name="document"
                 value={formValues.document}
-                onChange={(e) => handleInputChange('document', e.target.value)}
+                onChange={(e) => {
+                  handleInputChange('document', e.target.value);
+                }}
                 maxLength={18}
                 placeholder="000.000.000-00 ou 00.000.000/0000-00"
               />

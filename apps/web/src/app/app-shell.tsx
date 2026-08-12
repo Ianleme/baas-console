@@ -72,7 +72,7 @@ function useUserProfile() {
       const initials =
         userName
           .split(' ')
-          .filter((part): part is string => Boolean(part && part[0]))
+          .filter((part): part is string => Boolean(part?.[0]))
           .map((part) => part[0])
           .slice(0, 2)
           .join('')

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import axe from 'axe-core';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -44,10 +45,12 @@ async function ready(value: DashboardData = populated) {
 }
 
 describe('Dashboard', () => {
-  test('calculates approval rate excluding pending operations', () =>
-    expect(approvalRate(18, 1)).toBeCloseTo(94.7368, 3));
-  test('returns zero approval rate without finalized operations', () =>
-    expect(approvalRate(0, 0)).toBe(0));
+  test('calculates approval rate excluding pending operations', () => {
+    expect(approvalRate(18, 1)).toBeCloseTo(94.7368, 3);
+  });
+  test('returns zero approval rate without finalized operations', () => {
+    expect(approvalRate(0, 0)).toBe(0);
+  });
   test('shows loading state', () => {
     render(<Dashboard api={{ load: () => new Promise(() => undefined) }} />);
     expect(screen.getByRole('status')).toHaveTextContent('Carregando painel financeiro');

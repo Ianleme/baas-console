@@ -1,12 +1,13 @@
+/* eslint-disable @typescript-eslint/unbound-method -- Jest mocks are inspected without invocation. */
 import type { DataSource, SelectQueryBuilder } from 'typeorm';
 import type { GatewayCredentialService } from '../../../src/modules/gateway-accounts/gateway-credential.service.js';
 import type { StatementGatewayAdapter } from '../../../src/modules/transactions/adapters/lera-box-statement.adapter.js';
-import { TransactionEntity } from '../../../src/modules/transactions/entities/transaction.entity.js';
+import type { TransactionEntity } from '../../../src/modules/transactions/entities/transaction.entity.js';
 import { TransactionsService } from '../../../src/modules/transactions/transactions.service.js';
 
 describe('TransactionsService', () => {
   let service: TransactionsService;
-  let mockQueryBuilder: Record<string, ReturnType<typeof vi.fn>>;
+  let mockQueryBuilder: Record<string, jest.Mock>;
   let mockDataSource: Partial<DataSource>;
   let mockGateway: Partial<StatementGatewayAdapter>;
   let mockCredentials: Partial<GatewayCredentialService>;
@@ -37,28 +38,28 @@ describe('TransactionsService', () => {
 
   beforeEach(() => {
     mockQueryBuilder = {
-      where: vi.fn().mockReturnThis(),
-      andWhere: vi.fn().mockReturnThis(),
-      orderBy: vi.fn().mockReturnThis(),
-      skip: vi.fn().mockReturnThis(),
-      take: vi.fn().mockReturnThis(),
-      getManyAndCount: vi.fn().mockResolvedValue([[mockTransaction], 1])
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn().mockResolvedValue([[mockTransaction], 1])
     };
 
     mockDataSource = {
-      getRepository: vi.fn().mockReturnValue({
-        createQueryBuilder: vi
+      getRepository: jest.fn().mockReturnValue({
+        createQueryBuilder: jest
           .fn()
           .mockReturnValue(mockQueryBuilder as unknown as SelectQueryBuilder<TransactionEntity>)
-      }) as any
+      })
     };
 
     mockGateway = {
-      listStatement: vi.fn().mockResolvedValue([])
+      listStatement: jest.fn().mockResolvedValue([])
     };
 
     mockCredentials = {
-      getActiveGatewayAuth: vi.fn().mockResolvedValue({ accessToken: 'test_token' })
+      getActiveGatewayAuth: jest.fn().mockResolvedValue({ accessToken: 'test_token' })
     };
 
     service = new TransactionsService(
@@ -117,7 +118,7 @@ describe('TransactionsService', () => {
   });
 
   it('merges remote APPROVED status update into matching local transaction', async () => {
-    mockGateway.listStatement = vi
+    mockGateway.listStatement = jest
       .fn()
       .mockResolvedValue([
         { id: 'gw_123', externalReference: 'REF-123456', amountCents: '10000', status: 'APPROVED' }
@@ -127,7 +128,7 @@ describe('TransactionsService', () => {
   });
 
   it('merges remote DENIED status update into matching local transaction', async () => {
-    mockGateway.listStatement = vi
+    mockGateway.listStatement = jest
       .fn()
       .mockResolvedValue([
         { id: 'gw_123', externalReference: 'REF-123456', amountCents: '10000', status: 'DENIED' }
@@ -137,7 +138,7 @@ describe('TransactionsService', () => {
   });
 
   it('flags stale as true when gateway request fails without crashing', async () => {
-    mockGateway.listStatement = vi.fn().mockRejectedValue(new Error('GATEWAY_TIMEOUT'));
+    mockGateway.listStatement = jest.fn().mockRejectedValue(new Error('GATEWAY_TIMEOUT'));
     const result = await service.list('merchant_1', { limit: 50, offset: 0 });
     expect(result.stale).toBe(true);
     expect(result.items).toHaveLength(1);

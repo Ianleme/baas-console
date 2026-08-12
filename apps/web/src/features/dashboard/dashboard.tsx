@@ -61,7 +61,9 @@ export function Dashboard({ api }: { api: DashboardApi }) {
     void api
       .load()
       .then(setData)
-      .catch(() => setFailed(true));
+      .catch(() => {
+        setFailed(true);
+      });
   }, [api]);
 
   if (failed)
@@ -120,7 +122,9 @@ export function Dashboard({ api }: { api: DashboardApi }) {
             key={item}
             type="button"
             aria-pressed={period === item}
-            onClick={() => setPeriod(item)}
+            onClick={() => {
+              setPeriod(item);
+            }}
             className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
               period === item
                 ? 'bg-[#007a5a] text-white'
@@ -210,7 +214,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
             >
               <span
                 className="h-full bg-[#00bdae] transition-all"
-                style={{ width: `${pixPercent}%` }}
+                style={{ width: `${String(pixPercent)}%` }}
               />
               <span className="h-full bg-blue-500 flex-1" />
             </div>

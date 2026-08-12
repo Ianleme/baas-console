@@ -288,7 +288,7 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
                 />
                 <path
                   className="donut-ring fill-none stroke-emerald-600 stroke-[4] stroke-linecap-round -rotate-90 origin-center"
-                  strokeDasharray={`${conversionRate}, 100`}
+                  strokeDasharray={`${String(conversionRate)}, 100`}
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
               </svg>
@@ -386,7 +386,9 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
           onClick={() => {
             loadLinks();
             setNotice('Dados atualizados.');
-            setTimeout(() => setNotice(''), 2000);
+            setTimeout(() => {
+              setNotice('');
+            }, 2000);
           }}
         >
           <RotateCw className="h-4 w-4 text-slate-600" />
@@ -410,7 +412,9 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
             role="tab"
             aria-selected={statusTab === tab}
             type="button"
-            onClick={() => setStatusTab(tab)}
+            onClick={() => {
+              setStatusTab(tab);
+            }}
           >
             {tab === 'ALL' ? 'Todos' : tabLabels[tab]}
           </button>
@@ -487,7 +491,9 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
                       variant="outline"
                       size="sm"
                       className="action-btn text-[#007a5a] hover:bg-emerald-50"
-                      onClick={() => setSelected(link)}
+                      onClick={() => {
+                        setSelected(link);
+                      }}
                     >
                       Ver detalhes
                     </Button>
@@ -496,7 +502,9 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
                         variant="destructive"
                         size="sm"
                         className="action-btn action-btn--danger"
-                        onClick={() => setCancelCandidate(link)}
+                        onClick={() => {
+                          setCancelCandidate(link);
+                        }}
                       >
                         Cancelar
                       </Button>
@@ -505,7 +513,9 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
                       variant="outline"
                       size="sm"
                       className="action-btn"
-                      onClick={() => handleCopy(link.id)}
+                      onClick={() => {
+                        handleCopy(link.id);
+                      }}
                     >
                       {copiedId === link.id ? (
                         <>
@@ -526,7 +536,12 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
       )}
 
       {/* Official Radix UI Dialog Primitives */}
-      <Dialog open={creating} onOpenChange={(open) => setCreating(open)}>
+      <Dialog
+        open={creating}
+        onOpenChange={(open) => {
+          setCreating(open);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Criar link de pagamento</DialogTitle>
