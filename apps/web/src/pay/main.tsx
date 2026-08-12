@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { createCheckoutSessionClient } from '@baas/api-client';
+import { createCheckoutSessionClient, createPixStatusClient } from '@baas/api-client';
 import { CheckoutSession } from './checkout/checkout-session.js';
 import { PayShell } from './pay-shell.js';
 
@@ -10,6 +10,13 @@ if (!root) throw new Error('PAY_ROOT_MISSING');
 
 createRoot(root).render(
   <StrictMode>
-    <PayShell content={<CheckoutSession api={createCheckoutSessionClient({ baseUrl: '' })} />} />
+    <PayShell
+      content={
+        <CheckoutSession
+          api={createCheckoutSessionClient({ baseUrl: '' })}
+          pixApi={createPixStatusClient({ baseUrl: '' })}
+        />
+      }
+    />
   </StrictMode>
 );

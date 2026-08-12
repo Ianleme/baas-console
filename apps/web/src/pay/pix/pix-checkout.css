@@ -1,0 +1,81 @@
+.pix-checkout {
+  display: grid;
+  gap: 1rem;
+  text-align: center;
+}
+.pix-checkout h1 {
+  margin: 0;
+}
+.pix-sandbox {
+  background: var(--color-sandbox-soft);
+  border: 1px solid #edc57f;
+  border-radius: var(--radius-sm);
+  color: #724600;
+  padding: 0.7rem;
+}
+.pix-value {
+  color: var(--color-green-800);
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+}
+.pix-qr {
+  margin: 0;
+}
+.pix-qr img {
+  background: white;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  height: 13rem;
+  max-width: 100%;
+  object-fit: contain;
+  padding: 0.6rem;
+  width: 13rem;
+}
+.pix-qr figcaption {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+.pix-copy {
+  display: grid;
+  gap: 0.5rem;
+  text-align: left;
+}
+.pix-copy textarea {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  min-height: 5rem;
+  padding: 0.7rem;
+  resize: none;
+}
+.pix-copy button {
+  background: var(--color-green-700);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 3rem;
+}
+.pix-timer {
+  font-variant-numeric: tabular-nums;
+}
+.pix-state {
+  border-radius: var(--radius-sm);
+  font-weight: 650;
+  padding: 0.75rem;
+}
+.pix-state--pending {
+  background: var(--color-green-100);
+}
+.pix-state--reconciliation_pending {
+  background: var(--color-sandbox-soft);
+}
+.pix-state--approved {
+  background: var(--color-lime-soft);
+  color: var(--color-green-800);
+}
+.pix-state--denied,
+.pix-state--expired {
+  background: #ffe3e3;
+  color: #8a0000;
+}

@@ -95,3 +95,16 @@ export function createCheckoutSessionClient(options: BaasClientOptions) {
     }
   };
 }
+export function createPixStatusClient(options: BaasClientOptions) {
+  const request = options.fetch ?? globalThis.fetch;
+  return {
+    async status(attemptId: string): Promise<never> {
+      const response = await request(
+        `${options.baseUrl}/api/v1/public/payments/pix/${encodeURIComponent(attemptId)}`,
+        { credentials: 'include', headers: { accept: 'application/json' } }
+      );
+      if (!response.ok) throw new Error('PIX_STATUS_UNAVAILABLE');
+      return response.json() as Promise<never>;
+    }
+  };
+}

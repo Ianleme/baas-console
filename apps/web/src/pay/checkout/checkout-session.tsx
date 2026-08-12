@@ -1,20 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { PublicCheckoutView } from '@baas/api-client';
+import { PixCheckout, type PixCheckoutApi, type PixCheckoutAttempt } from '../pix/pix-checkout.js';
 
 export interface CheckoutExchangeApi {
-  exchange: (token: string) => Promise<{ checkout: PublicCheckoutView; csrfToken: string }>;
+  exchange: (token: string) => Promise<{
+    checkout: PublicCheckoutView;
+    csrfToken: string;
+    pixAttempt?: PixCheckoutAttempt;
+  }>;
 }
 export function CheckoutSession({
   api,
+  pixApi,
   fragment = globalThis.location.hash
 }: {
   api: CheckoutExchangeApi;
+  pixApi?: PixCheckoutApi;
   fragment?: string;
 }) {
   const started = useRef(false);
   const [state, setState] = useState<'loading' | 'invalid' | 'ready'>('loading');
   const [checkout, setCheckout] = useState<PublicCheckoutView | null>(null);
+  const [pixAttempt, setPixAttempt] = useState<PixCheckoutAttempt | null>(null);
 
   useEffect(() => {
     if (started.current) return;
@@ -33,6 +41,7 @@ export function CheckoutSession({
       .exchange(match[1])
       .then((result) => {
         setCheckout(result.checkout);
+        setPixAttempt(result.pixAttempt ?? null);
         setState('ready');
       })
       .catch(() => {
@@ -40,6 +49,7 @@ export function CheckoutSession({
       });
   }, [api, fragment]);
 
+  if (pixAttempt && pixApi) return <PixCheckout initial={pixAttempt} api={pixApi} />;
   if (state === 'loading') return <p role="status">Preparando checkout seguro…</p>;
   if (state === 'invalid' || !checkout) return <CheckoutUnavailable label="Link indisponível" />;
   if (checkout.state !== 'READY') return <CheckoutUnavailable label={stateLabel(checkout.state)} />;
