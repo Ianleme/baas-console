@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 
 import { CreateAsyncPersistence1723503000000 } from '../migrations/1723503000000-CreateAsyncPersistence.js';
+import { AllowGatewayInstallments1723504000000 } from '../migrations/1723504000000-AllowGatewayInstallments.js';
 import { CreateAuthPersistence1723500000000 } from '../migrations/1723500000000-CreateAuthPersistence.js';
 import { CreatePaymentPersistence1723501000000 } from '../migrations/1723501000000-CreatePaymentPersistence.js';
 import { CreateWalletWithdrawalPersistence1723502000000 } from '../migrations/1723502000000-CreateWalletWithdrawalPersistence.js';
@@ -54,7 +55,8 @@ export function createApplicationDataSource(): DataSource {
       CreateAuthPersistence1723500000000,
       CreatePaymentPersistence1723501000000,
       CreateWalletWithdrawalPersistence1723502000000,
-      CreateAsyncPersistence1723503000000
+      CreateAsyncPersistence1723503000000,
+      AllowGatewayInstallments1723504000000
     ],
     migrationsRun: false,
     migrationsTableName: 'migrations',

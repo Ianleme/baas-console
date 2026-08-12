@@ -22,7 +22,7 @@ export type CheckoutLinkStatus = 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | 'PAID';
 @Check('chk_checkout_links_amount_positive', 'amount_cents > 0')
 @Check(
   'chk_checkout_links_installments',
-  "(allowed_methods = 'PIX' AND max_installments = 1) OR (allowed_methods <> 'PIX' AND max_installments BETWEEN 1 AND 12)"
+  "(allowed_methods = 'PIX' AND max_installments = 1) OR (allowed_methods <> 'PIX' AND max_installments BETWEEN 1 AND 21)"
 )
 export class CheckoutLinkEntity {
   @PrimaryColumn({ type: 'char', length: 36 })

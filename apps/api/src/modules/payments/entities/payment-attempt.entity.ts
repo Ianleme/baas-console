@@ -42,7 +42,7 @@ export type PaymentAttemptStatus =
 )
 @Check(
   'chk_payment_attempts_installments',
-  "(method = 'PIX' AND installments = 1) OR (method = 'CARD' AND installments BETWEEN 1 AND 12)"
+  "(method = 'PIX' AND installments = 1) OR (method = 'CARD' AND installments BETWEEN 1 AND 21)"
 )
 @Check('chk_payment_attempts_card_last4', "card_last4 IS NULL OR card_last4 REGEXP '^[0-9]{4}$'")
 export class PaymentAttemptEntity {

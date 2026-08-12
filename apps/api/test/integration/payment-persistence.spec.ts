@@ -15,6 +15,7 @@ import {
 } from '../../src/modules/transactions/entities/index.js';
 import { CreateAuthPersistence1723500000000 } from '../../src/migrations/1723500000000-CreateAuthPersistence.js';
 import { CreatePaymentPersistence1723501000000 } from '../../src/migrations/1723501000000-CreatePaymentPersistence.js';
+import { AllowGatewayInstallments1723504000000 } from '../../src/migrations/1723504000000-AllowGatewayInstallments.js';
 
 const databaseName = process.env.MYSQL_TEST_DATABASE ?? 'baas_test';
 
@@ -37,7 +38,11 @@ function createDataSource(): DataSource {
       TransactionEntity,
       FinancialEventEntity
     ],
-    migrations: [CreateAuthPersistence1723500000000, CreatePaymentPersistence1723501000000],
+    migrations: [
+      CreateAuthPersistence1723500000000,
+      CreatePaymentPersistence1723501000000,
+      AllowGatewayInstallments1723504000000
+    ],
     migrationsRun: false,
     synchronize: false
   });
@@ -220,7 +225,7 @@ describe('checkout and payment persistence on MySQL 8.4', () => {
 
   test('rejects installments outside the supported range', async () => {
     const merchantId = await insertMerchant();
-    await expectConstraintViolation(insertLink(merchantId, { maxInstallments: 13 }));
+    await expectConstraintViolation(insertLink(merchantId, { maxInstallments: 22 }));
   });
 
   test('accepts payment attempts linked to the same tenant', async () => {
@@ -549,5 +554,12 @@ describe('checkout and payment persistence on MySQL 8.4', () => {
         ]
       )
     );
+  });
+
+  test('accepts the gateway maximum of 21 card installments', async () => {
+    const merchantId = await insertMerchant();
+    await expect(
+      insertLink(merchantId, { allowedMethods: 'CARD', maxInstallments: 21 })
+    ).resolves.toBeDefined();
   });
 });
