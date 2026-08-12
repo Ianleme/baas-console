@@ -17,13 +17,15 @@ Entregar uma plataforma BaaS web para um proprietario por lojista, integrada exc
 - A identidade local do BaaS e distinta da identidade Lera Box.
 - Cada `merchant` possui exatamente um usuario proprietario neste escopo.
 - O tenant e derivado exclusivamente da sessao; o frontend nunca envia ou escolhe `merchantId` confiavel.
-- Cadastro local cria o tenant e chama o cadastro publico do gateway.
+- Cadastro local cria o tenant e chama o cadastro publico do gateway, aceitando PF ou PJ e validando todos os campos de identidade, contato e endereco documentados.
+- O roteiro `verify:live` usa e-mail e telefone reais aprovados pelo proprietario e guarda apenas evidencia mascarada de recebimento das credenciais.
 - A chamada de cadastro remoto e registrada antes do envio; falha conclusiva e timeout desconhecido possuem estados distintos e nao provocam retry automatico.
 - Como a Lera Box envia credenciais por e-mail, o onboarding entra em `AWAITING_CREDENTIALS`.
 - Documento e senha do gateway sao informados uma unica vez ao backend por HTTPS; a senha nunca e persistida.
+- Depois do login remoto, `GET /api/users/me` confirma que o perfil pertence ao lojista antes de ativar a conexao.
 - Bearer token, CodigoCliente e ChaveLoja necessarios sao criptografados.
 - Access token local dura 15 minutos; refresh token e rotativo, host-only e detecta reutilizacao.
-- Recuperacao de senha local e P2; recuperacao do gateway nao substitui a autenticacao local.
+- Recuperacao de senha local e P2; `POST /api/auth/reset-password` do gateway nao integra o escopo funcional obrigatorio e fica explicitamente fora do primeiro release.
 
 ### Checkout links
 
@@ -44,7 +46,8 @@ Entregar uma plataforma BaaS web para um proprietario por lojista, integrada exc
 - Enquanto um Pix estiver pendente, cartao ou outro Pix para o link permanecem bloqueados.
 - Cartao coleta somente os campos requeridos, permite colar/autofill e detecta bandeira sem depender disso como verdade absoluta.
 - Numero, CVV, validade e nome impresso existem apenas em memoria durante a chamada e sao proibidos em persistencia, log, metrica ou erro; persistem somente bandeira, ultimos quatro digitos e parcelas.
-- Taxas sao guardadas como snapshot na criacao e revalidadas imediatamente antes do POST.
+- Taxas sao consultadas por `GET /api/fees` e `?brand=` quando aplicavel, guardadas como snapshot e exibidas no resumo/detalhe do link; antes do POST sao revalidadas.
+- A tentativa persiste parcelas, taxa efetivamente enviada e valores bruto/taxa/liquido normalizados para auditoria do lojista.
 - Mudanca de taxa interrompe a submissao e exige nova confirmacao do pagador.
 - A taxa e absorvida pelo lojista ate que evidencia do gateway prove outra semantica; nao ha surcharge inventado.
 - Cinco negacoes consecutivas de cartao causam cooldown de 15 minutos, alem dos limites por IP/link.
@@ -53,6 +56,7 @@ Entregar uma plataforma BaaS web para um proprietario por lojista, integrada exc
 ### Webhooks and reconciliation
 
 - Cada lojista/evento possui endpoint publico opaco e secret proprio.
+- A tela Webhooks cadastra, lista, mostra status, reconfigura e remove `PAYMENT_PIX`, `PAYMENT_CARD` e `WITHDRAWAL`, sem reexibir secrets.
 - HMAC e calculado sobre raw body e so sera fechado depois do contract spike confirmar encoding.
 - Fluxo: validar assinatura e tamanho, persistir criptografado, responder, processar assincronamente.
 - Payload autenticado mas semanticamente invalido e preservado como `UNPROCESSABLE` e recebe `200`.
@@ -67,6 +71,8 @@ Entregar uma plataforma BaaS web para um proprietario por lojista, integrada exc
 - O gateway e autoritativo para saldo; o BaaS mantem snapshot com timestamp e staleness.
 - Falha de leitura preserva o ultimo saldo e nunca mostra zero inventado.
 - `transactions` e projecao reconstruivel, nao ledger nem fonte de saldo.
+- O extrato consolidado usa tambem `GET /api/wallet/transactions?status=&type=&limit=`, informa horario/origem da sincronizacao e evidencia divergencias.
+- Os filtros minimos sao literais: Sucesso=`APPROVED`, Falha=`DENIED`, Expirado=`EXPIRED` e Cancelado=`CANCELLED`.
 - Saque exige resumo e confirmacao de irreversibilidade.
 - Timeout de saque resulta em conciliacao pendente e bloqueia reenvio.
 - Dados de destino sao minimizados apos o POST: tipo, mascara e indice cego somente quando necessario.
@@ -105,6 +111,8 @@ Entregar uma plataforma BaaS web para um proprietario por lojista, integrada exc
 - Zero skips, `.only`, warning lint/TS e flaky tolerado.
 - O validador de qualidade e testado com artefatos que devem passar e falhar.
 - O verificador final deve ser diferente do autor e aplicar discrimination sensor.
+- A matriz de conformidade liga cada obrigacao do desafio a requisito TLC, componente, futura tarefa, teste/procedimento e evidencia.
+- O plano formal de QA define entry/exit criteria, charters exploratorios, UAT, navegadores, sandbox real, severidade, evidencias e decisao de release.
 
 ### Git, CI/CD and deployment
 
@@ -116,6 +124,7 @@ Entregar uma plataforma BaaS web para um proprietario por lojista, integrada exc
 - VPS recebe deploy por usuario/chave dedicados, `known_hosts` fixo e script root-owned allowlisted.
 - Migracao e one-shot com lock; `synchronize=false`; expand/contract; sem down migration automatica.
 - Caddy fornece HTTPS; MySQL nao publica porta; aplicacoes rodam non-root e com recursos limitados.
+- README, `DEMO.md` e `.env.example` documentam setup, variaveis, fluxos, Swagger BaaS, URL publica/Docker e entrega privada das credenciais de avaliacao.
 
 ### Visual language
 
@@ -147,6 +156,8 @@ Entregar uma plataforma BaaS web para um proprietario por lojista, integrada exc
 ## Specific References
 
 - Referencia sanitizada da API: `docs/integrations/lera-box-api-reference.md`, derivada do documento fornecido pelo usuario e identificada por SHA-256.
+- Matriz fonte-a-evidencia: `docs/traceability/challenge-compliance-matrix.md`.
+- Procedimentos de QA: `docs/qa/quality-assurance-plan.md`.
 - Dashboard aprovado: sidebar clara, barra sandbox, KPIs, composicao, movimentacao, operacao e transacoes recentes.
 - Login aprovado: card central, marca no topo, badge sandbox e foco verde acessivel.
 - Lista de links aprovada: KPIs, busca, filtros, tabs, tabela densa e acoes contextuais.

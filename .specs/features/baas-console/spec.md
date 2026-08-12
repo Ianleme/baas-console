@@ -4,7 +4,7 @@
 
 **Scope tier**: Complex
 
-**Source**: `desafio-tecnico-baas-integracao-gateway-vba-systems.md` and approved discovery decisions
+**Source**: `desafio-tecnico-baas-integracao-gateway-vba-systems.md`, `docs/traceability/challenge-compliance-matrix.md` and approved discovery decisions
 
 ## Problem Statement
 
@@ -33,6 +33,7 @@ Construir uma plataforma BaaS demonstravel em producao que permita a um lojista 
 | Retry automatico de POST financeiro | Pode duplicar pagamento ou saque quando o resultado remoto e desconhecido. |
 | Armazenamento permanente de PDF | O documento sera regenerado sob demanda a partir do registro aprovado. |
 | Dados reais de cartao | O ambiente e sandbox e deve usar somente dados ficticios. |
+| Recuperacao de senha do gateway por `POST /api/auth/reset-password` | A rota aparece apenas no contrato resumido, nao no escopo funcional obrigatorio; recuperacao local e uma capacidade distinta e permanece P2. |
 
 ## Assumptions & Open Questions
 
@@ -52,6 +53,8 @@ Toda ambiguidade conhecida possui um default ou um gate verificavel; nenhuma ser
 | Disponibilidade do gateway | Falha do gateway nao zera saldo e nao derruba readiness basica | Dependencia externa nao deve mascarar o estado local | Yes |
 | Cadastro no deploy publico | Exigir convite de uso unico; local permanece aberto | Protege o endpoint publico do gateway contra abuso | Yes |
 | Status aleatorios do sandbox | Testes automatizados usam fake/stub deterministico; sandbox real apenas em `verify:live` | Testes nao podem depender de aleatoriedade externa | Yes |
+| Cadastro PF e PJ | A API e a UI aceitam ambos; o roteiro live executa um tipo por rodada com contato real aprovado pelo proprietario | Prova aderencia sem criar contas reais desnecessarias | Yes |
+| Confirmacao da identidade remota | Depois do login, consultar `GET /api/users/me` e conferir o perfil antes de ativar a conexao | Impede associar silenciosamente uma credencial valida ao lojista errado | Yes |
 
 **Open questions:** none — external unknowns are explicit research or deployment gates above.
 
@@ -69,7 +72,7 @@ Toda ambiguidade conhecida possui um default ou um gate verificavel; nenhuma ser
 
 1. **AUTH-01** — WHEN um visitante envia dados locais validos de cadastro THEN o sistema SHALL criar exatamente um `merchant` e um `user` proprietario na mesma transacao.
 2. **AUTH-02** — WHEN o onboarding solicita cadastro no gateway THEN o backend SHALL registrar o estado da tentativa e chamar `POST /api/users` exatamente uma vez sem expor segredo ao frontend; resposta conclusiva de falha SHALL marcar `GATEWAY_REGISTRATION_FAILED`, enquanto timeout sem resultado SHALL marcar `GATEWAY_REGISTRATION_UNKNOWN` e impedir retry automatico.
-3. **AUTH-03** — WHEN o gateway aceita o cadastro e informa que enviara credenciais por e-mail THEN o sistema SHALL marcar a conexao como `AWAITING_CREDENTIALS` sem fabricar CodigoCliente, ChaveLoja ou senha.
+3. **AUTH-03** — WHEN o gateway aceita o cadastro e informa que enviara credenciais por e-mail THEN o sistema SHALL marcar a conexao como `AWAITING_CREDENTIALS` sem fabricar CodigoCliente, ChaveLoja ou senha; o procedimento live SHALL registrar evidencia mascarada de recebimento sem armazenar ou publicar a credencial.
 4. **AUTH-04** — WHEN o proprietario informa documento e senha recebidos do gateway THEN somente o backend SHALL chamar `POST /api/auth/login` por HTTPS e a senha SHALL existir apenas durante essa requisicao.
 5. **AUTH-05** — WHEN o login no gateway retorna token, CodigoCliente e ChaveLoja THEN o sistema SHALL persistir valores necessarios criptografados por AES-256-GCM e nunca persistir a senha do gateway.
 6. **AUTH-06** — WHEN credenciais locais validas sao autenticadas THEN o sistema SHALL emitir access token de 15 minutos e refresh token rotativo em cookie `HttpOnly`, `Secure` e host-only.
@@ -77,6 +80,8 @@ Toda ambiguidade conhecida possui um default ou um gate verificavel; nenhuma ser
 8. **AUTH-08** — WHEN limites de login, cadastro, convite ou conexao sao excedidos THEN o sistema SHALL responder `429` com codigo estavel e `Retry-After`.
 9. **AUTH-09** — WHEN um usuario autenticado solicita recurso pertencente a outro lojista THEN o sistema SHALL responder `404` e nao revelar a existencia do recurso.
 10. **AUTH-10** — WHEN o proprietario encerra uma sessao ou todas as sessoes THEN os refresh tokens correspondentes SHALL ser revogados e nao poderao emitir novo access token.
+11. **AUTH-11** — WHEN o cadastro no gateway e preparado THEN o sistema SHALL aceitar `personType` PF ou PJ, validar os campos de identidade, endereco, documento, e-mail e telefone exigidos e, no teste live, usar somente e-mail e telefone reais previamente aprovados pelo proprietario.
+12. **AUTH-12** — WHEN o login do gateway retorna uma sessao THEN o backend SHALL consultar `GET /api/users/me`, conferir documento/identidade esperados e somente ativar a conexao se o perfil pertencer ao lojista em onboarding.
 
 **Independent Test**: Criar um lojista, conectar um fake HTTP do gateway, autenticar, rotacionar a sessao, tentar reutiliza-la e comprovar isolamento com um segundo tenant.
 
@@ -90,7 +95,7 @@ Toda ambiguidade conhecida possui um default ou um gate verificavel; nenhuma ser
 
 1. **CHK-01** — WHEN o lojista envia descricao, valor positivo dentro dos limites, metodos permitidos, expiracao e parcelas validas THEN o sistema SHALL criar um link `ACTIVE` com referencia externa unica.
 2. **CHK-02** — WHEN o valor entra ou sai da API THEN ele SHALL ser validado e transportado em centavos inteiros, sem ponto flutuante.
-3. **CHK-03** — WHEN o link permite cartao THEN o sistema SHALL persistir o snapshot das taxas e parcelas consultadas na criacao.
+3. **CHK-03** — WHEN o link permite cartao THEN o backend SHALL consultar `GET /api/fees` e, quando aplicavel, `?brand=`, persistir o snapshot de parcelas/taxas e exibir a taxa selecionada no resumo de criacao e no detalhe do link.
 4. **CHK-04** — WHEN o link ja foi criado THEN valor, metodos, expiracao e descricao financeira SHALL ser imutaveis; correcao SHALL exigir cancelamento e novo link.
 5. **CHK-05** — WHEN o lojista cancela um link `ACTIVE` sem tentativa nao resolvida THEN o estado SHALL mudar uma unica vez para `CANCELLED`.
 6. **CHK-06** — WHEN o relogio ultrapassa a expiracao de um link `ACTIVE` THEN o sistema SHALL trata-lo como `EXPIRED` e impedir novas tentativas.
@@ -127,6 +132,7 @@ Toda ambiguidade conhecida possui um default ou um gate verificavel; nenhuma ser
 14. **PAY-14** — WHEN cinco tentativas consecutivas de cartao sao negadas no mesmo link THEN o sistema SHALL impor cooldown de 15 minutos, alem dos limites por IP.
 15. **PAY-15** — WHEN um resultado tardio `APPROVED` e autenticado e conciliado THEN ele SHALL prevalecer sobre expiracao local ou negacao provisoria, sem criar segunda transacao.
 16. **PAY-16** — WHEN qualquer checkout e exibido THEN a interface SHALL informar que e sandbox e proibir o uso de cartoes reais.
+17. **PAY-17** — WHEN uma tentativa de cartao e enviada THEN parcelas, taxa normalizada equivalente ao `feePercent` efetivamente enviado e valores bruto/taxa/liquido calculados SHALL ser persistidos e exibidos no detalhe financeiro do lojista; o teste de contrato SHALL provar a serializacao exata enviada ao gateway.
 
 **Independent Test**: Executar Pix e cartao contra stub deterministico, incluindo taxa alterada, negacao, timeout, cooldown, webhook tardio e verificacao de ausencia de PAN/CVV.
 
@@ -175,6 +181,8 @@ Toda ambiguidade conhecida possui um default ou um gate verificavel; nenhuma ser
 10. **FIN-10** — WHEN documento, conta ou chave Pix de destino sao enviados THEN somente tipo, forma mascarada e indice cego necessario SHALL persistir apos o envio.
 11. **FIN-11** — WHEN um lojista solicita reconciliacao manual THEN ele SHALL apenas disparar nova verificacao; nao podera escolher o status final.
 12. **FIN-12** — WHEN uma consulta financeira externa falha THEN a API SHALL responder problema estavel com `503`, mantendo dados locais e indicando indisponibilidade.
+13. **FIN-13** — WHEN o lojista usa os filtros minimos da interface THEN `Sucesso` SHALL mapear para `APPROVED`, `Falha` para `DENIED`, `Expirado` para `EXPIRED` e `Cancelado` para `CANCELLED`, considerando o estado do link e/ou gateway sem conflar pendencias.
+14. **FIN-14** — WHEN o extrato consolidado e carregado ou reconciliado THEN o backend SHALL consultar `GET /api/wallet/transactions?status=&type=&limit=`, correlacionar por IDs/referencia externa e apresentar origem, horario da sincronizacao e divergencias entre remoto e projecao local.
 
 **Independent Test**: Simular saldo atual/stale, filtrar projecoes de dois tenants e executar saque aprovado, negado e inconclusivo sem duplicacao.
 
@@ -219,6 +227,7 @@ Toda ambiguidade conhecida possui um default ou um gate verificavel; nenhuma ser
 8. **UI-08** — WHEN o checkout publico e carregado THEN ele SHALL usar bundle e CSP separados do painel, sem analytics ou scripts de terceiros.
 9. **UI-09** — WHEN uma tela autenticada abre THEN ela SHALL usar o padrao visual aprovado: branco, verde financeiro, realce lima restrito, banner laranja de sandbox, sidebar e tabelas densas.
 10. **UI-10** — WHEN erros de API sao apresentados THEN a interface SHALL traduzir codigos estaveis para portugues sem exibir stack, payload ou erro bruto da dependencia.
+11. **UI-11** — WHEN o lojista abre Webhooks THEN a interface SHALL permitir cadastrar, listar, inspecionar status, reconfigurar e remover callbacks de `PAYMENT_PIX`, `PAYMENT_CARD` e `WITHDRAWAL`, sem revelar secrets depois da criacao.
 
 **Independent Test**: Navegar pelos fluxos em desktop/mobile, executar axe, teclado, estados financeiros e comparar telas principais com as referencias aprovadas.
 
@@ -248,8 +257,10 @@ Toda ambiguidade conhecida possui um default ou um gate verificavel; nenhuma ser
 16. **QLT-16** — WHEN metricas sao inspecionadas THEN labels SHALL usar rota normalizada e nunca conter merchantId, requestId, externalReference, PII ou IDs de transacao.
 17. **QLT-17** — WHEN health endpoints sao chamados THEN `/health/live` SHALL provar processo vivo, `/health/ready` banco/schema, e dependencias/metricas SHALL permanecer privadas.
 18. **QLT-18** — WHEN erros HTTP sao produzidos THEN eles SHALL usar `application/problem+json`, requestId interno e codigos estaveis conforme a matriz definida no design.
-19. **QLT-19** — WHEN o requirement coverage matrix e validado THEN 100% dos requisitos P1 SHALL apontar para teste automatizado ou procedimento QA com evidencia esperada.
+19. **QLT-19** — WHEN as matrizes de conformidade e cobertura sao validadas THEN 100% das obrigacoes do documento-fonte e 100% dos requisitos P1 SHALL apontar para componente, futura tarefa, teste automatizado ou procedimento QA e evidencia esperada, sem linha obrigatoria implicita ou sem destino.
 20. **QLT-20** — WHEN a verificacao TLC final executa THEN um verificador diferente do autor SHALL conferir outcomes por requisito e aplicar discrimination sensor sem aceitar autoavaliacao como evidencia.
+21. **QLT-21** — WHEN a conformidade de stack e auditada THEN o repositorio SHALL provar TypeScript/NestJS, TypeORM/MySQL, `class-validator`/`class-transformer`, `@nestjs/swagger`, middleware Nest de logging/correlation id/apoio a autenticacao e React/Vite nos pontos definidos pelo design.
+22. **QLT-22** — WHEN um release candidate e avaliado THEN o plano formal de QA SHALL executar criterios de entrada/saida, testes exploratorios, UAT, matriz de navegadores, roteiro de sandbox real, triagem de defeitos e indice de evidencias, produzindo relatorio final aprovado ou bloqueado.
 
 **Independent Test**: Executar fixtures positivas e negativas do validador, pipeline completo e auditoria de rastreabilidade; injetar mutacoes de comportamento e comprovar que os testes falham.
 
@@ -275,6 +286,7 @@ Toda ambiguidade conhecida possui um default ou um gate verificavel; nenhuma ser
 12. **OPS-12** — WHEN a demo publica e acessada THEN uma sessao feature-flagged SHALL abrir lojista ficticio somente leitura sem senha publicada.
 13. **OPS-13** — WHEN a sessao demo tenta metodo mutavel nao allowlisted THEN o backend SHALL responder `403 DEMO_READ_ONLY`, independentemente do que o frontend exibe.
 14. **OPS-14** — WHEN o avaliador recebe a entrega THEN README e `DEMO.md` SHALL conter quick tour, fluxo completo, setup, arquitetura, variaveis, testes, limitacoes, seguranca e canal privado para credenciais funcionais.
+15. **OPS-15** — WHEN a entrega e preparada THEN SHALL existir `.env.example` sem segredos, URL documentada do Swagger BaaS, URL publica e/ou comando Docker funcional, e credenciais de demonstracao fornecidas sem expor a senha do e-mail usado no gateway.
 
 **Independent Test**: Subir a composicao limpa, executar smoke, simular falha/rollback, comprovar guard demo e seguir a documentacao em ambiente sem estado previo.
 
@@ -313,22 +325,22 @@ Toda ambiguidade conhecida possui um default ou um gate verificavel; nenhuma ser
 
 | Requirement IDs | Story | Phase | Status |
 | --- | --- | --- | --- |
-| AUTH-01..AUTH-10 | Onboarding and authentication | Design | In Design |
+| AUTH-01..AUTH-12 | Onboarding and authentication | Design | In Design |
 | CHK-01..CHK-12 | Checkout links | Design | In Design |
-| PAY-01..PAY-16 | Pix and card | Design | In Design |
+| PAY-01..PAY-17 | Pix and card | Design | In Design |
 | WHK-01..WHK-14 | Webhooks and reconciliation | Design | In Design |
-| FIN-01..FIN-12 | Wallet, transactions and withdrawals | Design | In Design |
+| FIN-01..FIN-14 | Wallet, transactions and withdrawals | Design | In Design |
 | DOC-01..DOC-12 | E-mail and receipts | Design | In Design |
-| UI-01..UI-10 | Web interface | Design | In Design |
-| QLT-01..QLT-20 | Quality, security and operability | Design | In Design |
-| OPS-01..OPS-14 | Build, deploy and demo | Design | In Design |
+| UI-01..UI-11 | Web interface | Design | In Design |
+| QLT-01..QLT-22 | Quality, security and operability | Design | In Design |
+| OPS-01..OPS-15 | Build, deploy and demo | Design | In Design |
 | P2-01..P2-04 | Optional observability and benchmark | Design | In Design |
 
-**Coverage**: 124 requirements total; 124 mapped to design; 0 mapped to tasks because `tasks.md` is intentionally deferred until design approval.
+**Coverage**: 133 requirements total; 133 mapped to design; 0 mapped to tasks because `tasks.md` is intentionally deferred until design approval. A cobertura do documento-fonte e controlada separadamente em `docs/traceability/challenge-compliance-matrix.md`.
 
 ## Success Criteria
 
-- [ ] Todos os 120 requisitos P1 estao implementados, mapeados e verificados sem skip.
+- [ ] Todos os 129 requisitos P1 estao implementados, mapeados e verificados sem skip.
 - [ ] Os fluxos Pix, cartao e saque provam sucesso, negacao e resultado desconhecido sem duplicacao.
 - [ ] Nenhum teste de redaction encontra PAN, CVV, token, senha, webhook secret ou PII proibida.
 - [ ] `npm run verify` e `npm run verify:full` passam nas imagens e banco equivalentes a producao.

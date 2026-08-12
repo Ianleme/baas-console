@@ -181,10 +181,10 @@
 ## Handoff
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
-- **Phase / Task**: Design / gate de aprovacao do usuario
-- **Completed**: `STATE.md`, `spec.md`, `context.md`, `design.md` e referencia sanitizada Lera Box; 124 requisitos e 22 decisoes validados
+- **Phase / Task**: Design / remediacao de conformidade documental concluida
+- **Completed**: `STATE.md`, `spec.md`, `context.md`, `design.md`, referencia sanitizada Lera Box, matriz fonte-a-evidencia e plano formal de QA; 133 requisitos e 22 decisoes validados
 - **In-progress** (file:line): none
-- **Next step**: obter aprovacao explicita do design antes de criar `tasks.md`
+- **Next step**: apresentar a validacao documental e obter aprovacao explicita antes de criar `tasks.md`
 - **Blockers**: nenhum para documentacao; responses, webhooks e HMAC reais da Lera Box continuam como gate antes do adapter financeiro
-- **Uncommitted files**: none after documentation commit
+- **Uncommitted files**: none after compliance documentation commit
 - **Branch**: main

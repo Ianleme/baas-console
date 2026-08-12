@@ -116,6 +116,8 @@ O workspace estava vazio no inicio desta fase, portanto nao existem componentes 
 | Runtime | Node.js 24 LTS | ESM onde suportado; versao patch fixada |
 | API | NestJS 11 + Express | Default mais simples para middleware, Supertest e raw body |
 | Persistence | TypeORM + `mysql2` + MySQL 8.4 LTS | `synchronize=false`; migrations only |
+| Validation and API docs | `class-validator`, `class-transformer`, `@nestjs/swagger` | DTO whitelist/transform global, OpenAPI versionado e Swagger BaaS em `/docs` |
+| HTTP cross-cutting | Nest middleware + guards/interceptors/filters | Correlation id e logging no middleware; autenticacao/autorizacao nos guards; sem duplicar regra de dominio |
 | Web | React 19 + Vite + React Router | Dashboard e checkout em chunks/superficies separados |
 | Data fetching | TanStack Query | Invalidacao explicita depois de confirmacao financeira |
 | Forms | React Hook Form + Zod | Backend continua autoridade de validacao |
@@ -142,9 +144,9 @@ O workspace estava vazio no inicio desta fase, portanto nao existem componentes 
 ### `GatewayAccountsModule`
 
 - **Purpose**: Cadastro/conexao Lera Box, armazenamento criptografado e estado da dependencia.
-- **Interfaces**: `registerAtGateway`, `connectGateway`, `getDecryptedAccess`, `markReconnectRequired`.
+- **Interfaces**: `registerAtGateway`, `connectGateway`, `verifyCurrentGatewayUser`, `getDecryptedAccess`, `markReconnectRequired`.
 - **Dependencies**: `LeraBoxGateway`, `EncryptionService`.
-- **Invariant**: Senha do gateway nunca cruza o caso de uso de conexao nem aparece no frontend/log.
+- **Invariant**: Senha do gateway nunca cruza o caso de uso de conexao nem aparece no frontend/log; a conexao so fica ativa depois de `GET /api/users/me` conferir a identidade esperada.
 - **Partial failure**: Cadastro remoto grava tentativa antes do POST; falha conclusiva e `GATEWAY_REGISTRATION_UNKNOWN` sao distintos e nenhum timeout e repetido automaticamente.
 
 ### `CheckoutLinksModule`
@@ -164,7 +166,7 @@ O workspace estava vazio no inicio desta fase, portanto nao existem componentes 
 ### `WebhooksModule`
 
 - **Purpose**: Configuracao de endpoints/secrets, raw-body HMAC, inbox, dedupe, leases e dead letter.
-- **Interfaces**: `configureEndpoints`, `acceptRawEvent`, `leaseNextEvent`, `processEvent`.
+- **Interfaces**: `configureEndpoints`, `listEndpoints`, `removeEndpoint`, `acceptRawEvent`, `leaseNextEvent`, `processEvent`.
 - **Dependencies**: Payments, withdrawals, reconciliation, encryption.
 - **Boundary**: Express inicia com `rawBody: true`; o body parseado nunca substitui bytes usados na assinatura.
 
@@ -220,6 +222,7 @@ O workspace estava vazio no inicio desta fase, portanto nao existem componentes 
 interface LeraBoxGateway {
   registerUser(input: GatewayRegistration): Promise<void>;
   login(input: GatewayLogin): Promise<GatewaySession>;
+  getCurrentUser(): Promise<GatewayUserProfile>;
   getFees(filter?: FeeFilter): Promise<GatewayFee[]>;
   createPix(input: GatewayPixRequest): Promise<GatewayPixResponse>;
   createCard(input: GatewayCardRequest): Promise<GatewayPaymentResponse>;
@@ -268,6 +271,7 @@ Nao sera criada interface para repository TypeORM por padrao. Um repository espe
 - `api` host: REST `/api/v1`, auth, webhooks, health, Swagger e PDF.
 - React Router define rotas; TanStack Query mantem server state; formularios usam React Hook Form.
 - O cliente OpenAPI gerado e a unica camada HTTP usada por features React.
+- A rota Webhooks oferece cadastro, listagem/status, reconfiguracao e remocao para os tres eventos obrigatorios; secrets sao mostrados somente na criacao quando o contrato exigir.
 
 ### Design primitives
 
@@ -313,9 +317,12 @@ Todos os IDs internos sao UUIDs. Timestamps usam UTC com precisao de microssegun
 
 ### 6. `payment_attempts`
 
-- `id`, `merchantId`, `checkoutLinkId`, `method`, `status`, `externalReference`, `gatewayPaymentId`, `gatewayTxId`, `installments`, `feeBps`, `cardBrand`, `cardLast4`, `failureCode`, `reconciliationAttempts`, `nextReconciliationAt`, `leaseUntil`, timestamps.
+- `id`, `merchantId`, `checkoutLinkId`, `method`, `status`, `externalReference`, `gatewayPaymentId`, `gatewayTxId`, `installments`, `feeBps`, `grossAmountCents`, `feeAmountCents`, `netAmountCents`, `cardBrand`, `cardLast4`, `failureCode`, `reconciliationAttempts`, `nextReconciliationAt`, `leaseUntil`, timestamps.
+- `feeBps` e a fonte persistida da taxa aplicada; o adapter converte para `feePercent` apenas no limite HTTP e o teste de contrato prova a representacao exata enviada.
 - Constraint/locking garante uma tentativa unresolved por link.
 - PAN, CVV, nome completo do cartao e raw request nao existem no schema.
+
+O `orders` sugerido no desafio e representado sem tabela duplicada por `checkout_links` (intencao/estado publico) + `payment_attempts` (cada processamento financeiro). Essa divisao preserva a regra de varias negacoes definitivas possiveis para um unico link, com no maximo uma tentativa nao resolvida.
 
 ### 7. `withdrawals`
 
@@ -428,13 +435,15 @@ Todas as transicoes usam update condicional sobre o estado anterior esperado. Um
 
 1. Usar `docs/integrations/lera-box-api-reference.md` e o OpenAPI conhecido como evidencias de referencia, nao como verdade completa.
 2. Criar conta sandbox com segredos apenas em env local ignorado.
-3. Executar chamadas controladas para cadastro/login, taxas, Pix, cartao, consulta, carteira, saque e webhooks.
+3. Executar chamadas controladas para cadastro/login/perfil (`GET /api/users/me`), taxas, Pix, cartao, consulta, carteira, extrato, saque e webhooks.
 4. Capturar fixtures removendo e substituindo todos os identificadores, tokens, documentos, telefones e e-mails.
 5. Determinar raw bytes, encoding e headers da assinatura HMAC.
 6. Implementar stub HTTP deterministico a partir das fixtures.
 7. Manter teste live manual separado por causa de resultados aleatorios.
 
 Nenhum campo de response, regra de retry do gateway ou formato de webhook sera inventado antes desse spike.
+
+`POST /api/auth/reset-password` nao sera implementado no primeiro release: ele consta apenas do contrato resumido, nao do escopo funcional obrigatorio, e nao substitui a recuperacao da conta local. A decisao fica rastreada na matriz de conformidade para nao parecer omissao acidental.
 
 ### Documented request fields
 
@@ -597,19 +606,25 @@ Actions de terceiros sao fixadas por full commit SHA. Fork PR nao recebe segredo
 
 Somente generated client, declarations, migrations, bootstrap trivial e fixtures podem ser excluidos. Exclusao exige comentario/config documentado. Controllers, entities, guards, serializers, adapters e state machines nao sao excluidos por conveniencia.
 
+### Formal QA and evidence
+
+`docs/qa/quality-assurance-plan.md` e a fonte autoritativa para entry/exit criteria, charters exploratorios, UAT, matriz de navegadores, procedimento live, severidade e indice de evidencias. A cada release candidate, o resultado sera materializado em `artifacts/qa/<release>/qa-report.md` com links para logs, JUnit, cobertura, mutacao, screenshots, PDFs, traces e evidencias live sanitizadas. `scripts/validate-quality.mjs` falhara se a matriz ou o relatorio obrigatorio estiverem ausentes/incompletos.
+
+`docs/traceability/challenge-compliance-matrix.md` cobre o documento-fonte. O futuro `tasks.md` e a test coverage matrix cobrirao os 133 requisitos TLC; os dois niveis sao necessarios porque rastrear apenas os IDs internos nao prova que nenhuma obrigacao original foi omitida.
+
 ## Requirement-to-Component Map
 
 | Requirement range | Primary components | Verification anchor |
 | --- | --- | --- |
-| AUTH-01..10 | Auth, Merchants, GatewayAccounts | Unit + integration + Gherkin + E2E |
+| AUTH-01..12 | Auth, Merchants, GatewayAccounts | Unit + integration + contract + Gherkin + live QA |
 | CHK-01..12 | CheckoutLinks, public session | Unit + MySQL concurrency + E2E |
-| PAY-01..16 | Payments, Gateway adapter, Transactions | Unit + contract + Gherkin + E2E |
+| PAY-01..17 | Payments, Gateway adapter, Transactions | Unit + contract + Gherkin + E2E |
 | WHK-01..14 | Webhooks, Reconciliation | Raw HTTP integration + MySQL + mutation |
-| FIN-01..12 | Wallet, Withdrawals, Transactions | Contract + integration + Gherkin |
+| FIN-01..14 | Wallet, Withdrawals, Transactions | Contract + integration + Gherkin + UI/E2E |
 | DOC-01..12 | Notifications, Receipts, Chromium | Worker integration + PDF/E2E + redaction |
-| UI-01..10 | React routes/components/design primitives | Component + axe + visual + E2E |
-| QLT-01..20 | Scripts and CI | Validator fixtures + workflow evidence + verifier |
-| OPS-01..14 | Docker, GitHub Actions, deploy scripts, demo guard | Compose smoke + policy checks + QA runbook |
+| UI-01..11 | React routes/components/design primitives | Component + axe + visual + E2E |
+| QLT-01..22 | Scripts, CI, compliance matrix and QA plan | Validator fixtures + workflow evidence + QA report + verifier |
+| OPS-01..15 | Docker, GitHub Actions, deploy scripts, demo guard and delivery docs | Compose smoke + policy checks + documentation rehearsal |
 | P2-01..04 | Observability profile and benchmark | Network checks + reproducibility audit |
 
 ## Risks & Concerns
@@ -641,12 +656,13 @@ Somente generated client, declarations, migrations, bootstrap trivial e fixtures
 | PDF template | Shared static React package + Playwright | Same source for HTML/PDF with safe allowlisted view model |
 | Dashboard values | Projections with timestamp/staleness | Gateway remains authority and errors do not fabricate zero |
 | Demo access | Feature-flagged one-click read-only session | No password in repository and no mutating shared account |
+| Optional gateway endpoints | Implementar `/users/me`; deferir `/auth/reset-password` | Perfil fecha o boundary de identidade; reset remoto nao e requisito funcional e nao recupera a conta local |
 
 ## Design Approval Gate
 
 Antes de criar `tasks.md` ou qualquer codigo, o usuario deve aprovar este design. Na aprovacao, a proxima fase devera:
 
 1. Quebrar o trabalho em fases verticais e tarefas atomicas com no maximo um objetivo verificavel por tarefa.
-2. Mapear todos os 124 requisitos para tarefas e testes/evidencias.
+2. Mapear todos os 133 requisitos para tarefas e testes/evidencias e preservar a matriz de conformidade do documento-fonte.
 3. Estimar mais de oito tarefas e, conforme TLC, oferecer batches sequenciais com subagentes antes da execucao.
 4. Manter implementacao bloqueada ate aprovacao explicita do `tasks.md`.
