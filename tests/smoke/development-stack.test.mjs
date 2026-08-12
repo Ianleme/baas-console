@@ -133,6 +133,22 @@ test('serves the built web application and its real health endpoint', async () =
   assert.match(await app.text(), /<div id="app-root"><\/div>/u);
 });
 
+test('forwards same-origin API requests to the API container', async () => {
+  const response = await fetch(`http://127.0.0.1:${environment.WEB_PORT}/api/v1/__proxy_probe__`);
+  assert.equal(response.status, 404);
+  assert.match(response.headers.get('content-type') ?? '', /^application\/problem\+json/u);
+  const { requestId, ...problem } = await response.json();
+  assert.match(requestId, /^[0-9a-f-]{36}$/u);
+  assert.deepEqual(problem, {
+    type: 'https://baas-console.invalid/problems/resource_not_found',
+    title: 'Resource not found',
+    status: 404,
+    code: 'RESOURCE_NOT_FOUND',
+    detail: 'The requested resource was not found.',
+    instance: '/api/v1/__proxy_probe__'
+  });
+});
+
 test('exposes healthy Mailpit HTTP and SMTP services only on loopback', async () => {
   const response = await fetch(`http://127.0.0.1:${environment.MAILPIT_HTTP_PORT}/readyz`);
   assert.equal(response.status, 200);

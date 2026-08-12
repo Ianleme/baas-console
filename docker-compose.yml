@@ -74,6 +74,7 @@ services:
       dockerfile: apps/web/Dockerfile
     environment:
       PORT: 4173
+      API_ORIGIN: http://api:3000
     healthcheck:
       test:
         [
