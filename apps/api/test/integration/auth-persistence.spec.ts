@@ -283,4 +283,25 @@ describe('authentication persistence on MySQL 8.4', () => {
     expect(dataSource.options.synchronize).toBe(false);
     expect(dataSource.options.migrationsRun).toBe(false);
   });
+
+  test('finds an owner only through its session-derived tenant', async () => {
+    const merchantId = await insertMerchant();
+    const userId = await insertUser(merchantId, 'owner@example.test');
+    const rows = await dataSource.query<{ id: string }[]>(
+      'SELECT id FROM users WHERE id = ? AND merchant_id = ?',
+      [userId, merchantId]
+    );
+    expect(rows).toEqual([{ id: userId }]);
+  });
+
+  test('returns no row for a cross-tenant owner lookup', async () => {
+    const merchantId = await insertMerchant();
+    const otherMerchantId = await insertMerchant();
+    const userId = await insertUser(merchantId, 'owner@example.test');
+    const rows = await dataSource.query<{ id: string }[]>(
+      'SELECT id FROM users WHERE id = ? AND merchant_id = ?',
+      [userId, otherMerchantId]
+    );
+    expect(rows).toEqual([]);
+  });
 });
