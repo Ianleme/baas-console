@@ -181,10 +181,10 @@
 ## Handoff
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
-- **Phase / Task**: Execute / Batch 5, Phase 5, T031-T036
-- **Completed**: T001-T035; T035 validada (Backend de saques com validação de saldo autoritativo da carteira, débito transacional, mascara LGPD de chaves Pix, adapter Lera Box e 12 testes unitários 100% verdes no gate pr)
-- **In-progress** (file:line): T036 (`apps/web/src/features/withdrawals/**`)
-- **Next step**: Executar T036: Implement withdrawal user journey and modal
+- **Phase / Task**: Execute / Batch 5 (Phase 5, T031-T036 100% Concluído!)
+- **Completed**: T001-T036; T036 validada (Jornada de saques no frontend com modal de solicitação, validação de saldo autoritativo em tempo real, mascara de chave Pix, feedback visual e 12 testes web 100% verdes no gate pr)
+- **In-progress** (file:line): none (Batch 5, Phase 5 finalizado com sucesso)
+- **Next step**: Executar Batch 6 (Phase 6, T037-T045: Notificações, Auditoria e Resiliência Operacional)
 - **Blockers**: none
 - **Uncommitted files**: progress bookkeeping only
 - **Branch**: main
