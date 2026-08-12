@@ -98,6 +98,33 @@ export function createWebhooksClient(options: BaasClientOptions) {
   };
 }
 
+export function createReconciliationClient(options: BaasClientOptions) {
+  const request = options.fetch ?? globalThis.fetch;
+  async function json(path: string, init?: RequestInit): Promise<unknown> {
+    const headers = new Headers(init?.headers);
+    headers.set('content-type', 'application/json');
+    const response = await request(`${options.baseUrl}${path}`, {
+      credentials: 'include',
+      ...init,
+      headers
+    });
+    if (!response.ok) {
+      const code = response.status === 503 ? 'GATEWAY_UNAVAILABLE' : 'REQUEST_FAILED';
+      const error = new Error(code) as Error & { code: string };
+      error.code = code;
+      throw error;
+    }
+    return response.json() as Promise<unknown>;
+  }
+  return {
+    list: () => json('/api/v1/reconciliation') as Promise<never[]>,
+    verify: (operationId: string) =>
+      json(`/api/v1/reconciliation/${encodeURIComponent(operationId)}/verify`, {
+        method: 'POST'
+      }) as Promise<never>
+  };
+}
+
 export interface PublicCheckoutView {
   id: string;
   description: string;
