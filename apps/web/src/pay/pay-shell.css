@@ -1,0 +1,109 @@
+.pay-surface {
+  background:
+    radial-gradient(circle at 20% 70%, rgb(0 107 87 / 9%), transparent 27rem),
+    radial-gradient(circle at 82% 28%, rgb(255 172 61 / 9%), transparent 22rem), #fbfcfc;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+}
+
+.pay-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 1.4rem clamp(1rem, 4vw, 3rem);
+}
+
+.checkout-stage {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem 4rem;
+}
+
+.checkout-shell {
+  background: rgb(255 255 255 / 94%);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  max-width: 36rem;
+  padding: clamp(1.6rem, 5vw, 3.4rem);
+  position: relative;
+  width: 100%;
+}
+
+.checkout-shell::before {
+  background: linear-gradient(90deg, var(--color-green-700), var(--color-lime));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  content: '';
+  height: 0.32rem;
+  inset: 0 0 auto;
+  position: absolute;
+}
+
+.checkout-shell__mark {
+  margin-bottom: 2.5rem;
+}
+
+.checkout-shell h1 {
+  font-size: clamp(2rem, 6vw, 3rem);
+  margin: 0.45rem 0 0.8rem;
+}
+
+.checkout-shell > p {
+  color: var(--color-muted);
+  font-size: 1.05rem;
+}
+
+.sandbox-warning {
+  align-items: flex-start;
+  background: var(--color-sandbox-soft);
+  border: 1px solid #edc57f;
+  border-radius: var(--radius-md);
+  color: #5d3b00;
+  display: flex;
+  gap: 0.85rem;
+  margin-top: 2rem;
+  padding: 1rem;
+}
+
+.sandbox-warning > span {
+  align-items: center;
+  background: #ad6900;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  flex: 0 0 auto;
+  font-weight: 800;
+  height: 1.5rem;
+  justify-content: center;
+  width: 1.5rem;
+}
+
+.sandbox-warning p {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+}
+
+.pay-footer {
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  padding: 1.2rem;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .pay-header .brand__name {
+    display: none;
+  }
+
+  .sandbox-badge {
+    font-size: 0.82rem;
+  }
+
+  .checkout-stage {
+    align-items: start;
+    padding-top: 1rem;
+  }
+}

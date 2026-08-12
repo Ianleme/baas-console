@@ -3,6 +3,7 @@ const baseStages = [
   { name: 'lint', script: 'lint', enabled: true },
   { name: 'types', script: 'typecheck', enabled: true },
   { name: 'quality-tests', script: 'test:quality', enabled: true },
+  { name: 'web', script: 'test:web', enabled: true },
   { name: 'build', script: 'build', enabled: true }
 ];
 
@@ -11,7 +12,6 @@ const prStages = [
   { name: 'unit', script: 'test:unit', enabled: false, ownerTask: 'T014' },
   { name: 'integration', script: 'test:integration', enabled: true },
   { name: 'contract', script: 'test:contract', enabled: false, ownerTask: 'T005' },
-  { name: 'web', script: 'test:web', enabled: false, ownerTask: 'T004' },
   { name: 'gherkin', script: 'test:gherkin', enabled: false, ownerTask: 'T016' }
 ];
 

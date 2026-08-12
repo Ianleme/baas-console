@@ -22,6 +22,7 @@
     "lint": "eslint . --max-warnings=0",
     "test:integration": "npm run test:integration --workspace @baas/api",
     "test:quality": "node --test --test-isolation=none scripts/validate-quality.test.mjs",
+    "test:web": "npm run test --workspace @baas/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "validate:quality": "node scripts/validate-quality.mjs",
     "verify": "node scripts/run-verification.mjs pr",

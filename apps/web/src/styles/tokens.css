@@ -1,0 +1,149 @@
+@font-face {
+  font-display: swap;
+  font-family: 'Urbanist Variable';
+  font-style: normal;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/urbanist/files/urbanist-latin-wght-normal.woff2')
+    format('woff2-variations');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'Source Sans 3 Variable';
+  font-style: normal;
+  font-weight: 200 900;
+  src: url('@fontsource-variable/source-sans-3/files/source-sans-3-latin-wght-normal.woff2')
+    format('woff2-variations');
+}
+
+:root {
+  color-scheme: light;
+  --color-ink: #17231f;
+  --color-muted: #5f6c67;
+  --color-subtle: #74817c;
+  --color-canvas: #f6f8f7;
+  --color-panel: #ffffff;
+  --color-line: #dce4e1;
+  --color-green-950: #003c32;
+  --color-green-800: #005746;
+  --color-green-700: #006b57;
+  --color-green-100: #dff4ed;
+  --color-lime: #b8f073;
+  --color-lime-soft: #e8fbd1;
+  --color-sandbox: #ffac3d;
+  --color-sandbox-soft: #fff5e2;
+  --shadow-card: 0 16px 45px rgb(0 60 50 / 7%);
+  --shadow-float: 0 12px 28px rgb(0 60 50 / 14%);
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --font-display: 'Urbanist Variable', sans-serif;
+  --font-body: 'Source Sans 3 Variable', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--color-sandbox);
+  outline-offset: 3px;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.brand {
+  align-items: center;
+  color: var(--color-ink);
+  display: inline-flex;
+  gap: 0.7rem;
+  min-width: max-content;
+}
+
+.brand__mark {
+  fill: none;
+  height: 2.25rem;
+  stroke: var(--color-green-700);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+  width: 2.25rem;
+}
+
+.brand__name {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 720;
+  letter-spacing: -0.035em;
+}
+
+.eyebrow {
+  color: var(--color-subtle);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.eyebrow--green {
+  color: var(--color-green-700);
+}
+
+.sandbox-badge {
+  align-items: center;
+  background: var(--color-sandbox-soft);
+  border: 1px solid #edc57f;
+  border-radius: 999px;
+  color: #724600;
+  display: inline-flex;
+  font-weight: 650;
+  gap: 0.55rem;
+  padding: 0.45rem 0.8rem;
+}
+
+.sandbox-badge__dot {
+  background: #ad6900;
+  border-radius: 50%;
+  height: 0.5rem;
+  width: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
