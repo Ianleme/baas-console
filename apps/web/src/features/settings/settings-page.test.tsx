@@ -39,7 +39,7 @@ describe('SettingsPage', () => {
     render(
       <SettingsPage
         api={{
-          load: async () => ({ ...profile, gatewayConnectionStatus: null }),
+          load: async () => ({ ...profile, gatewayConnectionStatus: 'AWAITING_CREDENTIALS' }),
           connect: connectSpy
         }}
       />

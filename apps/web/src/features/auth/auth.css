@@ -32,8 +32,12 @@
 }
 
 .auth-stage {
-  align-items: flex-start;
-  padding-block: clamp(2.25rem, 7vh, 5rem);
+  align-items: safe center;
+  display: grid !important;
+  flex: 1 1 auto;
+  justify-items: center;
+  min-height: calc(100dvh - 8.5rem);
+  padding-block: 2.25rem;
 }
 
 .auth-card {
@@ -148,6 +152,22 @@
   background: var(--auth-green-dark) !important;
 }
 
+.secondary-button {
+  border-color: var(--auth-green) !important;
+  color: var(--auth-green-dark) !important;
+  min-height: 2.75rem;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: var(--color-green-100) !important;
+}
+
+.secondary-button:disabled {
+  border-color: var(--auth-border) !important;
+  color: var(--auth-muted) !important;
+  opacity: 1;
+}
+
 .form-error {
   border-radius: var(--radius-sm);
 }
@@ -197,6 +217,8 @@
   }
 
   .auth-stage {
+    align-items: center;
+    min-height: calc(100dvh - 7.5rem);
     padding-block: 1.5rem;
   }
 

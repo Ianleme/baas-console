@@ -12,7 +12,8 @@ describe('AppShell', () => {
         profileState="ready"
         profile={{
           merchant: { displayName: 'Loja Remota' },
-          owner: { fullName: 'Ana Lima', email: 'ana@test' }
+          owner: { fullName: 'Ana Lima', email: 'ana@test' },
+          gatewayConnectionStatus: 'ACTIVE'
         }}
       />
     );

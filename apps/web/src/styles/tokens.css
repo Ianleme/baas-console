@@ -1,5 +1,21 @@
 @import 'tailwindcss';
 
+@theme inline {
+  --color-brand-ink: var(--color-ink);
+  --color-brand-muted: var(--color-muted);
+  --color-brand-subtle: var(--color-subtle);
+  --color-brand-canvas: var(--color-canvas);
+  --color-brand-panel: var(--color-panel);
+  --color-brand-line: var(--color-line);
+  --color-brand-primary: var(--color-green-700);
+  --color-brand-primary-dark: var(--color-green-800);
+  --color-brand-primary-soft: var(--color-green-100);
+  --color-brand-accent: var(--color-lime);
+  --color-brand-accent-soft: var(--color-lime-soft);
+  --color-brand-control-active: var(--color-control-active);
+  --color-brand-control-border: var(--color-control-border);
+}
+
 @font-face {
   font-display: swap;
   font-family: 'Urbanist Variable';
@@ -32,6 +48,8 @@
   --color-green-100: #dff4ed;
   --color-lime: #b8f073;
   --color-lime-soft: #e8fbd1;
+  --color-control-active: #d9f8b2;
+  --color-control-border: #b9df83;
   --color-sandbox: #ffac3d;
   --color-sandbox-soft: #fff5e2;
   --shadow-card: 0 16px 45px rgb(0 60 50 / 7%);

@@ -1,5 +1,5 @@
 import axe from 'axe-core';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import {
@@ -15,7 +15,7 @@ import {
 function client(overrides: Partial<AuthJourneyApi> = {}): AuthJourneyApi {
   return {
     login: vi.fn().mockResolvedValue(undefined),
-    register: vi.fn().mockResolvedValue(undefined),
+    register: vi.fn().mockResolvedValue('AWAITING_CREDENTIALS'),
     connect: vi.fn().mockResolvedValue('ACTIVE'),
     ...overrides
   };
@@ -81,6 +81,18 @@ describe('AuthJourney', () => {
     expect(await screen.findByText('Sua operação está pronta')).toBeVisible();
   });
 
+  it('notifies the app when the user proceeds to the dashboard', async () => {
+    const onAuthenticated = vi.fn();
+    const user = userEvent.setup();
+    render(<AuthJourney client={client()} onAuthenticated={onAuthenticated} />);
+    await openRegistration(user);
+    fireEvent.submit(screen.getByRole('form', { name: 'Criar conta' }));
+    await user.click(await screen.findByRole('button', { name: 'Já recebi minhas credenciais' }));
+    fireEvent.submit(screen.getByRole('form', { name: 'Conectar gateway' }));
+    await user.click(await screen.findByRole('link', { name: 'Ir para o dashboard' }));
+    expect(onAuthenticated).toHaveBeenCalledOnce();
+  });
+
   it('shows a safe error when local login fails', async () => {
     render(
       <AuthJourney client={client({ login: vi.fn().mockRejectedValue(new Error('raw secret')) })} />
@@ -113,7 +125,7 @@ describe('AuthJourney', () => {
   });
 
   it('submits the selected person type', async () => {
-    const register = vi.fn<AuthJourneyApi['register']>().mockResolvedValue(undefined);
+    const register = vi.fn<AuthJourneyApi['register']>().mockResolvedValue('AWAITING_CREDENTIALS');
     const api = client({ register });
     const user = userEvent.setup();
     render(<AuthJourney client={api} />);
@@ -138,7 +150,27 @@ describe('AuthJourney', () => {
     await openRegistration();
     fireEvent.submit(screen.getByRole('form', { name: 'Criar conta' }));
     expect(await screen.findByText('Confira seu e-mail')).toBeVisible();
-    expect(screen.getByText(/não criamos nem armazenamos essa senha/i)).toBeVisible();
+    expect(screen.getByText(/Lera Box aceitou o cadastro/i)).toBeVisible();
+  });
+
+  it('keeps the local account successful when gateway onboarding fails', async () => {
+    const onAuthenticated = vi.fn();
+    render(
+      <AuthJourney
+        client={client({ register: vi.fn().mockResolvedValue('GATEWAY_REGISTRATION_FAILED') })}
+        onAuthenticated={onAuthenticated}
+      />
+    );
+    await openRegistration();
+    fireEvent.submit(screen.getByRole('form', { name: 'Criar conta' }));
+
+    expect(await screen.findByText('Seu acesso ao BaaS está pronto')).toBeVisible();
+    expect(screen.getByText(/conta local foi criada/i)).toBeVisible();
+    expect(screen.queryByText(/Lera Box recusou/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Acessar painel' }));
+    expect(onAuthenticated).toHaveBeenCalledTimes(1);
+    expect(globalThis.location.hash).toBe('#/configuracoes');
   });
 
   it('does not fabricate gateway credentials while awaiting email', async () => {
@@ -197,7 +229,7 @@ describe('AuthJourney', () => {
   });
 
   it('blocks registration and displays field error when password is under 12 characters', async () => {
-    const register = vi.fn<AuthJourneyApi['register']>().mockResolvedValue(undefined);
+    const register = vi.fn<AuthJourneyApi['register']>().mockResolvedValue('AWAITING_CREDENTIALS');
     const user = userEvent.setup();
     render(<AuthJourney client={client({ register })} />);
     await openRegistration(user);
@@ -208,7 +240,7 @@ describe('AuthJourney', () => {
   });
 
   it('blocks registration when state UF is invalid', async () => {
-    const register = vi.fn<AuthJourneyApi['register']>().mockResolvedValue(undefined);
+    const register = vi.fn<AuthJourneyApi['register']>().mockResolvedValue('AWAITING_CREDENTIALS');
     const user = userEvent.setup();
     render(<AuthJourney client={client({ register })} />);
     await openRegistration(user);
@@ -219,7 +251,7 @@ describe('AuthJourney', () => {
   });
 
   it('sanitizes state to uppercase when registering', async () => {
-    const register = vi.fn<AuthJourneyApi['register']>().mockResolvedValue(undefined);
+    const register = vi.fn<AuthJourneyApi['register']>().mockResolvedValue('AWAITING_CREDENTIALS');
     const user = userEvent.setup();
     render(<AuthJourney client={client({ register })} />);
     await openRegistration(user);

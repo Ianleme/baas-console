@@ -142,25 +142,58 @@ function buildAreaPath(linePath: string, width: number, height: number) {
 
 function DashboardHeader() {
   return (
-    <header className="dashboard__heading flex flex-wrap items-start justify-between gap-4">
+    <header className="dashboard__heading flex flex-wrap items-center justify-between gap-5">
       <div className="space-y-1">
-        <span className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#006b57]">Visão geral</span>
-        <h1 className="text-[2rem] font-extrabold leading-none tracking-tight text-slate-900">Dashboard</h1>
-        <p className="text-sm text-slate-500">Acompanhe sua operação em tempo real.</p>
+        <span className="text-xs font-bold uppercase tracking-widest text-brand-primary">
+          Visão geral
+        </span>
+        <h1 className="text-3xl font-bold leading-none text-brand-ink">Dashboard</h1>
+        <p className="text-sm text-brand-muted">Acompanhe sua operação em tempo real.</p>
       </div>
-      <div className="dashboard__actions flex items-center gap-2.5">
-        <a className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50" href="#/saques" tabIndex={-1}>Solicitar saque</a>
-        <a className="inline-flex items-center justify-center rounded-xl bg-[#006b57] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#005746]" href="#/links" tabIndex={-1}>+ Criar link de pagamento</a>
+      <div className="dashboard__actions flex items-center gap-3">
+        <a
+          className="inline-flex h-11 items-center justify-center rounded-lg border border-brand-primary bg-brand-panel px-5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-primary-soft"
+          href="#/saques"
+          tabIndex={-1}
+        >
+          Solicitar saque
+        </a>
+        <a
+          className="inline-flex h-11 items-center justify-center rounded-lg bg-brand-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-primary-dark"
+          href="#/links"
+          tabIndex={-1}
+        >
+          <span className="mr-2 text-xl font-light leading-none" aria-hidden="true">
+            +
+          </span>
+          Criar link de pagamento
+        </a>
       </div>
     </header>
   );
 }
 
-function PeriodFilters({ period, onChange }: { period: (typeof periods)[number]; onChange: (period: (typeof periods)[number]) => void }) {
+function PeriodFilters({
+  period,
+  onChange
+}: {
+  period: (typeof periods)[number];
+  onChange: (period: (typeof periods)[number]) => void;
+}) {
   return (
-    <div className="periods flex flex-wrap gap-2" aria-label="Período do painel">
+    <div className="periods flex flex-wrap gap-2.5" aria-label="Período do painel">
       {periods.map((item) => (
-        <button key={item} type="button" aria-pressed={period === item} onClick={() => onChange(item)} className={`rounded-lg border px-3.5 py-1.5 text-[0.8rem] font-semibold transition-colors ${period === item ? 'border-[#b8d873] bg-[#dff5a8] text-[#24513b]' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+        <button
+          key={item}
+          type="button"
+          aria-pressed={period === item}
+          onClick={() => onChange(item)}
+          className={`h-9 rounded-lg border px-4 text-sm font-medium transition-colors ${
+            period === item
+              ? 'border-brand-control-border bg-brand-control-active text-brand-primary-dark'
+              : 'border-brand-line bg-brand-panel text-brand-ink hover:bg-brand-canvas'
+          }`}
+        >
           {item}
         </button>
       ))}
@@ -169,20 +202,52 @@ function PeriodFilters({ period, onChange }: { period: (typeof periods)[number];
 }
 
 function KpiRail({ children }: { children: ReactNode }) {
-  return <section className="kpis grid grid-cols-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-none sm:grid-cols-2 xl:grid-cols-[30%_1fr_1fr_1fr]" aria-label="Resumo financeiro">{children}</section>;
+  return (
+    <section
+      className="kpis grid grid-cols-1 overflow-hidden rounded-xl border border-brand-line bg-brand-panel sm:grid-cols-2 xl:h-32 xl:grid-cols-10"
+      aria-label="Resumo financeiro"
+    >
+      {children}
+    </section>
+  );
 }
 
 function ReceiptCompositionCard({ children }: { children: ReactNode }) {
-  return <Card className={`${cardClass} xl:col-span-3`} aria-labelledby="composition-title">{children}</Card>;
+  return (
+    <Card
+      className={`${cardClass} flex h-full flex-col rounded-xl xl:col-span-4`}
+      aria-label="Composição dos recebimentos"
+    >
+      {children}
+    </Card>
+  );
 }
 function MovementChartCard({ children }: { children: ReactNode }) {
-  return <Card className={`${cardClass} xl:col-span-6`} aria-labelledby="movement-title">{children}</Card>;
+  return (
+    <Card
+      className={`${cardClass} flex h-full flex-col rounded-xl xl:col-span-6`}
+      aria-label="Movimentação financeira"
+    >
+      {children}
+    </Card>
+  );
 }
 function OperationCard({ children }: { children: ReactNode }) {
-  return <Card className={`${cardClass} xl:col-span-3`} aria-labelledby="operation-title">{children}</Card>;
+  return (
+    <Card
+      className={`${cardClass} flex h-full flex-col rounded-xl xl:col-span-3`}
+      aria-label="Operação"
+    >
+      {children}
+    </Card>
+  );
 }
 function RecentTransactionsCard({ children }: { children: ReactNode }) {
-  return <Card data-recent-card className={`${cardClass} recent`}>{children}</Card>;
+  return (
+    <Card data-recent-card className={`${cardClass} recent`}>
+      {children}
+    </Card>
+  );
 }
 
 export function Dashboard({ api }: { api: DashboardApi }) {
@@ -245,23 +310,26 @@ export function Dashboard({ api }: { api: DashboardApi }) {
       <PeriodFilters period={period} onChange={setPeriod} />
 
       <KpiRail>
-        <Card data-kpi className="rounded-none border-0 bg-[#005746] text-white">
-          <CardContent className="p-5 flex flex-col justify-between min-h-[8.25rem]">
-            <div className="flex items-center gap-2.5">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
-                <Wallet className="h-4 w-4 text-white" />
-              </span>
-              <span className="text-sm font-medium text-emerald-50/90">Saldo disponível</span>
-            </div>
-            <strong className="mt-4 text-[1.75rem] font-extrabold tracking-tight text-white">
+        <div
+          data-kpi
+          className="flex min-w-0 items-center gap-5 bg-brand-primary-dark p-5 text-white sm:col-span-2 xl:col-span-3"
+        >
+          <span className="inline-flex size-16 shrink-0 items-center justify-center rounded-full border border-brand-accent bg-white/5">
+            <Wallet className="size-6 text-white" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <span className="text-sm font-semibold text-white">Saldo disponível</span>
+            <strong className="mt-1 block text-3xl font-bold leading-none text-white">
               {money(data.wallet.balanceCents)}
             </strong>
-            <small className="mt-2 text-xs text-emerald-100/85">Disponível para saque.</small>
-            {data.wallet.stale && (
-              <b className="stale mt-3 w-fit rounded-full bg-amber-100 px-2.5 py-0.5 text-[0.7rem] font-bold text-amber-800">
-                Dados desatualizados
-              </b>
-            )}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <small className="text-sm text-white/90">Disponível para saque</small>
+              {data.wallet.stale && (
+                <b className="stale inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
+                  Dados desatualizados
+                </b>
+              )}
+            </div>
             <span className="sr-only">
               Atualizado em{' '}
               {fullTimestamp.format(
@@ -270,161 +338,170 @@ export function Dashboard({ api }: { api: DashboardApi }) {
                   : new Date()
               )}
             </span>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card data-kpi className={`${cardClass} rounded-none border-0 xl:border-l`}>
-          <CardContent className="p-5 flex flex-col justify-between min-h-[8.25rem]">
-            <span className="text-sm font-medium text-slate-500">Recebimentos</span>
-            <strong className="mt-4 text-[1.75rem] font-extrabold tracking-tight text-slate-900">
-              {money(data.receivedCents)}
-            </strong>
-            {typeof data.receivedChangePercent === 'number' ? (
-              <small className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[#0f8a5f]">
-                <ArrowUp className="h-3.5 w-3.5" strokeWidth={2.75} />+
-                {data.receivedChangePercent.toLocaleString('pt-BR', {
-                  maximumFractionDigits: 1,
-                  minimumFractionDigits: 1
-                })}
-                %
-              </small>
-            ) : (
-              <small className="mt-2 text-xs text-slate-400">Total acumulado</small>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card data-kpi className={`${cardClass} rounded-none border-0 xl:border-l`}>
-          <CardContent className="p-5 flex flex-col justify-between min-h-[8.25rem]">
-            <span className="text-sm font-medium text-slate-500">Transações</span>
-            <strong
-              className="mt-4 text-[1.75rem] font-extrabold tracking-tight text-slate-900"
-              data-testid="transaction-count"
-            >
-              {transactionCount}
-            </strong>
-            <small className="mt-2 text-sm font-medium text-slate-500">
-              {data.approvedCount} aprovadas
+        <div
+          data-kpi
+          className="flex min-w-0 flex-col justify-center border-t border-brand-line p-5 sm:border-t-0 xl:col-span-2 xl:border-l"
+        >
+          <span className="text-sm font-medium text-brand-muted">Recebimentos</span>
+          <strong className="mt-4 text-3xl font-bold leading-none text-brand-ink">
+            {money(data.receivedCents)}
+          </strong>
+          {typeof data.receivedChangePercent === 'number' ? (
+            <small className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-primary">
+              <ArrowUp className="h-3.5 w-3.5" strokeWidth={2.75} />+
+              {data.receivedChangePercent.toLocaleString('pt-BR', {
+                maximumFractionDigits: 1,
+                minimumFractionDigits: 1
+              })}
+              %
             </small>
-          </CardContent>
-        </Card>
+          ) : (
+            <small className="mt-2 text-sm text-brand-subtle">Total acumulado</small>
+          )}
+        </div>
 
-        <Card data-kpi className={`${cardClass} rounded-none border-0 xl:border-l`}>
-          <CardContent className="p-5 flex items-center justify-between gap-4 min-h-[8.25rem]">
-            <div className="flex flex-col justify-between self-stretch">
-              <span className="text-sm font-medium text-slate-500">Taxa de aprovação</span>
-              <strong className="mt-4 text-[1.75rem] font-extrabold tracking-tight text-slate-900">
-                {rate.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%
-              </strong>
-              <span className="sr-only">
-                Aprovadas ÷ (aprovadas + negadas); pendentes não entram no cálculo.
-              </span>
-            </div>
-            <div className="h-16 w-16 shrink-0" aria-hidden="true">
-              <svg viewBox="0 0 36 36" className="h-full w-full -rotate-90">
-                <circle cx="18" cy="18" r="14" fill="none" stroke="#e8eeeb" strokeWidth="3.25" />
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="14"
-                  fill="none"
-                  stroke="#006b57"
-                  strokeWidth="3.25"
-                  strokeLinecap="round"
-                  strokeDasharray={`${String((Math.max(0, Math.min(100, rate)) / 100) * 87.96)} 87.96`}
-                />
-              </svg>
-            </div>
-          </CardContent>
-        </Card>
+        <div
+          data-kpi
+          className="flex min-w-0 flex-col justify-center border-t border-brand-line p-5 sm:border-l sm:border-t-0 xl:col-span-2"
+        >
+          <span className="text-sm font-medium text-brand-muted">Transações</span>
+          <strong
+            className="mt-4 text-3xl font-bold leading-none text-brand-ink"
+            data-testid="transaction-count"
+          >
+            {transactionCount}
+          </strong>
+          <small className="mt-2 text-sm text-brand-muted">{data.approvedCount} aprovadas</small>
+        </div>
+
+        <div
+          data-kpi
+          className="flex min-w-0 items-center justify-between gap-4 border-t border-brand-line p-5 sm:col-span-2 xl:col-span-3 xl:border-l xl:border-t-0"
+        >
+          <div className="flex min-w-0 flex-col justify-center">
+            <span className="text-sm font-medium text-brand-muted">Taxa de aprovação</span>
+            <strong className="mt-4 text-3xl font-bold leading-none text-brand-ink">
+              {rate.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%
+            </strong>
+            <span className="sr-only">
+              Aprovadas ÷ (aprovadas + negadas); pendentes não entram no cálculo.
+            </span>
+          </div>
+          <div className="size-14 shrink-0" aria-hidden="true">
+            <svg viewBox="0 0 36 36" className="h-full w-full -rotate-90">
+              <circle cx="18" cy="18" r="14" fill="none" stroke="#e8eeeb" strokeWidth="3.25" />
+              <circle
+                cx="18"
+                cy="18"
+                r="14"
+                fill="none"
+                stroke="#006b57"
+                strokeWidth="3.25"
+                strokeLinecap="round"
+                strokeDasharray={`${String((Math.max(0, Math.min(100, rate)) / 100) * 87.96)} 87.96`}
+              />
+            </svg>
+          </div>
+        </div>
       </KpiRail>
 
-      <div className="dashboard__grid grid grid-cols-1 gap-4 xl:grid-cols-13">
+      <div
+        data-insight-grid
+        className="dashboard__grid grid grid-cols-1 gap-4 xl:grid-cols-[repeat(13,minmax(0,1fr))]"
+      >
         <ReceiptCompositionCard>
-          <CardHeader className="space-y-0 p-5 pb-3">
-            <h2 id="composition-title" className="text-[0.95rem] font-bold text-slate-900">
+          <CardHeader className="gap-1 p-5 pb-4">
+            <h2 id="composition-title" className="text-base font-bold text-brand-ink">
               Composição dos recebimentos
             </h2>
             <p className="sr-only">
               Pix representa {pixPercent}% e cartão {cardPercent}% do valor recebido.
             </p>
-            <p className="text-xs text-slate-500">Distribuição por método de pagamento</p>
+            <p className="text-sm text-brand-muted">Distribuição por método de pagamento</p>
           </CardHeader>
-          <CardContent className="space-y-5 p-5 pt-0">
+          <CardContent className="flex flex-1 flex-col p-5 pt-0">
             <div
-              className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-100"
-              aria-hidden="true"
+              className="flex h-10 w-full overflow-hidden rounded-lg bg-brand-canvas text-sm font-semibold"
+              aria-label="Distribuição dos recebimentos"
             >
               {totalReceived === 0n ? (
-                <span className="h-full w-full bg-slate-200" />
+                <span className="flex h-full w-full items-center justify-center bg-brand-line text-brand-muted">
+                  Sem recebimentos
+                </span>
               ) : (
                 <>
                   <span
-                    className="h-full bg-[#006b57]"
+                    className="flex h-full items-center justify-center bg-brand-primary text-white"
                     style={{ width: `${String(pixPercent)}%` }}
-                  />
+                  >
+                    {pixPercent}%
+                  </span>
                   <span
-                    className="h-full bg-[#b8f073]"
+                    className="flex h-full items-center justify-center bg-brand-accent text-brand-primary-dark"
                     style={{ width: `${String(cardPercent)}%` }}
-                  />
+                  >
+                    {cardPercent}%
+                  </span>
                 </>
               )}
             </div>
-            <div className="space-y-4">
-              <div data-receipt-row className="flex items-start gap-3">
-                <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#e7f6ef] text-[#006b57]">
-                  <QrCode className="h-3.5 w-3.5" />
+            <div className="mt-5">
+              <div
+                data-receipt-row
+                className="flex items-center gap-3 border-t border-brand-line py-4"
+              >
+                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-primary-soft text-brand-primary">
+                  <QrCode className="size-4" />
                 </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="text-sm font-semibold text-slate-800">Pix</p>
-                    <p className="text-sm font-bold text-slate-900">
-                      {money(data.pixReceivedCents)}
-                    </p>
-                  </div>
-                  <p className="mt-0.5 text-xs text-slate-400">{pixPercent}% do volume</p>
-                </div>
+                <p className="min-w-0 flex-1 text-sm font-semibold text-brand-ink">Pix</p>
+                <p className="text-sm font-bold text-brand-ink">{money(data.pixReceivedCents)}</p>
+                <p className="text-sm text-brand-muted">{pixPercent}% do volume</p>
               </div>
-              <div data-receipt-row className="flex items-start gap-3">
-                <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#f3f8e4] text-[#6a7f2f]">
-                  <CreditCard className="h-3.5 w-3.5" />
+              <div
+                data-receipt-row
+                className="flex items-center gap-3 border-y border-brand-line py-4"
+              >
+                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-accent-soft text-brand-primary">
+                  <CreditCard className="size-4" />
                 </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="text-sm font-semibold text-slate-800">Cartão</p>
-                    <p className="text-sm font-bold text-slate-900">
-                      {money(data.cardReceivedCents)}
-                    </p>
-                  </div>
-                  <p className="mt-0.5 text-xs text-slate-400">{cardPercent}% do volume</p>
-                </div>
+                <p className="min-w-0 flex-1 text-sm font-semibold text-brand-ink">Cartão</p>
+                <p className="text-sm font-bold text-brand-ink">{money(data.cardReceivedCents)}</p>
+                <p className="text-sm text-brand-muted">{cardPercent}% do volume</p>
               </div>
             </div>
           </CardContent>
         </ReceiptCompositionCard>
 
         <MovementChartCard>
-          <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 p-5 pb-2">
-            <h2 id="movement-title" className="text-[0.95rem] font-bold text-slate-900">
-              Movimentação financeira
-            </h2>
-            <p className="absolute mt-10 text-xs text-slate-500">Entradas e saídas por período</p>
-            <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
+          <CardHeader className="gap-4 p-5 pb-0">
+            <div className="space-y-1">
+              <h2 id="movement-title" className="text-base font-bold text-brand-ink">
+                Movimentação financeira
+              </h2>
+              <p className="text-sm text-brand-muted">Entradas e saídas por período</p>
+            </div>
+            <div
+              className="flex items-center gap-5 text-sm text-brand-muted"
+              aria-label="Legenda da movimentação"
+            >
               <span className="inline-flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#006b57]" /> Entradas
+                <span className="h-0.5 w-5 bg-brand-primary" /> Entradas
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-slate-300" /> Saídas
+                <span className="h-0.5 w-5 bg-brand-subtle" /> Saídas
               </span>
             </div>
           </CardHeader>
-          <CardContent className="p-5 pt-1">
+          <CardContent className="flex flex-1 p-5 pt-4">
             {movement.length === 0 ? (
-              <div className="flex h-44 items-center justify-center rounded-xl bg-slate-50/70">
-                <p className="text-sm text-slate-500">Sem movimentação no período.</p>
+              <div className="flex min-h-48 w-full items-center justify-center rounded-lg bg-brand-canvas">
+                <p className="text-sm text-brand-muted">Sem movimentação no período.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2">
+              <div className="grid w-full grid-cols-[auto_1fr] gap-x-3 gap-y-2">
                 <div
                   className="flex flex-col justify-between py-1 text-[0.65rem] font-medium text-slate-400"
                   aria-hidden="true"
@@ -446,16 +523,47 @@ export function Dashboard({ api }: { api: DashboardApi }) {
                       x2={chartWidth}
                       y1={10 + (1 - tick.ratio) * (chartHeight - 20)}
                       y2={10 + (1 - tick.ratio) * (chartHeight - 20)}
-                      stroke="#edf1ef"
+                      className="text-brand-line"
+                      stroke="currentColor"
                       strokeWidth="1"
                     />
                   ))}
+                  <path
+                    d={outPath}
+                    fill="none"
+                    className="text-brand-subtle"
+                    stroke="currentColor"
+                    strokeWidth="2.25"
+                  />
+                  <path
+                    d={inPath}
+                    fill="none"
+                    className="text-brand-primary"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  />
                   {movement.map((point, index) => {
-                    const x = movement.length === 1 ? chartWidth / 2 : 4 + (index / (movement.length - 1)) * (chartWidth - 8);
-                    return <circle key={point.label} data-testid="movement-marker" cx={x} cy={10} r="2.5" fill="#006b57" />;
+                    const x =
+                      movement.length === 1
+                        ? chartWidth / 2
+                        : 4 + (index / (movement.length - 1)) * (chartWidth - 8);
+                    const inValue = inValues[index] ?? 0;
+                    const outValue = outValues[index] ?? 0;
+                    const inY = 10 + (chartHeight - 20) * (1 - inValue / movementMax);
+                    const outY = 10 + (chartHeight - 20) * (1 - outValue / movementMax);
+                    return (
+                      <g key={point.label}>
+                        <circle
+                          data-testid="movement-marker"
+                          cx={x}
+                          cy={inY}
+                          r="2.5"
+                          className="fill-brand-primary"
+                        />
+                        <circle cx={x} cy={outY} r="2.5" className="fill-brand-subtle" />
+                      </g>
+                    );
                   })}
-                  <path d={outPath} fill="none" stroke="#c5ced6" strokeWidth="2.25" />
-                  <path d={inPath} fill="none" stroke="#006b57" strokeWidth="2.5" />
                 </svg>
                 <div />
                 <div
@@ -472,40 +580,40 @@ export function Dashboard({ api }: { api: DashboardApi }) {
         </MovementChartCard>
 
         <OperationCard>
-          <CardHeader className="space-y-0 p-5 pb-3">
-            <h2 id="operation-title" className="text-[0.95rem] font-bold text-slate-900">
+          <CardHeader className="p-5 pb-4">
+            <h2 id="operation-title" className="text-base font-bold text-brand-ink">
               Operação
             </h2>
           </CardHeader>
-          <CardContent className="flex h-full flex-col p-5 pt-0">
-            <dl className="space-y-4 flex-1">
-              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                <dt className="text-sm text-slate-500">Gateway Lera Box</dt>
-                <dd className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0f8a5f]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#0f8a5f]" aria-hidden="true" />
+          <CardContent className="flex flex-1 flex-col p-5 pt-0">
+            <dl className="flex-1 border-t border-brand-line">
+              <div className="flex items-center justify-between gap-3 border-b border-brand-line py-4">
+                <dt className="text-sm text-brand-ink">Gateway Lera Box</dt>
+                <dd className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary">
+                  <span className="size-1.5 rounded-full bg-brand-primary" aria-hidden="true" />
                   Conectado
                 </dd>
               </div>
-              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                <dt className="text-sm text-slate-500">Webhooks</dt>
-                <dd className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0f8a5f]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#0f8a5f]" aria-hidden="true" />
+              <div className="flex items-center justify-between gap-3 border-b border-brand-line py-4">
+                <dt className="text-sm text-brand-ink">Webhooks</dt>
+                <dd className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary">
+                  <span className="size-1.5 rounded-full bg-brand-primary" aria-hidden="true" />
                   {webhooksActive ? 'Ativos' : 'Inativos'}
                 </dd>
               </div>
-              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                <dt className="text-sm text-slate-500">Último evento</dt>
-                <dd className="text-sm font-semibold text-slate-800">
+              <div className="flex items-center justify-between gap-3 border-b border-brand-line py-4">
+                <dt className="text-sm text-brand-ink">Último evento</dt>
+                <dd className="text-sm font-semibold text-brand-primary">
                   {lastOperation ? relativeTime(lastOperation.occurredAt) : '—'}
                 </dd>
               </div>
-              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                <dt className="text-sm text-slate-500">Eventos pendentes</dt>
-                <dd className="text-sm font-semibold text-slate-800">{pendingEvents}</dd>
+              <div className="flex items-center justify-between gap-3 py-4">
+                <dt className="text-sm text-brand-ink">Eventos pendentes</dt>
+                <dd className="text-sm font-semibold text-brand-primary">{pendingEvents}</dd>
               </div>
             </dl>
             <a
-              className="mt-auto inline-flex items-center gap-0.5 pt-6 text-sm font-semibold text-[#006b57] hover:underline"
+              className="mt-auto inline-flex items-center justify-between border-t border-brand-line pt-5 text-sm font-semibold text-brand-primary hover:underline"
               href="#/webhooks"
             >
               Ver integrações <ChevronRight className="h-4 w-4" />
@@ -519,7 +627,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
           <h2 className="text-[0.95rem] font-bold text-slate-900">Transações recentes</h2>
           <a
             className="inline-flex items-center gap-0.5 text-sm font-semibold text-[#006b57] hover:underline"
-            href="#/transacoes"
+            href="#/transactions"
           >
             Ver todas <ChevronRight className="h-4 w-4" />
           </a>

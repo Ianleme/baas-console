@@ -48,6 +48,7 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
       baseUrl: '',
       accessToken: session.token,
       onAccessToken: session.setToken,
+      csrfToken: readableCsrfCookie,
       onUnauthenticated: endSession
     };
     return {
@@ -65,6 +66,13 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
   }, [endSession, session]);
 
   useEffect(() => {
+    if (authenticated || !readableCsrfCookie()) return;
+    void clients.auth.refresh?.().then((success) => {
+      if (success) setAuthenticated(true);
+    });
+  }, [authenticated, clients.auth]);
+
+  useEffect(() => {
     const navigate = () => {
       setHash(globalThis.location.hash || '#/');
     };
@@ -73,14 +81,6 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
       globalThis.removeEventListener('hashchange', navigate);
     };
   }, []);
-
-  useEffect(() => {
-    if (!authenticated) {
-      void clients.auth.refresh?.().then((success) => {
-        if (success) setAuthenticated(true);
-      });
-    }
-  }, [authenticated, clients.auth]);
 
   useEffect(() => {
     if (!authenticated) return;
@@ -139,7 +139,15 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
     return (
       <AppShell
         {...shellProps}
-        content={<SettingsPage api={{ ...clients.profile, connect: clients.auth.connect }} />}
+        content={
+          <SettingsPage
+            api={{
+              ...clients.profile,
+              connect: clients.auth.connect,
+              registerGateway: clients.auth.registerGateway!
+            }}
+          />
+        }
       />
     );
   if (hash === '#/links')
@@ -155,4 +163,12 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
       <AppShell {...shellProps} content={<ReconciliationPage api={clients.reconciliation} />} />
     );
   return <AppShell {...shellProps} />;
+}
+
+function readableCsrfCookie(): string {
+  for (const part of globalThis.document.cookie.split(';')) {
+    const [name, ...value] = part.trim().split('=');
+    if (name === 'baas_csrf' || name === '__Host-baas_csrf') return value.join('=');
+  }
+  return '';
 }

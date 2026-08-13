@@ -97,7 +97,7 @@ describe('Dashboard', () => {
   });
   test('shows wallet availability copy and refresh timestamp', async () => {
     await ready();
-    expect(screen.getByText('Disponível para saque.')).toBeVisible();
+    expect(screen.getByText('Disponível para saque')).toBeVisible();
     expect(screen.getByText('Atualizado em 12/08/2026, 16:30')).toBeInTheDocument();
   });
   test('shows stale state without replacing balance', async () => {
@@ -186,34 +186,52 @@ describe('Dashboard', () => {
     const today = screen.getByRole('button', { name: 'Hoje' });
     expect(today).toHaveAttribute('aria-pressed', 'true');
     expect(today).toHaveClass('border');
-    expect(today).toHaveClass('bg-[#dff5a8]');
+    expect(today).toHaveClass('bg-brand-control-active');
     expect(screen.queryByRole('button', { name: /notifica/i })).not.toBeInTheDocument();
   });
   test('groups KPIs into a connected desktop rail with the approval ring at the end', async () => {
     await ready();
-    expect(screen.getByRole('region', { name: 'Resumo financeiro' })).toHaveClass('xl:grid-cols-[30%_1fr_1fr_1fr]');
-    expect(screen.getByText('Saldo disponível').closest('[data-kpi]')).toHaveClass('bg-[#005746]');
+    expect(screen.getByRole('region', { name: 'Resumo financeiro' })).toHaveClass(
+      'xl:h-32',
+      'xl:grid-cols-10'
+    );
+    expect(screen.getByText('Saldo disponível').closest('[data-kpi]')).toHaveClass(
+      'bg-brand-primary-dark',
+      'xl:col-span-3'
+    );
     expect(screen.getByText('Taxa de aprovação').closest('[data-kpi]')).toHaveClass('xl:border-l');
   });
   test('shows a visible composition subtitle and segmented receipt rows', async () => {
     await ready();
     expect(screen.getByText('Distribuição por método de pagamento')).toBeVisible();
-    expect(screen.getAllByText('Pix').find((node) => node.closest('[data-receipt-row]'))).toBeTruthy();
-    expect(screen.getAllByText('Cartão').find((node) => node.closest('[data-receipt-row]'))).toBeTruthy();
+    expect(screen.getByLabelText('Composição dos recebimentos')).toHaveClass('xl:col-span-4');
+    expect(screen.getByLabelText('Distribuição dos recebimentos')).toHaveClass('h-10');
+    expect(
+      screen.getAllByText('Pix').find((node) => node.closest('[data-receipt-row]'))
+    ).toBeTruthy();
+    expect(
+      screen.getAllByText('Cartão').find((node) => node.closest('[data-receipt-row]'))
+    ).toBeTruthy();
   });
   test('shows chart subtitle, linear legends, grid and data markers', async () => {
     await ready();
     expect(screen.getByText('Entradas e saídas por período')).toBeVisible();
+    expect(screen.getByText('Entradas e saídas por período')).not.toHaveClass('absolute');
+    expect(screen.getByLabelText('Movimentação financeira')).toHaveClass('xl:col-span-6');
+    expect(screen.getByLabelText('Legenda da movimentação')).toBeVisible();
     expect(screen.getAllByTestId('movement-marker').length).toBeGreaterThan(0);
   });
   test('separates operation rows and keeps integrations at the footer', async () => {
     await ready();
+    expect(screen.getByLabelText('Operação')).toHaveClass('xl:col-span-3');
     expect(screen.getByText('Gateway Lera Box').closest('div')).toHaveClass('border-b');
-    expect(screen.getByText('Ver integrações').closest('a')).toHaveClass('mt-auto');
+    expect(screen.getByText('Ver integrações').closest('a')).toHaveClass('border-t');
   });
   test('keeps recent transactions dense with six columns and a compact header', async () => {
     await ready();
-    expect(screen.getByText('Transações recentes').closest('[data-recent-card]')).toHaveClass('rounded-2xl');
+    expect(screen.getByText('Transações recentes').closest('[data-recent-card]')).toHaveClass(
+      'rounded-2xl'
+    );
     expect(screen.getAllByRole('columnheader')).toHaveLength(6);
     expect(screen.getByRole('table', { name: 'Transações recentes' })).toHaveClass('text-sm');
   });

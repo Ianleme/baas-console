@@ -12,7 +12,7 @@ describe('WalletPage', () => {
   });
 
   test('shows balance, availability, UTC capture, source and current state', async () => {
-    render(
+    const { container } = render(
       <WalletPage
         api={{
           load: async () => ({
@@ -30,10 +30,22 @@ describe('WalletPage', () => {
     expect(screen.getByText(/13\/08\/2026, 12:30 UTC/)).toBeVisible();
     expect(screen.getByText('Lera Box')).toBeVisible();
     expect(screen.getByText('Atual')).toBeVisible();
+    expect(container.querySelector('[data-wallet-summary]')).toHaveClass(
+      'rounded-xl',
+      'border-brand-line'
+    );
+    expect(
+      container.querySelector('[data-wallet-summary] .bg-brand-primary-dark')
+    ).toBeInTheDocument();
+    expect(container.querySelector('[data-wallet-sync]')).toHaveClass(
+      'rounded-xl',
+      'border-brand-line',
+      'bg-brand-panel'
+    );
   });
 
   test('retains stale values and gives an explicit stale notice', async () => {
-    render(
+    const { container } = render(
       <WalletPage
         api={{
           load: async () => ({
@@ -49,10 +61,12 @@ describe('WalletPage', () => {
     expect(screen.getByText('Dados desatualizados')).toBeVisible();
     expect(screen.getByRole('status')).toHaveTextContent('últimos valores retornados');
     expect(screen.getByText('Desatualizado')).toBeVisible();
+    expect(screen.getByRole('status')).toHaveClass('border-amber-200', 'bg-amber-50');
+    expect(container.querySelector('header h1')).toHaveTextContent('Carteira');
   });
 
   test('uses an explicit empty state when there is no snapshot, never confirmed zero', async () => {
-    render(
+    const { container } = render(
       <WalletPage
         api={{ load: async () => ({ balanceCents: '0', capturedAt: null, stale: false }) }}
       />
@@ -60,6 +74,12 @@ describe('WalletPage', () => {
     expect(await screen.findByText('Ainda não há saldo sincronizado')).toBeVisible();
     expect(screen.getByText(/não representa saldo zero confirmado/i)).toBeVisible();
     expect(screen.queryByText('R$ 0,00')).not.toBeInTheDocument();
+    expect(container.querySelector('header h1')).toHaveTextContent('Carteira');
+    expect(container.querySelector('[data-wallet-empty]')).toHaveClass(
+      'rounded-xl',
+      'border-dashed',
+      'border-brand-line'
+    );
   });
 
   test('sanitizes failures into Portuguese UI copy', async () => {

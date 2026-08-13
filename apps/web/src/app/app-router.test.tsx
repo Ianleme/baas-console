@@ -17,6 +17,19 @@ describe('AppRouter', () => {
       }
       if (String(input).includes('/auth/refresh'))
         return Promise.resolve(new Response('{}', { status: 401 }));
+      if (
+        String(input).includes('/checkout-links') ||
+        String(input).includes('/transactions') ||
+        String(input).includes('/withdrawals') ||
+        String(input).includes('/webhooks')
+      ) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ items: [], total: 0 }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        );
+      }
       return Promise.resolve(
         new Response(
           JSON.stringify({

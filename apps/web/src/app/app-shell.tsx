@@ -23,6 +23,7 @@ export interface AppShellProps {
   profile?: {
     merchant: { displayName: string };
     owner: { fullName: string | null; email: string };
+    gatewayConnectionStatus: string | null;
   } | null;
   profileState?: 'loading' | 'ready' | 'unavailable';
   onLogout?: () => Promise<void> | void;
@@ -135,6 +136,12 @@ export function AppShell({
         .join('')
         .toUpperCase()
     : '—';
+  const gatewayConnected = identityAvailable && profile.gatewayConnectionStatus === 'ACTIVE';
+  const gatewayStatusText = gatewayConnected
+    ? 'Gateway conectado'
+    : profile?.gatewayConnectionStatus === 'AWAITING_CREDENTIALS'
+      ? 'Aguardando credenciais'
+      : 'Gateway não conectado';
 
   const currentHash =
     activePath ?? (typeof window !== 'undefined' ? window.location.hash || '#/' : '#/');
@@ -187,17 +194,17 @@ export function AppShell({
           </strong>
           <span
             className={`merchant-context__state flex items-center gap-1.5 text-xs font-semibold ${
-              identityAvailable ? 'text-[#0f8a5f]' : 'text-slate-500'
+              gatewayConnected ? 'text-[#0f8a5f]' : 'text-amber-700'
             }`}
           >
-            {identityAvailable ? (
+            {gatewayConnected ? (
               <>
                 <CheckCircle2 className="h-3.5 w-3.5 text-[#0f8a5f]" />
-                Conta verificada
+                {gatewayStatusText}
               </>
             ) : (
               <>
-                <span aria-hidden="true">◇</span> Identidade indisponível
+                <span aria-hidden="true">◇</span> {gatewayStatusText}
               </>
             )}
           </span>

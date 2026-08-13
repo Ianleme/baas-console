@@ -1,5 +1,5 @@
 import { createAuthJourneyClient } from '@baas/api-client';
-import { useRef, useState, type InputHTMLAttributes, type SyntheticEvent } from 'react';
+import { useEffect, useRef, useState, type InputHTMLAttributes, type SyntheticEvent } from 'react';
 
 import { BrandMark } from '../../components/brand-mark.js';
 import { SandboxNotice } from '../../components/sandbox-notice.js';
@@ -9,7 +9,7 @@ import { Input } from '../../components/ui/input.js';
 import '../../styles/tokens.css';
 import './auth.css';
 
-type Screen = 'login' | 'register' | 'awaiting' | 'connect' | 'active';
+type Screen = 'login' | 'register' | 'gateway-pending' | 'awaiting' | 'connect' | 'active';
 type PersonType = 'PF' | 'PJ';
 
 export interface RegistrationData {
@@ -30,12 +30,13 @@ export interface RegistrationData {
 
 export interface AuthJourneyApi {
   login(input: { email: string; password: string; remember: boolean }): Promise<void>;
-  register(input: RegistrationData): Promise<void>;
+  register(input: RegistrationData): Promise<string | null>;
+  registerGateway?: (input: Record<string, string>) => Promise<string>;
   connect(input: { document: string; password: string }): Promise<'ACTIVE' | 'PROFILE_MISMATCH'>;
   refresh?(): Promise<boolean>;
 }
 
-const api: AuthJourneyApi = createAuthJourneyClient({ baseUrl: '' });
+const api = createAuthJourneyClient({ baseUrl: '' }) as unknown as AuthJourneyApi;
 type FormSubmitEvent = SyntheticEvent<HTMLFormElement, SubmitEvent>;
 
 const BRAZIL_UFS = new Set([
@@ -306,7 +307,7 @@ export function AuthJourney({
     }
 
     void submit(async () => {
-      await client.register(data);
+      const status = await client.register(data);
       if (typeof window !== 'undefined') {
         localStorage.setItem(
           'baas_user_profile',
@@ -314,11 +315,11 @@ export function AuthJourney({
             userName: data.name,
             tradingName: data.tradingName || data.name,
             email: data.email,
-            status: 'AWAITING_CREDENTIALS'
+            status: status ?? 'GATEWAY_REGISTRATION_UNKNOWN'
           })
         );
       }
-      setScreen('awaiting');
+      setScreen(status === 'AWAITING_CREDENTIALS' ? 'awaiting' : 'gateway-pending');
     });
   }
 
@@ -639,7 +640,7 @@ export function AuthJourney({
             icon="✉"
             eyebrow="Cadastro enviado"
             title="Confira seu e-mail"
-            description="A Lera Box enviará as credenciais do ambiente sandbox. Não criamos nem armazenamos essa senha por você."
+            description="A Lera Box aceitou o cadastro. Aguarde o e-mail de credenciais enviado diretamente por ela; não armazenamos nem reenviamos essas credenciais."
           >
             <Button
               className="primary-button w-full bg-[#007a5a] hover:bg-[#005c47]"
@@ -662,6 +663,26 @@ export function AuthJourney({
                 Voltar ao login
               </button>
             </p>
+          </StatusCard>
+        )}
+
+        {screen === 'gateway-pending' && (
+          <StatusCard
+            icon="✓"
+            eyebrow="Conta criada"
+            title="Seu acesso ao BaaS está pronto"
+            description="A conta local foi criada, mas a Lera Box está indisponível no momento. Você já pode acessar o painel e concluir a integração quando o gateway voltar."
+          >
+            <Button
+              className="primary-button w-full bg-[#007a5a] hover:bg-[#005c47]"
+              type="button"
+              onClick={() => {
+                onAuthenticated?.();
+                globalThis.location.hash = '#/configuracoes';
+              }}
+            >
+              Acessar painel
+            </Button>
           </StatusCard>
         )}
 
@@ -726,6 +747,7 @@ export function AuthJourney({
             <a
               className="primary-button inline-flex items-center justify-center rounded-lg bg-[#007a5a] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#005c47] w-full"
               href="#/"
+              onClick={() => onAuthenticated?.()}
             >
               Ir para o dashboard
             </a>

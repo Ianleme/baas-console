@@ -316,13 +316,90 @@ describe('runtime API composition', () => {
     );
   });
 
-  test('logout sends cookies and CSRF, while authenticated feature clients share recovery', async () => {
+  test('aggregates wallet, transactions and webhook health for the dashboard', async () => {
     const request = vi
       .fn<typeof fetch>()
-      .mockResolvedValueOnce(new Response(null, { status: 204 }))
-      .mockResolvedValueOnce(response({}, 401))
-      .mockResolvedValueOnce(response({ accessToken: 'new-token' }))
-      .mockResolvedValueOnce(response({ balanceCents: '100', capturedAt: null, stale: false }));
+      .mockResolvedValueOnce(
+        response({ balanceCents: '5000', capturedAt: '2026-08-12T12:00:00.000Z', stale: false })
+      )
+      .mockResolvedValueOnce(
+        response({
+          items: [
+            {
+              id: 'pix-approved',
+              originType: 'PAYMENT',
+              externalReference: 'PIX-order-1',
+              status: 'APPROVED',
+              grossAmountCents: '1200',
+              netAmountCents: '1100',
+              occurredAt: '2026-08-12T11:00:00.000Z'
+            },
+            {
+              id: 'card-denied',
+              originType: 'PAYMENT',
+              externalReference: 'CARD-order-2',
+              status: 'DENIED',
+              grossAmountCents: '700',
+              netAmountCents: '0',
+              occurredAt: '2026-08-12T10:00:00.000Z'
+            },
+            {
+              id: 'withdrawal-pending',
+              originType: 'WITHDRAWAL',
+              externalReference: 'WITHDRAWAL-order-3',
+              status: 'PENDING',
+              grossAmountCents: '300',
+              netAmountCents: '300',
+              occurredAt: '2026-08-12T09:00:00.000Z'
+            }
+          ]
+        })
+      )
+      .mockResolvedValueOnce(response([{ event: 'PAYMENT_PIX', status: 'ACTIVE' }]));
+
+    await expect(createDashboardClient({ baseUrl: '', fetch: request }).load()).resolves.toEqual(
+      expect.objectContaining({
+        receivedCents: '1100',
+        approvedCount: 1,
+        deniedCount: 1,
+        pendingCount: 0,
+        pixReceivedCents: '1100',
+        cardReceivedCents: '0',
+        webhooksActive: true,
+        operations: [
+          expect.objectContaining({ id: 'pix-approved', method: 'PIX', status: 'APPROVED' }),
+          expect.objectContaining({ id: 'card-denied', method: 'CARD', status: 'DENIED' }),
+          expect.objectContaining({
+            id: 'withdrawal-pending',
+            method: 'WITHDRAWAL',
+            status: 'PENDING'
+          })
+        ]
+      })
+    );
+    expect(request.mock.calls.map(([url]) => url)).toEqual([
+      '/api/v1/wallet',
+      '/api/v1/transactions?limit=100&offset=0',
+      '/api/v1/webhooks'
+    ]);
+  });
+
+  test('logout sends cookies and CSRF, while authenticated feature clients share recovery', async () => {
+    let refreshed = false;
+    const request = vi.fn<typeof fetch>().mockImplementation((input) => {
+      const url = String(input);
+      if (url === '/api/v1/auth/logout') return Promise.resolve(new Response(null, { status: 204 }));
+      if (url === '/api/v1/auth/refresh') {
+        refreshed = true;
+        return Promise.resolve(response({ accessToken: 'new-token' }));
+      }
+      if (!refreshed) return Promise.resolve(response({}, 401));
+      if (url === '/api/v1/wallet')
+        return Promise.resolve(response({ balanceCents: '100', capturedAt: null, stale: false }));
+      if (url.startsWith('/api/v1/transactions')) return Promise.resolve(response({ items: [] }));
+      if (url === '/api/v1/webhooks') return Promise.resolve(response([]));
+      return Promise.resolve(response({}, 404));
+    });
     const options = {
       baseUrl: '',
       fetch: request,
@@ -335,6 +412,7 @@ describe('runtime API composition', () => {
     });
     expect(request.mock.calls[0]?.[1]?.credentials).toBe('include');
     expect(new Headers(request.mock.calls[0]?.[1]?.headers).get('x-csrf-token')).toBe('csrf-token');
-    expect(request).toHaveBeenCalledTimes(4);
+    expect(request).toHaveBeenCalledTimes(8);
+    expect(request.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(1);
   });
 });

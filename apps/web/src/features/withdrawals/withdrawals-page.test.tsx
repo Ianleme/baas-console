@@ -92,6 +92,27 @@ describe('WithdrawalsPage', () => {
     expect(screen.getByText('WTH-003')).toBeInTheDocument();
   });
 
+  it('renders the approved withdrawals visual system structure', async () => {
+    const api = createMockApi();
+    const { container } = render(<WithdrawalsPage api={api} />);
+    await screen.findByText('WTH-001');
+    expect(screen.getByText('Financeiro')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Saques' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Solicitar Novo Saque/i })).toHaveClass(
+      'bg-brand-primary'
+    );
+    expect(container.querySelector('[data-withdrawal-summary]')).toHaveClass(
+      'border-brand-line',
+      'rounded-xl'
+    );
+    expect(screen.getByText('Solicitações')).toBeInTheDocument();
+    expect(screen.getByText('Em andamento')).toBeInTheDocument();
+    expect(container.querySelector('[data-withdrawal-history]')).toHaveClass(
+      'border-brand-line',
+      'rounded-xl'
+    );
+  });
+
   it('maps status APPROVED to Aprovado badge', async () => {
     const api = createMockApi();
     render(<WithdrawalsPage api={api} />);

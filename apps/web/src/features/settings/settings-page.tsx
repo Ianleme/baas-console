@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type InputHTMLAttributes } from 'react';
 import { ArrowRight, Building2, CheckCircle2, KeyRound, Mail, UserRound } from 'lucide-react';
 
 import { Button } from '../../components/ui/button.js';
@@ -8,12 +8,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 export interface CurrentProfile {
   merchant: { legalName: string; displayName: string };
   owner: { fullName: string | null; email: string };
-  gatewayConnectionStatus: 'AWAITING_CREDENTIALS' | 'ACTIVE' | 'PROFILE_MISMATCH' | null;
+  gatewayConnectionStatus:
+    | 'REGISTRATION_PENDING'
+    | 'GATEWAY_REGISTRATION_FAILED'
+    | 'GATEWAY_REGISTRATION_UNKNOWN'
+    | 'AWAITING_CREDENTIALS'
+    | 'ACTIVE'
+    | 'PROFILE_MISMATCH'
+    | 'ERROR'
+    | 'DISCONNECTED'
+    | null;
 }
 
 export interface CurrentProfileApi {
   load(): Promise<CurrentProfile>;
   connect(input: { document: string; password: string }): Promise<'ACTIVE' | 'PROFILE_MISMATCH'>;
+  registerGateway?: (input: Record<string, string>) => Promise<string>;
 }
 
 function gatewayStatus(status: CurrentProfile['gatewayConnectionStatus']) {
@@ -23,6 +33,10 @@ function gatewayStatus(status: CurrentProfile['gatewayConnectionStatus']) {
     return { label: 'Perfil divergente', className: 'bg-amber-50 text-amber-800' };
   if (status === 'AWAITING_CREDENTIALS')
     return { label: 'Aguardando credenciais', className: 'bg-slate-100 text-slate-700' };
+  if (status === 'GATEWAY_REGISTRATION_FAILED')
+    return { label: 'Cadastro não concluído', className: 'bg-red-50 text-red-700' };
+  if (status === 'GATEWAY_REGISTRATION_UNKNOWN' || status === 'REGISTRATION_PENDING')
+    return { label: 'Cadastro em análise', className: 'bg-amber-50 text-amber-800' };
   return { label: 'Indisponível', className: 'bg-slate-100 text-slate-700' };
 }
 
@@ -32,6 +46,8 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
   const [failed, setFailed] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(false);
+  const [registering, setRegistering] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -59,7 +75,11 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
   }
 
   const gateway = gatewayStatus(profile.gatewayConnectionStatus);
-  const canConnect = profile.gatewayConnectionStatus !== 'ACTIVE';
+  const canConnect = profile.gatewayConnectionStatus === 'AWAITING_CREDENTIALS';
+  const registrationFailed = profile.gatewayConnectionStatus === 'GATEWAY_REGISTRATION_FAILED';
+  const registrationPending = ['GATEWAY_REGISTRATION_UNKNOWN', 'REGISTRATION_PENDING'].includes(
+    profile.gatewayConnectionStatus ?? ''
+  );
 
   function onConnect(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -102,6 +122,46 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
         );
       })
       .finally(() => setConnecting(false));
+  }
+
+  function onRegisterGateway(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!api.registerGateway) return;
+    const data = new FormData(event.currentTarget);
+    const input = Object.fromEntries(
+      Array.from(data.entries(), ([key, value]) => [key, String(value).trim()])
+    );
+    setConnectionError(null);
+    setConnectionMessage(null);
+    setRegistering(true);
+    void api
+      .registerGateway(input)
+      .then((status) => {
+        setProfile((current) =>
+          current
+            ? {
+                ...current,
+                gatewayConnectionStatus: status as CurrentProfile['gatewayConnectionStatus']
+              }
+            : current
+        );
+        if (status === 'AWAITING_CREDENTIALS') {
+          setRegistrationOpen(false);
+          setConnectionMessage(
+            'Cadastro enviado à Lera Box. Aguarde a senha temporária no e-mail informado.'
+          );
+        } else {
+          setConnectionError(
+            'A Lera Box ainda não confirmou o cadastro. Revise os dados e tente novamente mais tarde.'
+          );
+        }
+      })
+      .catch(() => {
+        setConnectionError(
+          'Não foi possível cadastrar na Lera Box. Revise os dados e tente novamente.'
+        );
+      })
+      .finally(() => setRegistering(false));
   }
   return (
     <div className="space-y-5">
@@ -178,9 +238,32 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
                     </Button>
                   )}
                 </>
+              ) : registrationFailed ? (
+                <>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+                    O cadastro na Lera Box não foi concluído. Cadastre novamente usando os dados do
+                    titular. Depois da aprovação, a Lera Box enviará a senha temporária por e-mail.
+                  </p>
+                  {!registrationOpen && (
+                    <Button
+                      className="mt-4"
+                      type="button"
+                      onClick={() => setRegistrationOpen(true)}
+                    >
+                      Cadastrar na Lera Box <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  )}
+                </>
+              ) : registrationPending ? (
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+                  Ainda não foi possível confirmar o cadastro na Lera Box. Aguarde a confirmação do
+                  gateway antes de informar credenciais.
+                </p>
               ) : (
                 <p className="mt-3 text-sm text-slate-600">
-                  Sua conexão está ativa. Webhooks e pagamentos podem ser usados por esta conta.
+                  {profile.gatewayConnectionStatus === 'ACTIVE'
+                    ? 'Sua conexão está ativa. Webhooks e pagamentos podem ser usados por esta conta.'
+                    : 'A conexão com a Lera Box ainda não está disponível.'}
                 </p>
               )}
             </div>
@@ -200,6 +283,60 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
             >
               {connectionError}
             </p>
+          )}
+          {registrationOpen && registrationFailed && (
+            <form
+              aria-label="Cadastrar na Lera Box"
+              onSubmit={onRegisterGateway}
+              className="mt-5 max-w-4xl border-t border-slate-100 pt-5"
+            >
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <label className="text-sm font-semibold text-slate-800">
+                  Tipo de pessoa
+                  <select
+                    name="personType"
+                    className="mt-1.5 h-11 w-full rounded-lg border border-slate-300 bg-white px-3"
+                    defaultValue="PF"
+                  >
+                    <option value="PF">Pessoa física</option>
+                    <option value="PJ">Pessoa jurídica</option>
+                  </select>
+                </label>
+                <GatewayField
+                  name="name"
+                  label="Nome ou razão social"
+                  defaultValue={profile.merchant.legalName}
+                />
+                <GatewayField
+                  name="tradingName"
+                  label="Nome da loja"
+                  defaultValue={profile.merchant.displayName}
+                />
+                <GatewayField
+                  name="email"
+                  label="E-mail"
+                  type="email"
+                  defaultValue={profile.owner.email}
+                />
+                <GatewayField name="phone" label="Telefone com DDD" placeholder="(11) 99999-9999" />
+                <GatewayField name="document" label="CPF ou CNPJ" />
+                <GatewayField name="zipCode" label="CEP" placeholder="00000-000" />
+                <GatewayField name="address" label="Endereço" />
+                <GatewayField name="number" label="Número" />
+                <GatewayField name="complement" label="Complemento" required={false} />
+                <GatewayField name="neighborhood" label="Bairro" />
+                <GatewayField name="city" label="Cidade" />
+                <GatewayField name="state" label="UF" maxLength={2} />
+              </div>
+              <div className="mt-5 flex gap-2 sm:justify-end">
+                <Button type="button" variant="ghost" onClick={() => setRegistrationOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={registering}>
+                  {registering ? 'Cadastrando…' : 'Enviar cadastro à Lera Box'}
+                </Button>
+              </div>
+            </form>
           )}
           {formOpen && canConnect && (
             <form
@@ -282,5 +419,28 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function GatewayField({
+  name,
+  label,
+  required = true,
+  ...props
+}: {
+  name: string;
+  label: string;
+  required?: boolean;
+} & InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <label className="text-sm font-semibold text-slate-800">
+      {label}
+      <input
+        {...props}
+        name={name}
+        required={required}
+        className="mt-1.5 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
+      />
+    </label>
   );
 }

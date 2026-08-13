@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Clock3, Database, Wallet } from 'lucide-react';
-
-import { Badge } from '../../components/ui/badge.js';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card.js';
+import { Clock3, Wallet } from 'lucide-react';
 
 export interface WalletSnapshot {
   balanceCents: string;
@@ -36,6 +33,123 @@ function connectionLabel(source: string | null | undefined) {
   return source?.trim() || 'Fonte não informada';
 }
 
+function WalletHeader({ empty = false }: { empty?: boolean }) {
+  return (
+    <header className="space-y-1">
+      <span className="text-xs font-bold uppercase tracking-widest text-brand-primary">
+        Financeiro
+      </span>
+      <h1
+        id={empty ? 'wallet-empty-title' : undefined}
+        className="text-3xl font-bold leading-none text-brand-ink"
+      >
+        Carteira
+      </h1>
+      <p className="text-sm text-brand-muted">Acompanhe o saldo sincronizado da sua operação.</p>
+    </header>
+  );
+}
+
+function WalletSummaryRail({ snapshot }: { snapshot: WalletSnapshot }) {
+  const available = snapshot.availableCents ?? snapshot.balanceCents;
+  return (
+    <section
+      data-wallet-summary
+      aria-label="Resumo da carteira"
+      className="grid grid-cols-1 overflow-hidden rounded-xl border border-brand-line bg-brand-panel sm:grid-cols-2 xl:grid-cols-10"
+    >
+      <div className="flex min-w-0 items-center gap-5 bg-brand-primary-dark p-5 text-white sm:col-span-2 xl:col-span-4">
+        <span className="inline-flex size-14 shrink-0 items-center justify-center rounded-full border border-brand-accent bg-white/5">
+          <Wallet className="size-6 text-white" aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <span className="text-sm font-semibold">Saldo total</span>
+          <strong className="mt-1 block text-3xl font-bold leading-none">
+            {money(snapshot.balanceCents)}
+          </strong>
+          <small className="mt-2 block text-sm text-white/90">Valor informado pelo servidor</small>
+        </div>
+      </div>
+      <div className="flex min-w-0 flex-col justify-center border-t border-brand-line p-5 sm:border-t-0 xl:col-span-2 xl:border-l">
+        <span className="text-sm font-medium text-brand-muted">Disponível</span>
+        <strong className="mt-3 text-3xl font-bold leading-none text-brand-ink">
+          {money(available)}
+        </strong>
+        <small className="mt-2 text-sm text-brand-muted">
+          Disponibilidade retornada pelo servidor
+        </small>
+      </div>
+      <div className="flex min-w-0 flex-col justify-center border-t border-brand-line p-5 sm:border-l sm:border-t-0 xl:col-span-4">
+        <span className="text-sm font-medium text-brand-muted">Sincronização</span>
+        <strong className="mt-3 text-lg font-bold text-brand-ink">
+          {snapshot.stale ? 'Requer atenção' : 'Snapshot disponível'}
+        </strong>
+        <small className="mt-2 text-sm text-brand-muted">Resumo dos dados retornados</small>
+      </div>
+    </section>
+  );
+}
+
+function SynchronizationCard({ snapshot }: { snapshot: WalletSnapshot }) {
+  return (
+    <section
+      data-wallet-sync
+      aria-labelledby="wallet-sync-title"
+      className="rounded-xl border border-brand-line bg-brand-panel"
+    >
+      <div className="space-y-1 p-5 pb-3">
+        <h2
+          id="wallet-sync-title"
+          className="flex items-center gap-2 text-base font-bold text-brand-ink"
+        >
+          <Clock3 className="size-4 text-brand-primary" aria-hidden="true" />
+          Estado da sincronização
+        </h2>
+        <p className="text-sm text-brand-muted">Detalhes do snapshot usado nesta carteira.</p>
+      </div>
+      <dl className="divide-y divide-brand-line px-5 pb-1 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 py-3">
+          <dt className="text-brand-muted">Última atualização</dt>
+          <dd className="font-semibold text-brand-ink">{formatTimestamp(snapshot.capturedAt)}</dd>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 py-3">
+          <dt className="text-brand-muted">Origem</dt>
+          <dd className="font-semibold text-brand-ink">{connectionLabel(snapshot.source)}</dd>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 py-3">
+          <dt className="text-brand-muted">Estado</dt>
+          <dd className="font-semibold text-brand-ink">
+            {snapshot.stale ? 'Desatualizado' : 'Atual'}
+          </dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
+function EmptyWallet() {
+  return (
+    <section className="space-y-5" aria-labelledby="wallet-empty-title">
+      <WalletHeader empty />
+      <div
+        data-wallet-empty
+        className="flex max-w-2xl items-start gap-4 rounded-xl border border-dashed border-brand-line bg-brand-panel p-6"
+      >
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-accent-soft text-brand-primary-dark">
+          <Wallet className="size-5" aria-hidden="true" />
+        </span>
+        <div>
+          <h2 className="font-bold text-brand-ink">Ainda não há saldo sincronizado</h2>
+          <p className="mt-1 text-sm text-brand-muted">
+            A carteira ainda não possui um snapshot disponível. Isso não representa saldo zero
+            confirmado.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function WalletPage({ api }: { api: WalletApi }) {
   const [snapshot, setSnapshot] = useState<WalletSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,17 +161,13 @@ export function WalletPage({ api }: { api: WalletApi }) {
     void api
       .load()
       .then(setSnapshot)
-      .catch(() => {
-        setFailed(true);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      .catch(() => setFailed(true))
+      .finally(() => setLoading(false));
   }, [api]);
 
   if (loading) {
     return (
-      <p role="status" className="p-4 font-medium text-slate-500">
+      <p role="status" className="p-4 font-medium text-brand-muted">
         Carregando carteira…
       </p>
     );
@@ -65,126 +175,28 @@ export function WalletPage({ api }: { api: WalletApi }) {
 
   if (failed) {
     return (
-      <Card className="border-red-200 bg-red-50/50">
-        <CardContent className="p-6 text-red-700" role="alert">
-          Não foi possível carregar a carteira. Tente novamente mais tarde.
-        </CardContent>
-      </Card>
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-700" role="alert">
+        Não foi possível carregar a carteira. Tente novamente mais tarde.
+      </div>
     );
   }
 
-  if (!snapshot || snapshot.capturedAt === null) {
-    return (
-      <section className="space-y-5" aria-labelledby="wallet-empty-title">
-        <header className="space-y-1">
-          <span className="eyebrow eyebrow--green">Financeiro</span>
-          <h1 id="wallet-empty-title" className="text-[2rem] font-extrabold text-slate-900">
-            Carteira
-          </h1>
-          <p className="text-sm text-slate-500">Acompanhe o saldo sincronizado da sua operação.</p>
-        </header>
-        <Card className="max-w-2xl border-dashed">
-          <CardContent className="flex items-start gap-4 p-6">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e8fbd1] text-[#005c47]">
-              <Wallet className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <div>
-              <h2 className="font-bold text-slate-900">Ainda não há saldo sincronizado</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                A carteira ainda não possui um snapshot disponível. Isso não representa saldo zero
-                confirmado.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-    );
-  }
-
-  const available = snapshot.availableCents ?? snapshot.balanceCents;
+  if (!snapshot || snapshot.capturedAt === null) return <EmptyWallet />;
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <span className="eyebrow eyebrow--green">Financeiro</span>
-          <h1 className="text-[2rem] font-extrabold text-slate-900">Carteira</h1>
-          <p className="text-sm text-slate-500">Saldo e disponibilidade da sua operação.</p>
-        </div>
-        {snapshot.stale && (
-          <Badge className="border border-amber-200 bg-amber-50 text-amber-800">
-            Dados desatualizados
-          </Badge>
-        )}
-      </header>
-
+      <WalletHeader />
       {snapshot.stale && (
         <div
           role="status"
           className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
         >
+          <strong className="mr-1 font-semibold">Dados desatualizados</strong>
           Estes são os últimos valores retornados e podem estar desatualizados.
         </div>
       )}
-
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-2" aria-label="Resumo da carteira">
-        <Card className="border-0 bg-[#005746] text-white">
-          <CardContent className="min-h-[10rem] p-6">
-            <div className="flex items-center gap-2 text-sm font-medium text-emerald-50/90">
-              <Wallet className="h-4 w-4" aria-hidden="true" /> Saldo total
-            </div>
-            <strong className="mt-6 block text-[2rem] font-extrabold tracking-tight">
-              {money(snapshot.balanceCents)}
-            </strong>
-            <span className="mt-2 block text-xs text-emerald-100/85">
-              Valor informado pelo servidor.
-            </span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="min-h-[10rem] p-6">
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
-              <Database className="h-4 w-4 text-[#006b57]" aria-hidden="true" /> Disponível
-            </div>
-            <strong className="mt-6 block text-[2rem] font-extrabold tracking-tight text-slate-900">
-              {money(available)}
-            </strong>
-            <span className="mt-2 block text-xs text-slate-500">
-              Disponibilidade retornada pelo servidor.
-            </span>
-          </CardContent>
-        </Card>
-      </section>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Clock3 className="h-4 w-4 text-[#006b57]" aria-hidden="true" /> Estado da sincronização
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid gap-4 text-sm sm:grid-cols-3">
-            <div>
-              <dt className="text-slate-500">Última atualização</dt>
-              <dd className="mt-1 font-semibold text-slate-900">
-                {formatTimestamp(snapshot.capturedAt)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-slate-500">Origem</dt>
-              <dd className="mt-1 font-semibold text-slate-900">
-                {connectionLabel(snapshot.source)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-slate-500">Estado</dt>
-              <dd className="mt-1 font-semibold text-slate-900">
-                {snapshot.stale ? 'Desatualizado' : 'Atual'}
-              </dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
+      <WalletSummaryRail snapshot={snapshot} />
+      <SynchronizationCard snapshot={snapshot} />
     </div>
   );
 }

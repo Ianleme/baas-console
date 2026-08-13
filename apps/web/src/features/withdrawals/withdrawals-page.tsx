@@ -3,7 +3,7 @@ import { ArrowUpRight, CheckCircle2, AlertCircle, Plus, Wallet } from 'lucide-re
 
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card.js';
+import { CardContent, CardHeader, CardTitle } from '../../components/ui/card.js';
 import {
   Dialog,
   DialogContent,
@@ -71,17 +71,96 @@ function formatDate(iso: string) {
 function statusBadge(status: WithdrawalItem['status']) {
   switch (status) {
     case 'APPROVED':
-      return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">Aprovado</Badge>;
+      return (
+        <Badge className="rounded-md border-brand-line bg-brand-primary-soft px-2 py-0.5 text-brand-primary-dark">
+          Aprovado
+        </Badge>
+      );
     case 'DENIED':
-      return <Badge className="bg-red-50 text-red-700 border-red-200">Recusado</Badge>;
+      return (
+        <Badge className="rounded-md border-red-200 bg-red-50 px-2 py-0.5 text-red-700">
+          Recusado
+        </Badge>
+      );
     case 'PROCESSING':
     case 'PENDING':
       return (
-        <Badge className="bg-amber-50 text-amber-700 border-amber-200">Em Processamento</Badge>
+        <Badge className="rounded-md border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-700">
+          Em Processamento
+        </Badge>
       );
     default:
       return <Badge variant="outline">{status}</Badge>;
   }
+}
+
+function WithdrawalsHeader({ onRequest }: { onRequest: () => void }) {
+  return (
+    <header className="flex flex-wrap items-center justify-between gap-5">
+      <div className="space-y-1">
+        <span className="text-xs font-bold uppercase tracking-widest text-brand-primary">
+          Financeiro
+        </span>
+        <h1 className="text-3xl font-bold leading-none text-brand-ink">Saques</h1>
+        <p className="text-sm text-brand-muted">
+          Gerencie seus saques via Pix e acompanhe cada solicitação.
+        </p>
+      </div>
+      <Button
+        onClick={onRequest}
+        className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-brand-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-primary-dark"
+      >
+        <Plus className="h-4 w-4" aria-hidden="true" />
+        Solicitar Novo Saque
+      </Button>
+    </header>
+  );
+}
+
+function SummaryRail({ balanceCents, items }: { balanceCents: string; items: WithdrawalItem[] }) {
+  const processing = items.filter(
+    (item) => item.status === 'PROCESSING' || item.status === 'PENDING'
+  ).length;
+  const approved = items.filter((item) => item.status === 'APPROVED').length;
+  return (
+    <section
+      aria-label="Resumo de saques"
+      data-withdrawal-summary
+      className="grid grid-cols-1 overflow-hidden rounded-xl border border-brand-line bg-brand-panel sm:grid-cols-2 xl:grid-cols-10"
+    >
+      <div className="flex min-w-0 items-center gap-5 bg-brand-primary-dark p-5 text-white sm:col-span-2 xl:col-span-4">
+        <span className="inline-flex size-14 shrink-0 items-center justify-center rounded-full border border-brand-accent bg-white/5">
+          <Wallet className="size-6 text-white" aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <span className="text-sm font-semibold">Saldo disponível</span>
+          <strong className="mt-1 block text-3xl font-bold leading-none">
+            {money(balanceCents)}
+          </strong>
+          <small className="mt-2 block text-sm text-white/90">Disponível para Pix</small>
+        </div>
+      </div>
+      <div className="flex min-w-0 flex-col justify-center border-t border-brand-line p-5 sm:border-t-0 xl:col-span-2 xl:border-l">
+        <span className="text-sm font-medium text-brand-muted">Solicitações</span>
+        <strong className="mt-3 text-3xl font-bold leading-none text-brand-ink">
+          {items.length}
+        </strong>
+        <small className="mt-2 text-sm text-brand-muted">Total no histórico</small>
+      </div>
+      <div className="flex min-w-0 flex-col justify-center border-t border-brand-line p-5 sm:border-l sm:border-t-0 xl:col-span-2">
+        <span className="text-sm font-medium text-brand-muted">Em andamento</span>
+        <strong className="mt-3 text-3xl font-bold leading-none text-brand-ink">
+          {processing}
+        </strong>
+        <small className="mt-2 text-sm text-brand-muted">Pendentes ou processando</small>
+      </div>
+      <div className="flex min-w-0 flex-col justify-center border-t border-brand-line p-5 sm:col-span-2 xl:col-span-2 xl:border-l">
+        <span className="text-sm font-medium text-brand-muted">Aprovadas</span>
+        <strong className="mt-3 text-3xl font-bold leading-none text-brand-ink">{approved}</strong>
+        <small className="mt-2 text-sm text-brand-muted">Solicitações concluídas</small>
+      </div>
+    </section>
+  );
 }
 
 export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
@@ -176,7 +255,7 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
 
   if (loading && items.length === 0) {
     return (
-      <div role="status" className="p-8 text-center text-slate-500 font-medium animate-pulse">
+      <div role="status" className="p-8 text-center font-medium text-brand-muted animate-pulse">
         Carregando informações de saques e carteira...
       </div>
     );
@@ -184,116 +263,104 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
 
   if (failed) {
     return (
-      <Card className="border-red-200 bg-red-50/50">
-        <CardContent className="p-6 text-center text-red-700">
-          Não foi possível carregar os dados de saques. Tente novamente.
-        </CardContent>
-      </Card>
+      <div className="rounded-xl border border-red-200 bg-red-50/50 p-6 text-center text-red-700">
+        Não foi possível carregar os dados de saques. Tente novamente.
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header with New Withdrawal Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Saques & Payouts</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Gerencie transferências para conta bancária via Pix e histórico de solicitações.
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            setOpenModal(true);
-            setModalError(null);
-          }}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-medium"
-        >
-          <Plus className="w-4 h-4" />
-          Solicitar Novo Saque
-        </Button>
-      </div>
+      <WithdrawalsHeader
+        onRequest={() => {
+          setOpenModal(true);
+          setModalError(null);
+        }}
+      />
+      <SummaryRail balanceCents={balanceCents} items={items} />
 
       {/* Success Notice */}
       {successNotice && (
-        <Card className="border-emerald-200 bg-emerald-50/60">
-          <CardContent className="p-4 flex items-center justify-between text-emerald-800">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-              Solicitação de saque enviada com sucesso! O valor foi debitado da sua carteira.
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSuccessNotice(false);
-              }}
-              className="text-emerald-700 hover:bg-emerald-100/50 text-xs"
-            >
-              Fechar
-            </Button>
-          </CardContent>
-        </Card>
+        <div
+          role="status"
+          className="flex items-center justify-between rounded-xl border border-brand-line bg-brand-primary-soft p-4 text-brand-primary-dark"
+        >
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <CheckCircle2 className="h-5 w-5 text-brand-primary" />
+            Solicitação de saque enviada com sucesso! O valor foi debitado da sua carteira.
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSuccessNotice(false);
+            }}
+            className="text-brand-primary-dark hover:bg-brand-panel text-xs"
+          >
+            Fechar
+          </Button>
+        </div>
       )}
 
-      {/* Balance Card */}
-      <Card className="bg-slate-900 text-white border-slate-800">
-        <CardContent className="p-6 flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-xs uppercase font-semibold text-slate-400 tracking-wider flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-emerald-400" />
-              Saldo Disponível para Saque
-            </span>
-            <div className="text-3xl font-bold tracking-tight text-white">
-              {money(balanceCents)}
-            </div>
-          </div>
-          <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 px-3 py-1">
-            Disponível para Pix
-          </Badge>
-        </CardContent>
-      </Card>
-
       {/* History Table Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <ArrowUpRight className="w-4 h-4 text-emerald-600" />
+      <div
+        data-withdrawal-history
+        className="overflow-hidden rounded-xl border border-brand-line bg-brand-panel"
+      >
+        <CardHeader className="gap-1 p-5 pb-3">
+          <CardTitle className="text-base font-bold text-brand-ink">
+            <ArrowUpRight className="h-4 w-4 text-brand-primary" />
             Histórico de Saques
           </CardTitle>
+          <p className="text-sm text-brand-muted">
+            Acompanhe suas solicitações de retirada via Pix.
+          </p>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="overflow-x-auto p-0 pb-2">
+          <Table aria-label="Histórico de saques" framed={false}>
             <TableHeader>
-              <TableRow className="bg-slate-50/50">
-                <TableHead>Data / Hora</TableHead>
-                <TableHead>Referência</TableHead>
-                <TableHead>Destino (Pix)</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
+              <TableRow className="border-brand-line hover:bg-transparent">
+                <TableHead className="h-11 px-5 text-xs font-semibold uppercase tracking-wider text-brand-subtle">
+                  Data / Hora
+                </TableHead>
+                <TableHead className="h-11 px-5 text-xs font-semibold uppercase tracking-wider text-brand-subtle">
+                  Referência
+                </TableHead>
+                <TableHead className="h-11 px-5 text-xs font-semibold uppercase tracking-wider text-brand-subtle">
+                  Destino (Pix)
+                </TableHead>
+                <TableHead className="h-11 px-5 text-xs font-semibold uppercase tracking-wider text-brand-subtle">
+                  Status
+                </TableHead>
+                <TableHead className="h-11 px-5 text-right text-xs font-semibold uppercase tracking-wider text-brand-subtle">
+                  Valor
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-slate-500">
+                  <TableCell colSpan={5} className="h-32 text-center text-brand-muted">
                     Nenhum saque solicitado até o momento.
                   </TableCell>
                 </TableRow>
               ) : (
                 items.map((wth) => (
-                  <TableRow key={wth.id}>
-                    <TableCell className="font-mono text-xs text-slate-600 whitespace-nowrap">
+                  <TableRow key={wth.id} className="border-brand-line">
+                    <TableCell className="whitespace-nowrap px-5 py-3.5 text-sm text-brand-muted">
                       {formatDate(wth.createdAt)}
                     </TableCell>
-                    <TableCell className="font-medium text-slate-900">
+                    <TableCell className="whitespace-nowrap px-5 py-3.5 font-semibold text-brand-ink">
                       {wth.externalReference}
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-slate-600">
+                    <TableCell className="whitespace-nowrap px-5 py-3.5 text-sm text-brand-muted">
                       {wth.destinationMasked}
                     </TableCell>
-                    <TableCell>{statusBadge(wth.status)}</TableCell>
-                    <TableCell className="text-right font-semibold text-slate-900">
+                    <TableCell className="whitespace-nowrap px-5 py-3.5">
+                      {statusBadge(wth.status)}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-5 py-3.5 text-right font-semibold text-brand-ink">
                       {money(wth.amountCents)}
                     </TableCell>
                   </TableRow>
@@ -302,7 +369,7 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
             </TableBody>
           </Table>
         </CardContent>
-      </Card>
+      </div>
 
       {/* Withdrawal Request Modal */}
       <Dialog open={openModal} onOpenChange={setOpenModal}>
@@ -321,9 +388,9 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
 
             <div className="space-y-4 py-4">
               {/* Balance Banner inside Modal */}
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs flex justify-between items-center">
-                <span className="text-slate-500 font-medium">Saldo disponível:</span>
-                <span className="font-bold text-slate-900 text-sm">{money(balanceCents)}</span>
+              <div className="flex items-center justify-between rounded-lg border border-brand-line bg-brand-canvas p-3 text-xs">
+                <span className="font-medium text-brand-muted">Saldo disponível:</span>
+                <span className="text-sm font-bold text-brand-ink">{money(balanceCents)}</span>
               </div>
 
               {/* Error Notice */}
@@ -336,7 +403,7 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
 
               {/* Amount Input */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Valor do Saque (R$)</label>
+                <label className="text-xs font-semibold text-brand-ink">Valor do Saque (R$)</label>
                 <Input
                   type="text"
                   placeholder="0,00"
@@ -351,7 +418,7 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
 
               {/* Pix Key Type */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Tipo de Chave Pix</label>
+                <label className="text-xs font-semibold text-brand-ink">Tipo de Chave Pix</label>
                 <Select
                   value={pixKeyType}
                   onValueChange={(value) => {
@@ -373,7 +440,7 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
 
               {/* Pix Key Value */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Chave Pix de Destino</label>
+                <label className="text-xs font-semibold text-brand-ink">Chave Pix de Destino</label>
                 <Input
                   type="text"
                   placeholder="Digite sua chave Pix..."
@@ -388,7 +455,7 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
 
               {/* External Reference */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">
+                <label className="text-xs font-semibold text-brand-ink">
                   Referência Interna (Opcional)
                 </label>
                 <Input
@@ -417,7 +484,7 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
               <Button
                 type="submit"
                 disabled={submitting}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-brand-primary text-white hover:bg-brand-primary-dark"
               >
                 {submitting ? 'Processando...' : 'Confirmar Saque'}
               </Button>

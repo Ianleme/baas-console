@@ -40,9 +40,7 @@ async function freePort() {
 
 before(
   async () => {
-    const [apiPort, webPort, mailpitHttpPort, mailpitSmtpPort] = await Promise.all([
-      freePort(),
-      freePort(),
+    const [apiPort, webPort] = await Promise.all([
       freePort(),
       freePort()
     ]);
@@ -50,8 +48,6 @@ before(
       ...process.env,
       API_PORT: String(apiPort),
       WEB_PORT: String(webPort),
-      MAILPIT_HTTP_PORT: String(mailpitHttpPort),
-      MAILPIT_SMTP_PORT: String(mailpitSmtpPort),
       BAAS_DB_NAME: 'baas_smoke',
       BAAS_DB_USER: 'baas',
       BAAS_DB_PASSWORD: 'baas-smoke-password',
@@ -72,10 +68,9 @@ after(
   { timeout: 120_000 }
 );
 
-test('defines the four development services plus a one-shot migration job', () => {
+test('defines the three development services plus a one-shot migration job', () => {
   assert.deepEqual(Object.keys(composeConfig.services).sort(), [
     'api',
-    'mailpit',
     'migrate',
     'mysql',
     'web'
@@ -88,7 +83,7 @@ test('defines the four development services plus a one-shot migration job', () =
 });
 
 test('defines container health checks for every long-running service', () => {
-  for (const service of ['api', 'web', 'mysql', 'mailpit']) {
+  for (const service of ['api', 'web', 'mysql']) {
     assert.ok(composeConfig.services[service].healthcheck?.test, `${service} healthcheck missing`);
   }
 });
@@ -175,14 +170,6 @@ test('publishes the composed API surface and proxies login instead of returning 
   });
   assert.equal(login.status, 401);
   assert.equal((await login.json()).code, 'INVALID_CREDENTIALS');
-});
-
-test('exposes healthy Mailpit HTTP and SMTP services only on loopback', async () => {
-  const response = await fetch(`http://127.0.0.1:${environment.MAILPIT_HTTP_PORT}/readyz`);
-  assert.equal(response.status, 200);
-  for (const port of composeConfig.services.mailpit.ports) {
-    assert.equal(port.host_ip, '127.0.0.1');
-  }
 });
 
 test('runs both application containers as non-root users', () => {
