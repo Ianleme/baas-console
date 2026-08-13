@@ -39,6 +39,18 @@ export interface EnqueueEmailInput {
   payload: Record<string, unknown>;
 }
 
+export interface EmailDeliveryView {
+  id: string;
+  kind: string;
+  idempotencyKey: string;
+  recipientMasked: string;
+  status: string;
+  attempts: number;
+  nextAttemptAt: string | null;
+  lastErrorCode: string | null;
+  createdAt: string;
+}
+
 @Injectable()
 export class EmailOutboxService {
   private readonly logger = new Logger(EmailOutboxService.name);
@@ -101,6 +113,68 @@ export class EmailOutboxService {
       if (dupe) return dupe;
       throw new Error('FAILED_TO_ENQUEUE_EMAIL');
     }
+  }
+
+  async listDeliveries(
+    merchantId: string,
+    query?: { status?: string | undefined; limit?: number | undefined; offset?: number | undefined }
+  ): Promise<{ items: EmailDeliveryView[]; total: number }> {
+    const qb = this.repository
+      .createQueryBuilder('d')
+      .where('d.merchantId = :merchantId', { merchantId });
+
+    if (query?.status && query.status !== 'ALL') {
+      qb.andWhere('d.status = :status', { status: query.status });
+    }
+
+    qb.orderBy('d.createdAt', 'DESC')
+      .skip(query?.offset ?? 0)
+      .take(query?.limit ?? 20);
+
+    const [records, total] = await qb.getManyAndCount();
+
+    const items: EmailDeliveryView[] = records.map((rec) => ({
+      id: rec.id,
+      kind: rec.kind,
+      idempotencyKey: rec.idempotencyKey,
+      recipientMasked: rec.recipientMasked,
+      status: rec.status,
+      attempts: rec.attempts,
+      nextAttemptAt: rec.nextAttemptAt ? rec.nextAttemptAt.toISOString() : null,
+      lastErrorCode: rec.lastErrorCode,
+      createdAt: rec.createdAt.toISOString()
+    }));
+
+    return { items, total };
+  }
+
+  async retryDeadLetter(merchantId: string, id: string): Promise<EmailDeliveryView> {
+    const item = await this.repository.findOne({ where: { merchantId, id } });
+    if (!item) {
+      throw new Error('DELIVERY_NOT_FOUND');
+    }
+    if (!['DEAD_LETTER', 'FAILED'].includes(item.status)) {
+      throw new Error('DELIVERY_NOT_RETRYABLE');
+    }
+
+    item.status = 'QUEUED';
+    item.attempts = 0;
+    item.nextAttemptAt = new Date();
+    item.leaseUntil = null;
+    item.lastErrorCode = null;
+
+    const saved = await this.repository.save(item);
+    return {
+      id: saved.id,
+      kind: saved.kind,
+      idempotencyKey: saved.idempotencyKey,
+      recipientMasked: saved.recipientMasked,
+      status: saved.status,
+      attempts: saved.attempts,
+      nextAttemptAt: saved.nextAttemptAt ? saved.nextAttemptAt.toISOString() : null,
+      lastErrorCode: saved.lastErrorCode,
+      createdAt: saved.createdAt.toISOString()
+    };
   }
 
   async processOutbox(

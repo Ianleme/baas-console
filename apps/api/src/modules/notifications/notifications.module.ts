@@ -6,10 +6,13 @@ import { EmailDeliveryEntity } from './entities/email-delivery.entity.js';
 import { EmailOutboxService } from './email-outbox.service.js';
 import { SmtpEmailGateway } from './smtp-email.gateway.js';
 
+import { EmailDeliveriesController } from './email-deliveries.controller.js';
+
 export const EMAIL_GATEWAY = Symbol('EMAIL_GATEWAY');
 
 @Module({
   imports: [AuthModule],
+  controllers: [EmailDeliveriesController],
   providers: [
     {
       provide: EMAIL_GATEWAY,

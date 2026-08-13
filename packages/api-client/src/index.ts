@@ -491,3 +491,43 @@ function checkoutHeaders(options: BaasClientOptions): Record<string, string> {
   if (csrfToken) headers['x-csrf-token'] = csrfToken;
   return headers;
 }
+
+export function createNotificationsClient(options: BaasClientOptions) {
+  const request = options.fetch ?? globalThis.fetch;
+  return {
+    async listDeliveries(query?: Record<string, unknown>): Promise<unknown> {
+      const accessToken = options.accessToken?.();
+      const params = new URLSearchParams();
+      if (query) {
+        for (const [key, val] of Object.entries(query)) {
+          if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
+            params.set(key, String(val));
+          }
+        }
+      }
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      const response = await request(
+        `${options.baseUrl}/api/v1/notifications/email-deliveries${queryString}`,
+        {
+          credentials: 'include',
+          headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
+        }
+      );
+      if (!response.ok) throw new Error('NOTIFICATIONS_UNAVAILABLE');
+      return (await response.json()) as unknown;
+    },
+    async retryDelivery(id: string): Promise<unknown> {
+      const accessToken = options.accessToken?.();
+      const response = await request(
+        `${options.baseUrl}/api/v1/notifications/email-deliveries/${encodeURIComponent(id)}/retry`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
+        }
+      );
+      if (!response.ok) throw new Error('RETRY_FAILED');
+      return (await response.json()) as unknown;
+    }
+  };
+}

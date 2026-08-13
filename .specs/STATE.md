@@ -181,10 +181,10 @@
 ## Handoff
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
-- **Phase / Task**: Execute / Batch 6 (Phase 6, T040 Concluído!)
-- **Completed**: T001-T040; T040 validada (Renderização de comprovantes em HTML/PDF via @baas/receipt-template, endpoint GET /api/v1/transactions/:id/receipt com isolamento tenant e botão de emissão na UI do extrato)
+- **Phase / Task**: Execute / Batch 6 (Phase 6, T041 Concluído!)
+- **Completed**: T001-T041; T041 validada (AuditRetentionService implementado com expurgo atômico de registros outbox 30d, eventos operacionais 90d, registros financeiros 5 anos e testes unitários 100% verdes)
 - **In-progress** (file:line): none
-- **Next step**: Executar T041 (Implementar retenção e expiração de dados auditáveis)
+- **Next step**: Executar T042 (Implementar status operacionais e inspeção DLQ do outbox na UI)
 - **Blockers**: none
 - **Uncommitted files**: progress bookkeeping only
 - **Branch**: main
