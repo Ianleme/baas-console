@@ -181,10 +181,10 @@
 ## Handoff
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
-- **Phase / Task**: Execute / Batch 6 (Phase 6, T038 Concluído!)
-- **Completed**: T001-T038; T038 validada (Ação de envio de e-mail de link de checkout com id de entrega enfileirado, validação DTO, isolamento por tenant, idempotência e modal no frontend web com testes unitários/componente)
+- **Phase / Task**: Execute / Batch 6 (Phase 6, T039 Concluído!)
+- **Completed**: T001-T039; T039 validada (Comprovante de pagamento Pix e Cartão enfileirado automaticamente no outbox ao aprovar pagamento, idempotência garantida por tentativa e testes unitários 100% verdes)
 - **In-progress** (file:line): none
-- **Next step**: Executar T039 (Implementar comprovante de pagamento por e-mail no checkout finalizado)
+- **Next step**: Executar T040 (Implementar exportação de comprovante em PDF e HTML)
 - **Blockers**: none
 - **Uncommitted files**: progress bookkeeping only
 - **Branch**: main

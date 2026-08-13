@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
+  FileText,
   Filter,
   Search
 } from 'lucide-react';
@@ -285,12 +286,13 @@ export function TransactionsPage({ api }: { api: TransactionStatementApi }) {
                 <TableHead className="text-right">Valor Bruto</TableHead>
                 <TableHead className="text-right">Taxa</TableHead>
                 <TableHead className="text-right">Valor Líquido</TableHead>
+                <TableHead className="text-right">Ação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-32 text-center text-slate-500">
+                  <TableCell colSpan={9} className="h-32 text-center text-slate-500">
                     Nenhuma transação encontrada com os filtros selecionados.
                   </TableCell>
                 </TableRow>
@@ -332,6 +334,22 @@ export function TransactionsPage({ api }: { api: TransactionStatementApi }) {
                     </TableCell>
                     <TableCell className="text-right font-semibold text-slate-900">
                       {money(tx.netAmountCents)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1.5 text-xs text-[#007a5a] hover:bg-emerald-50"
+                        onClick={() => {
+                          window.open(
+                            `/api/v1/transactions/${encodeURIComponent(tx.id)}/receipt`,
+                            '_blank'
+                          );
+                        }}
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        Comprovante
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

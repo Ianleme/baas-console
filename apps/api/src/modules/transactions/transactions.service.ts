@@ -120,4 +120,24 @@ export class TransactionsService {
       capturedAt
     };
   }
+
+  async findById(merchantId: string, id: string): Promise<TransactionItemView | null> {
+    const record = await this.dataSource
+      .getRepository(TransactionEntity)
+      .findOne({ where: { merchantId, id } });
+    if (!record) return null;
+    return {
+      id: record.id,
+      originType: record.originType,
+      originId: record.originId,
+      externalReference: record.externalReference,
+      gatewayTransactionId: record.gatewayTransactionId,
+      type: record.type,
+      status: record.status,
+      grossAmountCents: record.grossAmountCents,
+      feeAmountCents: record.feeAmountCents,
+      netAmountCents: record.netAmountCents,
+      occurredAt: record.occurredAt.toISOString()
+    };
+  }
 }

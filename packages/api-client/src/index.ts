@@ -321,6 +321,18 @@ export function createTransactionsClient(options: BaasClientOptions) {
       });
       if (!response.ok) throw new Error('TRANSACTIONS_UNAVAILABLE');
       return (await response.json()) as unknown;
+    },
+    async getReceiptHtml(id: string): Promise<string> {
+      const accessToken = options.accessToken?.();
+      const response = await request(
+        `${options.baseUrl}/api/v1/transactions/${encodeURIComponent(id)}/receipt`,
+        {
+          credentials: 'include',
+          headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
+        }
+      );
+      if (!response.ok) throw new Error('RECEIPT_UNAVAILABLE');
+      return response.text();
     }
   };
 }
