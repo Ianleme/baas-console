@@ -184,6 +184,29 @@ export function createAuthJourneyClient(options: BaasClientOptions) {
       } catch {
         return false;
       }
+    },
+    async logout(): Promise<void> {
+      const csrfToken = options.csrfToken?.();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      if (csrfToken) headers.set('x-csrf-token', csrfToken);
+      await request(`${options.baseUrl}/api/v1/auth/logout`, {
+        method: 'POST', credentials: 'include', headers, body: '{}'
+      });
+    }
+  };
+}
+
+export function createCurrentProfileClient(options: BaasClientOptions) {
+  const request = createAuthenticatedTransport(options);
+  return {
+    async load() {
+      const response = await request('/api/v1/session/profile');
+      if (!response.ok) throw new Error('PROFILE_UNAVAILABLE');
+      return (await response.json()) as {
+        merchant: { legalName: string; displayName: string };
+        owner: { fullName: string; email: string };
+        gatewayConnectionStatus: string | null;
+      };
     }
   };
 }
@@ -276,14 +299,13 @@ function mapPaymentLink(value: unknown) {
 }
 
 export function createWebhooksClient(options: BaasClientOptions) {
-  const request = options.fetch ?? globalThis.fetch;
+  const request = createAuthenticatedTransport(options);
   async function json(path: string, init?: RequestInit): Promise<unknown> {
     const headers = new Headers(init?.headers);
     headers.set('content-type', 'application/json');
     const accessToken = options.accessToken?.();
     if (accessToken) headers.set('authorization', `Bearer ${accessToken}`);
-    const response = await request(`${options.baseUrl}${path}`, {
-      credentials: 'include',
+    const response = await request(path, {
       ...init,
       headers
     });
@@ -304,14 +326,13 @@ export function createWebhooksClient(options: BaasClientOptions) {
 }
 
 export function createReconciliationClient(options: BaasClientOptions) {
-  const request = options.fetch ?? globalThis.fetch;
+  const request = createAuthenticatedTransport(options);
   async function json(path: string, init?: RequestInit): Promise<unknown> {
     const headers = new Headers(init?.headers);
     headers.set('content-type', 'application/json');
     const accessToken = options.accessToken?.();
     if (accessToken) headers.set('authorization', `Bearer ${accessToken}`);
-    const response = await request(`${options.baseUrl}${path}`, {
-      credentials: 'include',
+    const response = await request(path, {
       ...init,
       headers
     });
@@ -333,14 +354,11 @@ export function createReconciliationClient(options: BaasClientOptions) {
 }
 
 export function createDashboardClient(options: BaasClientOptions) {
-  const request = options.fetch ?? globalThis.fetch;
+  const request = createAuthenticatedTransport(options);
   return {
     async load() {
       const accessToken = options.accessToken?.();
-      const response = await request(`${options.baseUrl}/api/v1/wallet`, {
-        credentials: 'include',
-        headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
-      });
+      const response = await request('/api/v1/wallet');
       if (!response.ok) throw new Error('DASHBOARD_UNAVAILABLE');
       return {
         wallet: (await response.json()) as {
@@ -361,7 +379,7 @@ export function createDashboardClient(options: BaasClientOptions) {
 }
 
 export function createTransactionsClient(options: BaasClientOptions) {
-  const request = options.fetch ?? globalThis.fetch;
+  const request = createAuthenticatedTransport(options);
   return {
     async list(query?: Record<string, unknown>): Promise<unknown> {
       const accessToken = options.accessToken?.();
@@ -374,22 +392,13 @@ export function createTransactionsClient(options: BaasClientOptions) {
         }
       }
       const queryString = params.toString() ? `?${params.toString()}` : '';
-      const response = await request(`${options.baseUrl}/api/v1/transactions${queryString}`, {
-        credentials: 'include',
-        headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
-      });
+      const response = await request(`/api/v1/transactions${queryString}`);
       if (!response.ok) throw new Error('TRANSACTIONS_UNAVAILABLE');
       return (await response.json()) as unknown;
     },
     async getReceiptHtml(id: string): Promise<string> {
       const accessToken = options.accessToken?.();
-      const response = await request(
-        `${options.baseUrl}/api/v1/transactions/${encodeURIComponent(id)}/receipt`,
-        {
-          credentials: 'include',
-          headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
-        }
-      );
+      const response = await request(`/api/v1/transactions/${encodeURIComponent(id)}/receipt`);
       if (!response.ok) throw new Error('RECEIPT_UNAVAILABLE');
       return response.text();
     }
@@ -397,22 +406,18 @@ export function createTransactionsClient(options: BaasClientOptions) {
 }
 
 export function createWithdrawalsClient(options: BaasClientOptions) {
-  const request = options.fetch ?? globalThis.fetch;
+  const request = createAuthenticatedTransport(options);
   return {
     async list(): Promise<unknown> {
       const accessToken = options.accessToken?.();
-      const response = await request(`${options.baseUrl}/api/v1/withdrawals`, {
-        credentials: 'include',
-        headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
-      });
+      const response = await request('/api/v1/withdrawals');
       if (!response.ok) throw new Error('WITHDRAWALS_UNAVAILABLE');
       return (await response.json()) as unknown;
     },
     async request(input: unknown): Promise<unknown> {
       const accessToken = options.accessToken?.();
-      const response = await request(`${options.baseUrl}/api/v1/withdrawals`, {
+      const response = await request('/api/v1/withdrawals', {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'content-type': 'application/json',
           ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {})
@@ -435,10 +440,7 @@ export function createWithdrawalsClient(options: BaasClientOptions) {
     },
     async getBalance(): Promise<{ balanceCents: string }> {
       const accessToken = options.accessToken?.();
-      const response = await request(`${options.baseUrl}/api/v1/wallet`, {
-        credentials: 'include',
-        headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
-      });
+      const response = await request('/api/v1/wallet');
       if (!response.ok) throw new Error('WALLET_UNAVAILABLE');
       const data = (await response.json()) as { balanceCents?: string };
       return { balanceCents: data.balanceCents ?? '0' };
@@ -552,7 +554,7 @@ function checkoutHeaders(options: BaasClientOptions): Record<string, string> {
 }
 
 export function createNotificationsClient(options: BaasClientOptions) {
-  const request = options.fetch ?? globalThis.fetch;
+  const request = createAuthenticatedTransport(options);
   return {
     async listDeliveries(query?: Record<string, unknown>): Promise<unknown> {
       const accessToken = options.accessToken?.();
@@ -565,26 +567,15 @@ export function createNotificationsClient(options: BaasClientOptions) {
         }
       }
       const queryString = params.toString() ? `?${params.toString()}` : '';
-      const response = await request(
-        `${options.baseUrl}/api/v1/notifications/email-deliveries${queryString}`,
-        {
-          credentials: 'include',
-          headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
-        }
-      );
+      const response = await request(`/api/v1/notifications/email-deliveries${queryString}`);
       if (!response.ok) throw new Error('NOTIFICATIONS_UNAVAILABLE');
       return (await response.json()) as unknown;
     },
     async retryDelivery(id: string): Promise<unknown> {
       const accessToken = options.accessToken?.();
-      const response = await request(
-        `${options.baseUrl}/api/v1/notifications/email-deliveries/${encodeURIComponent(id)}/retry`,
-        {
-          method: 'POST',
-          credentials: 'include',
-          headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {}
-        }
-      );
+      const response = await request(`/api/v1/notifications/email-deliveries/${encodeURIComponent(id)}/retry`, {
+        method: 'POST'
+      });
       if (!response.ok) throw new Error('RETRY_FAILED');
       return (await response.json()) as unknown;
     }

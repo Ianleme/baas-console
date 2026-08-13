@@ -112,7 +112,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Gate:** Quick web
 **Commit:** `feat(api-client): recover authenticated requests once`
 
-### T4: Migrar clientes autenticados e adicionar perfil/logout
+### T4: Migrar clientes autenticados e adicionar perfil/logout ✅
 
 **What:** Fazer todos os clientes autenticados usarem o transporte centralizado e expor clientes tipados para perfil atual e logout com CSRF/cookies existentes.
 **Where:** `packages/api-client/src/index.ts`, `apps/web/src/api-runtime.test.ts`.
@@ -121,10 +121,10 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Requirement:** CONSOLE-01, CONSOLE-11..18
 **Tools:** MCP: filesystem; Skill: NONE
 **Done when:**
-- [ ] Clientes de links, dashboard/carteira, transações, saques, webhooks e reconciliação passam pelo transporte autenticado.
-- [ ] Cliente de perfil mapeia o contrato atual e logout usa o endpoint/cookies/CSRF corretos.
-- [ ] Nenhum cliente autenticado preserva tratamento local de 401 que contorne T3.
-- [ ] Testes provam que perfil/logout e clientes representativos herdam a recuperação; mínimo 4 novas asserções comportamentais passam.
+- [x] Clientes de links, dashboard/carteira, transações, saques, webhooks e reconciliação passam pelo transporte autenticado.
+- [x] Cliente de perfil mapeia o contrato atual e logout usa o endpoint/cookies/CSRF corretos.
+- [x] Nenhum cliente autenticado preserva tratamento local de 401 que contorne T3.
+- [x] Testes provam que perfil/logout e clientes representativos herdam a recuperação; mínimo 4 novas asserções comportamentais passam.
 **Tests:** frontend unit
 **Gate:** Quick web + Contract build
 **Commit:** `refactor(api-client): share authenticated request transport`

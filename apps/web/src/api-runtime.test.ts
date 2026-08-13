@@ -3,6 +3,8 @@ import {
   createBaasMemorySession,
   createCardCheckoutClient,
   createCheckoutSessionClient,
+  createCurrentProfileClient,
+  createDashboardClient,
   createPaymentLinksClient,
   createPixStatusClient
 } from '@baas/api-client';
@@ -192,5 +194,37 @@ describe('runtime API composition', () => {
     releaseRefresh();
     await expect(Promise.all([first, second])).resolves.toHaveLength(2);
     expect(request).toHaveBeenCalledTimes(5);
+  });
+
+  test('loads the typed current profile through authenticated transport', async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      response({
+        merchant: { legalName: 'Legal', displayName: 'Display' },
+        owner: { fullName: 'Owner', email: 'owner@example.test' },
+        gatewayConnectionStatus: 'ACTIVE'
+      })
+    );
+    const profile = await createCurrentProfileClient({
+      baseUrl: '', fetch: request, accessToken: () => 'access-token'
+    }).load();
+    expect(profile.owner.fullName).toBe('Owner');
+    expect(new Headers(request.mock.calls[0]?.[1]?.headers).get('authorization')).toBe('Bearer access-token');
+  });
+
+  test('logout sends cookies and CSRF, while authenticated feature clients share recovery', async () => {
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(response({}, 401))
+      .mockResolvedValueOnce(response({ accessToken: 'new-token' }))
+      .mockResolvedValueOnce(response({ balanceCents: '100', capturedAt: null, stale: false }));
+    const options = {
+      baseUrl: '', fetch: request, accessToken: () => 'old-token', csrfToken: () => 'csrf-token'
+    };
+    await createAuthJourneyClient(options).logout();
+    await expect(createDashboardClient(options).load()).resolves.toMatchObject({ wallet: { balanceCents: '100' } });
+    expect(request.mock.calls[0]?.[1]?.credentials).toBe('include');
+    expect(new Headers(request.mock.calls[0]?.[1]?.headers).get('x-csrf-token')).toBe('csrf-token');
+    expect(request).toHaveBeenCalledTimes(4);
   });
 });
