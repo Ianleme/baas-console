@@ -151,14 +151,33 @@ describe('runtime API composition', () => {
     session.setToken('expired-token');
     const onUnauthenticated = vi.fn();
     const client = createPaymentLinksClient({
-      baseUrl: '', fetch: request, accessToken: session.token, onAccessToken: session.setToken,
+      baseUrl: '',
+      fetch: request,
+      accessToken: session.token,
+      onAccessToken: session.setToken,
       onUnauthenticated
     });
-    await expect(client.list()).resolves.toEqual([{ id: 'link-1', reference: undefined, description: undefined, amountCents: undefined, methods: undefined, maxInstallments: 1, selectedFeeBps: null, status: undefined, expiresAt: undefined }]);
+    await expect(client.list()).resolves.toEqual([
+      {
+        id: 'link-1',
+        reference: undefined,
+        description: undefined,
+        amountCents: undefined,
+        methods: undefined,
+        maxInstallments: 1,
+        selectedFeeBps: null,
+        status: undefined,
+        expiresAt: undefined
+      }
+    ]);
     expect(request.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(1);
     expect(request.mock.calls.filter(([url]) => url === '/api/v1/checkout-links')).toHaveLength(2);
-    expect(request.mock.invocationCallOrder[1] ?? 0).toBeGreaterThan(request.mock.invocationCallOrder[0] ?? 0);
-    expect(new Headers(request.mock.calls[2]?.[1]?.headers).get('authorization')).toBe('Bearer refreshed-token');
+    expect(request.mock.invocationCallOrder[1] ?? 0).toBeGreaterThan(
+      request.mock.invocationCallOrder[0] ?? 0
+    );
+    expect(new Headers(request.mock.calls[2]?.[1]?.headers).get('authorization')).toBe(
+      'Bearer refreshed-token'
+    );
     expect(onUnauthenticated).not.toHaveBeenCalled();
     expect(session.token()).toBe('refreshed-token');
   });
@@ -167,11 +186,21 @@ describe('runtime API composition', () => {
     const session = createBaasMemorySession();
     session.setToken('token');
     const onUnauthenticated = vi.fn(() => session.clear());
-    const refreshFails = vi.fn<typeof fetch>().mockResolvedValueOnce(response({}, 401)).mockResolvedValueOnce(response({}, 401));
-    const first = createPaymentLinksClient({ baseUrl: '', fetch: refreshFails, accessToken: session.token, onUnauthenticated });
+    const refreshFails = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(response({}, 401))
+      .mockResolvedValueOnce(response({}, 401));
+    const first = createPaymentLinksClient({
+      baseUrl: '',
+      fetch: refreshFails,
+      accessToken: session.token,
+      onUnauthenticated
+    });
     await expect(first.list()).rejects.toThrow('BAAS_REQUEST_FAILED');
     expect(session.token()).toBe('');
-    expect(refreshFails.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(1);
+    expect(refreshFails.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(
+      1
+    );
     expect(onUnauthenticated).toHaveBeenCalledTimes(1);
   });
 
@@ -179,12 +208,24 @@ describe('runtime API composition', () => {
     const session = createBaasMemorySession();
     session.setToken('token');
     const onUnauthenticated = vi.fn(() => session.clear());
-    const retryFails = vi.fn<typeof fetch>().mockResolvedValueOnce(response({}, 401)).mockResolvedValueOnce(response({ accessToken: 'new' })).mockResolvedValueOnce(response({}, 401));
-    const terminal = createPaymentLinksClient({ baseUrl: '', fetch: retryFails, accessToken: session.token, onAccessToken: session.setToken, onUnauthenticated });
+    const retryFails = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(response({}, 401))
+      .mockResolvedValueOnce(response({ accessToken: 'new' }))
+      .mockResolvedValueOnce(response({}, 401));
+    const terminal = createPaymentLinksClient({
+      baseUrl: '',
+      fetch: retryFails,
+      accessToken: session.token,
+      onAccessToken: session.setToken,
+      onUnauthenticated
+    });
     await expect(terminal.list()).rejects.toThrow('BAAS_REQUEST_FAILED');
     expect(session.token()).toBe('');
     expect(retryFails.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(1);
-    expect(retryFails.mock.calls.filter(([url]) => url === '/api/v1/checkout-links')).toHaveLength(2);
+    expect(retryFails.mock.calls.filter(([url]) => url === '/api/v1/checkout-links')).toHaveLength(
+      2
+    );
     expect(onUnauthenticated).toHaveBeenCalledTimes(1);
   });
 
@@ -214,21 +255,36 @@ describe('runtime API composition', () => {
 
   test('does not refresh non-401 errors', async () => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(response({}, 500));
-    const client = createPaymentLinksClient({ baseUrl: '', fetch: request, accessToken: () => 'token' });
+    const client = createPaymentLinksClient({
+      baseUrl: '',
+      fetch: request,
+      accessToken: () => 'token'
+    });
     await expect(client.list()).rejects.toThrow('BAAS_REQUEST_FAILED');
     expect(request).toHaveBeenCalledTimes(1);
   });
 
   test('shares one refresh across concurrent unauthorized requests', async () => {
     let releaseRefresh!: () => void;
-    const refreshPending = new Promise<void>((resolve) => { releaseRefresh = resolve; });
-    const request = vi.fn<typeof fetch>()
+    const refreshPending = new Promise<void>((resolve) => {
+      releaseRefresh = resolve;
+    });
+    const request = vi
+      .fn<typeof fetch>()
       .mockResolvedValueOnce(response({}, 401))
       .mockResolvedValueOnce(response({}, 401))
-      .mockImplementationOnce(async () => { await refreshPending; return response({ accessToken: 'shared-token' }); })
+      .mockImplementationOnce(async () => {
+        await refreshPending;
+        return response({ accessToken: 'shared-token' });
+      })
       .mockResolvedValueOnce(response([{ id: 'a', feeSnapshot: [], maxInstallments: 1 }]))
       .mockResolvedValueOnce(response([{ id: 'b', feeSnapshot: [], maxInstallments: 1 }]));
-    const client = createPaymentLinksClient({ baseUrl: '', fetch: request, accessToken: () => 'old', onAccessToken: () => undefined });
+    const client = createPaymentLinksClient({
+      baseUrl: '',
+      fetch: request,
+      accessToken: () => 'old',
+      onAccessToken: () => undefined
+    });
     const first = client.list();
     const second = client.list();
     await Promise.resolve();
@@ -236,7 +292,9 @@ describe('runtime API composition', () => {
     await expect(Promise.all([first, second])).resolves.toHaveLength(2);
     expect(request.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(1);
     expect(request.mock.calls.filter(([url]) => url === '/api/v1/checkout-links')).toHaveLength(4);
-    expect(request.mock.calls.slice(-2).every(([url]) => url === '/api/v1/checkout-links')).toBe(true);
+    expect(request.mock.calls.slice(-2).every(([url]) => url === '/api/v1/checkout-links')).toBe(
+      true
+    );
   });
 
   test('loads the typed current profile through authenticated transport', async () => {
@@ -248,10 +306,14 @@ describe('runtime API composition', () => {
       })
     );
     const profile = await createCurrentProfileClient({
-      baseUrl: '', fetch: request, accessToken: () => 'access-token'
+      baseUrl: '',
+      fetch: request,
+      accessToken: () => 'access-token'
     }).load();
     expect(profile.owner.fullName).toBe('Owner');
-    expect(new Headers(request.mock.calls[0]?.[1]?.headers).get('authorization')).toBe('Bearer access-token');
+    expect(new Headers(request.mock.calls[0]?.[1]?.headers).get('authorization')).toBe(
+      'Bearer access-token'
+    );
   });
 
   test('logout sends cookies and CSRF, while authenticated feature clients share recovery', async () => {
@@ -262,10 +324,15 @@ describe('runtime API composition', () => {
       .mockResolvedValueOnce(response({ accessToken: 'new-token' }))
       .mockResolvedValueOnce(response({ balanceCents: '100', capturedAt: null, stale: false }));
     const options = {
-      baseUrl: '', fetch: request, accessToken: () => 'old-token', csrfToken: () => 'csrf-token'
+      baseUrl: '',
+      fetch: request,
+      accessToken: () => 'old-token',
+      csrfToken: () => 'csrf-token'
     };
     await createAuthJourneyClient(options).logout();
-    await expect(createDashboardClient(options).load()).resolves.toMatchObject({ wallet: { balanceCents: '100' } });
+    await expect(createDashboardClient(options).load()).resolves.toMatchObject({
+      wallet: { balanceCents: '100' }
+    });
     expect(request.mock.calls[0]?.[1]?.credentials).toBe('include');
     expect(new Headers(request.mock.calls[0]?.[1]?.headers).get('x-csrf-token')).toBe('csrf-token');
     expect(request).toHaveBeenCalledTimes(4);
