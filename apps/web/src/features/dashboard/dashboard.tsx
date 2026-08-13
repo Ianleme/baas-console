@@ -175,6 +175,9 @@ function KpiRail({ children }: { children: ReactNode }) {
 function ReceiptCompositionCard({ children }: { children: ReactNode }) {
   return <Card className={`${cardClass} xl:col-span-3`} aria-labelledby="composition-title">{children}</Card>;
 }
+function MovementChartCard({ children }: { children: ReactNode }) {
+  return <Card className={`${cardClass} xl:col-span-6`} aria-labelledby="movement-title">{children}</Card>;
+}
 
 export function Dashboard({ api }: { api: DashboardApi }) {
   const [data, setData] = useState<DashboardData>();
@@ -394,11 +397,12 @@ export function Dashboard({ api }: { api: DashboardApi }) {
           </CardContent>
         </ReceiptCompositionCard>
 
-        <Card className={`${cardClass} xl:col-span-6`} aria-labelledby="movement-title">
+        <MovementChartCard>
           <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 p-5 pb-2">
             <h2 id="movement-title" className="text-[0.95rem] font-bold text-slate-900">
               Movimentação financeira
             </h2>
+            <p className="absolute mt-10 text-xs text-slate-500">Entradas e saídas por período</p>
             <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-[#006b57]" /> Entradas
@@ -440,7 +444,10 @@ export function Dashboard({ api }: { api: DashboardApi }) {
                       strokeWidth="1"
                     />
                   ))}
-                  <path d={inArea} fill="rgba(0, 107, 87, 0.08)" />
+                  {movement.map((point, index) => {
+                    const x = movement.length === 1 ? chartWidth / 2 : 4 + (index / (movement.length - 1)) * (chartWidth - 8);
+                    return <circle key={point.label} data-testid="movement-marker" cx={x} cy={10} r="2.5" fill="#006b57" />;
+                  })}
                   <path d={outPath} fill="none" stroke="#c5ced6" strokeWidth="2.25" />
                   <path d={inPath} fill="none" stroke="#006b57" strokeWidth="2.5" />
                 </svg>
@@ -456,7 +463,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
               </div>
             )}
           </CardContent>
-        </Card>
+        </MovementChartCard>
 
         <Card className={`${cardClass} xl:col-span-3`} aria-labelledby="operation-title">
           <CardHeader className="space-y-0 p-5 pb-3">

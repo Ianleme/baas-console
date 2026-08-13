@@ -201,6 +201,11 @@ describe('Dashboard', () => {
     expect(screen.getAllByText('Pix').find((node) => node.closest('[data-receipt-row]'))).toBeTruthy();
     expect(screen.getAllByText('Cartão').find((node) => node.closest('[data-receipt-row]'))).toBeTruthy();
   });
+  test('shows chart subtitle, linear legends, grid and data markers', async () => {
+    await ready();
+    expect(screen.getByText('Entradas e saídas por período')).toBeVisible();
+    expect(screen.getAllByTestId('movement-marker').length).toBeGreaterThan(0);
+  });
   test('has no axe violations in populated state', async () => {
     const { container } = render(<Dashboard api={api()} />);
     await screen.findByText('PED-1048');
