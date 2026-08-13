@@ -1,0 +1,46 @@
+name: Approved production deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_image:
+        description: 'Immutable API image (registry/name@sha256:...)'
+        required: true
+        type: string
+      web_image:
+        description: 'Immutable web image (registry/name@sha256:...)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment: production
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Validate immutable inputs
+        env:
+          API_IMAGE: ${{ inputs.api_image }}
+          WEB_IMAGE: ${{ inputs.web_image }}
+        run: ./scripts/deploy/validate-inputs.sh "$API_IMAGE" "$WEB_IMAGE"
+      - name: Install pinned host key
+        env:
+          SSH_KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
+        run: ./scripts/deploy/install-known-hosts.sh "$SSH_KNOWN_HOSTS"
+      - name: Preflight, migrate, smoke and rollback-safe deploy
+        env:
+          API_IMAGE: ${{ inputs.api_image }}
+          WEB_IMAGE: ${{ inputs.web_image }}
+          DEPLOY_HOST: ${{ vars.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ vars.PRODUCTION_USER }}
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+        run: ./scripts/deploy/remote-deploy.sh "$DEPLOY_HOST" "$DEPLOY_USER" "$DEPLOY_KEY" "$API_IMAGE" "$WEB_IMAGE"
