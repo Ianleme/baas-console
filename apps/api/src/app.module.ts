@@ -13,6 +13,7 @@ import { RequestContextMiddleware } from './platform/request-context/request-con
 
 import { WithdrawalsModule } from './modules/withdrawals/withdrawals.module.js';
 import { SessionProfileModule } from './modules/session-profile/session-profile.module.js';
+import { DemoModule } from './modules/demo/demo.module.js';
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { SessionProfileModule } from './modules/session-profile/session-profile.
     WalletModule,
     TransactionsModule,
     WithdrawalsModule,
-    SessionProfileModule
+    SessionProfileModule,
+    DemoModule
   ],
   controllers: [HealthController],
   providers: [HealthProbe, platformLoggerProvider]
