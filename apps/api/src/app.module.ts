@@ -16,6 +16,7 @@ import { SessionProfileModule } from './modules/session-profile/session-profile.
 import { DemoModule } from './modules/demo/demo.module.js';
 import { ObservabilityModule } from './modules/observability/observability.module.js';
 import { AuditModule } from './modules/audit/audit.module.js';
+import { SecurityModule } from './platform/security/security.module.js';
 
 @Module({
   imports: [
@@ -28,7 +29,8 @@ import { AuditModule } from './modules/audit/audit.module.js';
     SessionProfileModule,
     DemoModule,
     ObservabilityModule,
-    AuditModule
+    AuditModule,
+    SecurityModule
   ],
   controllers: [HealthController],
   providers: [HealthProbe, platformLoggerProvider]

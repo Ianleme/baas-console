@@ -15,6 +15,23 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
 
 export function configureApplication(app: INestApplication): void {
   app.use(helmet());
+  const corsOptions = {
+    credentials: true,
+    origin: (
+      origin: string | undefined,
+      callback: (error: Error | null, allow?: boolean) => void
+    ) => {
+      const allowed = (process.env.CORS_ALLOWED_ORIGINS ?? 'http://localhost:5173')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+      callback(
+        !origin || allowed.includes(origin) ? null : new Error('CORS_ORIGIN_NOT_ALLOWED'),
+        Boolean(origin)
+      );
+    }
+  };
+  app.enableCors(corsOptions);
   app.useGlobalPipes(
     new ValidationPipe({
       forbidNonWhitelisted: true,
