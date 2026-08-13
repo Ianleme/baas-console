@@ -149,14 +149,18 @@ describe('runtime API composition', () => {
       .mockResolvedValueOnce(response([{ id: 'link-1', feeSnapshot: [], maxInstallments: 1 }]));
     const session = createBaasMemorySession();
     session.setToken('expired-token');
+    const onUnauthenticated = vi.fn();
     const client = createPaymentLinksClient({
-      baseUrl: '', fetch: request, accessToken: session.token, onAccessToken: session.setToken
+      baseUrl: '', fetch: request, accessToken: session.token, onAccessToken: session.setToken,
+      onUnauthenticated
     });
     await expect(client.list()).resolves.toEqual([{ id: 'link-1', reference: undefined, description: undefined, amountCents: undefined, methods: undefined, maxInstallments: 1, selectedFeeBps: null, status: undefined, expiresAt: undefined }]);
     expect(request.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(1);
     expect(request.mock.calls.filter(([url]) => url === '/api/v1/checkout-links')).toHaveLength(2);
     expect(request.mock.invocationCallOrder[1] ?? 0).toBeGreaterThan(request.mock.invocationCallOrder[0] ?? 0);
     expect(new Headers(request.mock.calls[2]?.[1]?.headers).get('authorization')).toBe('Bearer refreshed-token');
+    expect(onUnauthenticated).not.toHaveBeenCalled();
+    expect(session.token()).toBe('refreshed-token');
   });
 
   test('refresh failure clears session and notifies once without another refresh', async () => {
@@ -182,6 +186,30 @@ describe('runtime API composition', () => {
     expect(retryFails.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(1);
     expect(retryFails.mock.calls.filter(([url]) => url === '/api/v1/checkout-links')).toHaveLength(2);
     expect(onUnauthenticated).toHaveBeenCalledTimes(1);
+  });
+
+  test('does not notify unauthenticated when the retried response is not 401', async () => {
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(response({}, 401))
+      .mockResolvedValueOnce(response({ accessToken: 'refreshed-token' }))
+      .mockResolvedValueOnce(response({}, 403));
+    const onUnauthenticated = vi.fn();
+    const client = createPaymentLinksClient({
+      baseUrl: '',
+      fetch: request,
+      accessToken: () => 'expired-token',
+      onAccessToken: vi.fn(),
+      onUnauthenticated
+    });
+
+    await expect(client.list()).rejects.toThrow('BAAS_REQUEST_FAILED');
+    expect(onUnauthenticated).not.toHaveBeenCalled();
+    expect(request.mock.calls.map(([url]) => url)).toEqual([
+      '/api/v1/checkout-links',
+      '/api/v1/auth/refresh',
+      '/api/v1/checkout-links'
+    ]);
   });
 
   test('does not refresh non-401 errors', async () => {
