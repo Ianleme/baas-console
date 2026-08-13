@@ -28,7 +28,7 @@ export const STATEMENT_GATEWAY = Symbol('STATEMENT_GATEWAY');
         database: DatabaseService,
         gateway: LeraBoxStatementAdapter,
         credentials: GatewayCredentialService
-      ) => new TransactionsService(database.getDataSource(), gateway, credentials)
+      ) => new TransactionsService(database, gateway, credentials)
     },
     { provide: 'TransactionsPrincipalProvider', useClass: BearerTransactionsPrincipal }
   ],

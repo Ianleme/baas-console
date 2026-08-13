@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -12,6 +12,7 @@ import type { Request } from 'express';
 import type { GatewayWebhookEvent } from '../../../integrations/lera-box/webhooks/lera-box-webhooks.client.js';
 import { ProblemException } from '../../../platform/errors/problem.exception.js';
 import { AuthError, AuthService } from '../../auth/auth.service.js';
+import { extractAccessToken } from '../../auth/extract-token.js';
 import { GatewayCredentialService } from '../../gateway-accounts/gateway-credential.service.js';
 import {
   WebhookConfigurationError,
@@ -33,19 +34,15 @@ export class WebhookConfigurationController {
   ) {}
   @Get()
   @ApiOkResponse({ description: 'Tenant-scoped webhook configurations without secrets' })
-  async list(@Headers('authorization') authorization?: string) {
-    return this.service.list(this.principal(authorization).merchantId);
+  async list(@Req() request: Request) {
+    return this.service.list(this.principal(request).merchantId);
   }
   @Post()
   @ApiCreatedResponse({
     description: 'Gateway callback configured with a generated encrypted secret'
   })
-  async configure(
-    @Headers('authorization') authorization: string | undefined,
-    @Body() input: ConfigureWebhookDto,
-    @Req() request: Request
-  ) {
-    const principal = this.principal(authorization);
+  async configure(@Body() input: ConfigureWebhookDto, @Req() request: Request) {
+    const principal = this.principal(request);
     try {
       return await this.service.configure({
         merchantId: principal.merchantId,
@@ -61,12 +58,8 @@ export class WebhookConfigurationController {
   @Delete('configurations/:event')
   @HttpCode(204)
   @ApiNoContentResponse({ description: 'Tenant-owned callback removed' })
-  async remove(
-    @Headers('authorization') authorization: string | undefined,
-    @Param('event') event: GatewayWebhookEvent,
-    @Req() request: Request
-  ): Promise<void> {
-    const principal = this.principal(authorization);
+  async remove(@Param('event') event: GatewayWebhookEvent, @Req() request: Request): Promise<void> {
+    const principal = this.principal(request);
     try {
       await this.service.remove({
         merchantId: principal.merchantId,
@@ -79,10 +72,11 @@ export class WebhookConfigurationController {
       throw problem(error);
     }
   }
-  private principal(authorization?: string) {
+  private principal(request: Request) {
     try {
-      if (!authorization?.startsWith('Bearer ')) throw new AuthError('AUTH_REQUIRED');
-      return this.auth.verifyAccessToken(authorization.slice(7));
+      const token = extractAccessToken(request);
+      if (!token) throw new AuthError('AUTH_REQUIRED');
+      return this.auth.verifyAccessToken(token);
     } catch {
       throw new ProblemException('AUTH_REQUIRED', 401, 'Authentication is required.');
     }

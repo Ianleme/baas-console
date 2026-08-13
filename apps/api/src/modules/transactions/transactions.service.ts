@@ -1,7 +1,8 @@
 import type { DataSource } from 'typeorm';
+import type { DatabaseService } from '../../database/database.service.js';
 import type { GatewayCredentialService } from '../gateway-accounts/gateway-credential.service.js';
 import type { StatementGatewayAdapter } from './adapters/lera-box-statement.adapter.js';
-import type { ListTransactionsDto } from './dto/list-transactions.dto.ts';
+import type { ListTransactionsDto } from './dto/list-transactions.dto.js';
 import {
   TransactionEntity,
   type TransactionOriginType,
@@ -32,10 +33,16 @@ export interface TransactionStatementView {
 
 export class TransactionsService {
   constructor(
-    private readonly dataSource: DataSource,
+    private readonly dbOrDataSource: DatabaseService | DataSource,
     private readonly gateway: StatementGatewayAdapter,
     private readonly credentials: GatewayCredentialService
   ) {}
+
+  private get dataSource(): DataSource {
+    return 'getDataSource' in this.dbOrDataSource
+      ? this.dbOrDataSource.getDataSource()
+      : this.dbOrDataSource;
+  }
 
   async list(merchantId: string, query: ListTransactionsDto): Promise<TransactionStatementView> {
     const capturedAt = new Date().toISOString();

@@ -14,6 +14,13 @@ import {
 } from '../../components/ui/dialog.js';
 import { Input } from '../../components/ui/input.js';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '../../components/ui/select.js';
+import {
   Table,
   TableBody,
   TableCell,
@@ -37,7 +44,7 @@ export interface WithdrawalRequestInput {
   amountCents: string;
   pixKey: string;
   pixKeyType: 'CPF' | 'CNPJ' | 'EMAIL' | 'PHONE' | 'RANDOM';
-  externalReference?: string;
+  externalReference?: string | undefined;
 }
 
 export interface WithdrawalsApi {
@@ -112,7 +119,7 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
     loadData();
   }, [api]);
 
-  const handleRequestSubmit = async (e: React.FormEvent) => {
+  const handleRequestSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setModalError(null);
 
@@ -139,12 +146,16 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
 
     setSubmitting(true);
     try {
-      await api.request({
+      const payload: WithdrawalRequestInput = {
         amountCents: String(requestedCents),
         pixKey: pixKey.trim(),
-        pixKeyType,
-        externalReference: reference.trim() || undefined
-      });
+        pixKeyType
+      };
+      if (reference.trim()) {
+        payload.externalReference = reference.trim();
+      }
+
+      await api.request(payload);
       setSubmitting(false);
       setOpenModal(false);
       setSuccessNotice(true);
@@ -296,7 +307,11 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
       {/* Withdrawal Request Modal */}
       <Dialog open={openModal} onOpenChange={setOpenModal}>
         <DialogContent className="sm:max-w-md">
-          <form onSubmit={handleRequestSubmit}>
+          <form
+            onSubmit={(e) => {
+              void handleRequestSubmit(e);
+            }}
+          >
             <DialogHeader>
               <DialogTitle>Solicitar Novo Saque</DialogTitle>
               <DialogDescription>
@@ -337,20 +352,23 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
               {/* Pix Key Type */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700">Tipo de Chave Pix</label>
-                <select
+                <Select
                   value={pixKeyType}
-                  onChange={(e) => {
-                    setPixKeyType(e.target.value as WithdrawalRequestInput['pixKeyType']);
+                  onValueChange={(value) => {
+                    setPixKeyType(value as WithdrawalRequestInput['pixKeyType']);
                   }}
-                  className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-                  aria-label="Tipo de Chave Pix"
                 >
-                  <option value="CPF">CPF</option>
-                  <option value="CNPJ">CNPJ</option>
-                  <option value="EMAIL">E-mail</option>
-                  <option value="PHONE">Telefone</option>
-                  <option value="RANDOM">Chave Aleatória (EVP)</option>
-                </select>
+                  <SelectTrigger aria-label="Tipo de Chave Pix">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CPF">CPF</SelectItem>
+                    <SelectItem value="CNPJ">CNPJ</SelectItem>
+                    <SelectItem value="EMAIL">E-mail</SelectItem>
+                    <SelectItem value="PHONE">Telefone</SelectItem>
+                    <SelectItem value="RANDOM">Chave Aleatória (EVP)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Pix Key Value */}

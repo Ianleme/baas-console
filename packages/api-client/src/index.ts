@@ -19,15 +19,32 @@ export interface BaasMemorySession {
   readonly clear: () => void;
 }
 
+const SESSION_STORAGE_KEY = 'baas_access_token';
+
 export function createBaasMemorySession(): BaasMemorySession {
   let accessToken = '';
+  try {
+    accessToken = globalThis.localStorage.getItem(SESSION_STORAGE_KEY) ?? '';
+  } catch {
+    // SSR or restricted storage — fall back to empty
+  }
   return {
     token: () => accessToken,
     setToken: (token) => {
       accessToken = token;
+      try {
+        globalThis.localStorage.setItem(SESSION_STORAGE_KEY, token);
+      } catch {
+        // ignore
+      }
     },
     clear: () => {
       accessToken = '';
+      try {
+        globalThis.localStorage.removeItem(SESSION_STORAGE_KEY);
+      } catch {
+        // ignore
+      }
     }
   };
 }
@@ -99,6 +116,14 @@ export function createAuthJourneyClient(options: BaasClientOptions) {
       }
       const result = (await response.json()) as { status?: unknown };
       return result.status === 'ACTIVE' ? 'ACTIVE' : 'PROFILE_MISMATCH';
+    },
+    async refresh(): Promise<boolean> {
+      try {
+        await post('/api/v1/auth/refresh', {});
+        return true;
+      } catch {
+        return false;
+      }
     }
   };
 }

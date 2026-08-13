@@ -8,11 +8,23 @@ import { Dashboard, approvalRate, type DashboardApi, type DashboardData } from '
 const populated: DashboardData = {
   wallet: { balanceCents: '2485072', capturedAt: '2026-08-12T16:30:00.000Z', stale: false },
   receivedCents: '342000',
+  receivedChangePercent: 12.4,
   approvedCount: 18,
   deniedCount: 1,
   pendingCount: 2,
   pixReceivedCents: '212040',
   cardReceivedCents: '129960',
+  pendingEvents: 0,
+  webhooksActive: true,
+  movement: [
+    { label: '18 mai', inCents: '120000', outCents: '40000' },
+    { label: '19 mai', inCents: '280000', outCents: '90000' },
+    { label: '20 mai', inCents: '190000', outCents: '70000' },
+    { label: '21 mai', inCents: '420000', outCents: '110000' },
+    { label: '22 mai', inCents: '310000', outCents: '150000' },
+    { label: '23 mai', inCents: '480000', outCents: '80000' },
+    { label: '24 mai', inCents: '360000', outCents: '130000' }
+  ],
   operations: [
     {
       id: '1',
@@ -20,7 +32,8 @@ const populated: DashboardData = {
       method: 'PIX',
       amountCents: '32000',
       status: 'APPROVED',
-      occurredAt: '2026-08-12T14:32:00.000Z'
+      occurredAt: '2026-08-12T14:32:00.000Z',
+      customerName: 'Marina Costa'
     },
     {
       id: '2',
@@ -28,7 +41,8 @@ const populated: DashboardData = {
       method: 'CARD',
       amountCents: '125000',
       status: 'DENIED',
-      occurredAt: '2026-08-12T13:18:00.000Z'
+      occurredAt: '2026-08-12T13:18:00.000Z',
+      customerName: 'João Ribeiro'
     }
   ]
 };
@@ -79,11 +93,12 @@ describe('Dashboard', () => {
     await ready();
     expect(
       screen.getByText('Aprovadas ÷ (aprovadas + negadas); pendentes não entram no cálculo.')
-    ).toBeVisible();
+    ).toBeInTheDocument();
   });
-  test('shows wallet refresh timestamp', async () => {
+  test('shows wallet availability copy and refresh timestamp', async () => {
     await ready();
-    expect(screen.getByText('Atualizado em 12/08/2026, 16:30')).toBeVisible();
+    expect(screen.getByText('Disponível para saque.')).toBeVisible();
+    expect(screen.getByText('Atualizado em 12/08/2026, 16:30')).toBeInTheDocument();
   });
   test('shows stale state without replacing balance', async () => {
     await ready({ ...populated, wallet: { ...populated.wallet, stale: true } });
@@ -104,7 +119,21 @@ describe('Dashboard', () => {
   });
   test('provides a textual composition summary', async () => {
     await ready();
-    expect(screen.getByText(/Pix representa 62% e cartão 38%/u)).toBeVisible();
+    expect(screen.getByText(/Pix representa 62% e cartão 38%/u)).toBeInTheDocument();
+  });
+  test('shows received trend when provided', async () => {
+    await ready();
+    expect(screen.getByText('+12,4%')).toBeVisible();
+  });
+  test('shows financial movement chart', async () => {
+    await ready();
+    expect(screen.getByRole('img', { name: 'Gráfico de entradas e saídas' })).toBeVisible();
+  });
+  test('shows operation health summary', async () => {
+    await ready();
+    expect(screen.getByText('Webhooks')).toBeVisible();
+    expect(screen.getByText('Ativos')).toBeVisible();
+    expect(screen.getByText('Ver integrações')).toBeVisible();
   });
   test('provides a transaction table alternative', async () => {
     await ready();
@@ -112,8 +141,13 @@ describe('Dashboard', () => {
   });
   test('uses text labels in addition to status colors', async () => {
     await ready();
-    expect(screen.getByText('Aprovada')).toBeVisible();
-    expect(screen.getByText('Negada')).toBeVisible();
+    expect(screen.getByText('Aprovado')).toBeVisible();
+    expect(screen.getByText('Negado')).toBeVisible();
+  });
+  test('shows customer names in recent transactions', async () => {
+    await ready();
+    expect(screen.getByText('Marina Costa')).toBeVisible();
+    expect(screen.getByText('João Ribeiro')).toBeVisible();
   });
   test('shows explicit empty operation state', async () => {
     await ready({ ...populated, operations: [] });
@@ -139,6 +173,11 @@ describe('Dashboard', () => {
     await userEvent.click(screen.getByRole('button', { name: '30 dias' }));
     expect(screen.getByRole('button', { name: '30 dias' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('R$ 24.850,72')).toBeVisible();
+  });
+  test('exposes extended period filters from the reference', async () => {
+    await ready();
+    expect(screen.getByRole('button', { name: 'Todo o período' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Personalizado' })).toBeVisible();
   });
   test('has no axe violations in populated state', async () => {
     const { container } = render(<Dashboard api={api()} />);

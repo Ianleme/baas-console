@@ -7,11 +7,21 @@ import { createApplicationDataSource } from './data-source.js';
 export class DatabaseService implements OnApplicationShutdown {
   private dataSource: DataSource | undefined;
 
-  async connect(): Promise<void> {
+  async connect(maxRetries = 10, initialDelayMs = 1000): Promise<void> {
     if (this.dataSource?.isInitialized) return;
     const dataSource = createApplicationDataSource();
-    await dataSource.initialize();
-    this.dataSource = dataSource;
+    let attempt = 0;
+    while (attempt < maxRetries) {
+      try {
+        await dataSource.initialize();
+        this.dataSource = dataSource;
+        return;
+      } catch (err) {
+        attempt++;
+        if (attempt >= maxRetries) throw err;
+        await new Promise((resolve) => setTimeout(resolve, initialDelayMs * Math.min(attempt, 5)));
+      }
+    }
   }
 
   getDataSource(): DataSource {

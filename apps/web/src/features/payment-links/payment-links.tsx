@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type SyntheticEvent } from 'react';
 import {
-  Bell,
   Check,
   Copy,
   CreditCard,
@@ -16,6 +15,13 @@ import { Button } from '../../components/ui/button.js';
 import { Card, CardContent } from '../../components/ui/card.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
 import { Input } from '../../components/ui/input.js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '../../components/ui/select.js';
 import {
   Table,
   TableBody,
@@ -74,6 +80,7 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
   const [cancelCandidate, setCancelCandidate] = useState<PaymentLinkView | null>(null);
   const [notice, setNotice] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [formMethods, setFormMethods] = useState<PaymentLinkView['methods']>('PIX');
 
   function loadLinks() {
     setState('loading');
@@ -209,15 +216,6 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
           >
             + Criar link de pagamento
           </Button>
-          <button
-            className="icon-button notification-btn relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-            type="button"
-            tabIndex={-1}
-            aria-label="Notificações"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="notification-dot absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-emerald-600 ring-2 ring-white" />
-          </button>
         </div>
       </header>
 
@@ -314,63 +312,57 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
           />
         </div>
 
-        <div className="select-wrapper border border-slate-200 rounded-lg bg-white px-2">
-          <label>
-            <span className="sr-only">Filtrar por status</span>
-            <select
-              className="filter-select bg-transparent py-2 text-sm font-medium text-slate-700 outline-none"
-              aria-label="Filtrar por status"
-              value={statusFilter}
-              onChange={(event) => {
-                setStatusFilter(event.target.value as typeof statusFilter);
-              }}
-            >
-              <option value="ALL">Todos os status</option>
-              <option value="ACTIVE">Ativos</option>
-              <option value="PAID">Pagos</option>
-              <option value="EXPIRED">Expirados</option>
-              <option value="CANCELLED">Cancelados</option>
-            </select>
-          </label>
-        </div>
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            setStatusFilter(value as typeof statusFilter);
+          }}
+        >
+          <SelectTrigger className="w-[170px]" aria-label="Filtrar por status">
+            <SelectValue placeholder="Todos os status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Todos os status</SelectItem>
+            <SelectItem value="ACTIVE">Ativos</SelectItem>
+            <SelectItem value="PAID">Pagos</SelectItem>
+            <SelectItem value="EXPIRED">Expirados</SelectItem>
+            <SelectItem value="CANCELLED">Cancelados</SelectItem>
+          </SelectContent>
+        </Select>
 
-        <div className="select-wrapper border border-slate-200 rounded-lg bg-white px-2">
-          <label>
-            <span className="sr-only">Filtrar por método</span>
-            <select
-              className="filter-select bg-transparent py-2 text-sm font-medium text-slate-700 outline-none"
-              aria-label="Filtrar por método"
-              value={methodFilter}
-              onChange={(event) => {
-                setMethodFilter(event.target.value as typeof methodFilter);
-              }}
-            >
-              <option value="ALL">Todos os métodos</option>
-              <option value="PIX">Pix</option>
-              <option value="CARD">Cartão</option>
-              <option value="PIX_CARD">Pix e cartão</option>
-            </select>
-          </label>
-        </div>
+        <Select
+          value={methodFilter}
+          onValueChange={(value) => {
+            setMethodFilter(value as typeof methodFilter);
+          }}
+        >
+          <SelectTrigger className="w-[170px]" aria-label="Filtrar por método">
+            <SelectValue placeholder="Todos os métodos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Todos os métodos</SelectItem>
+            <SelectItem value="PIX">Pix</SelectItem>
+            <SelectItem value="CARD">Cartão</SelectItem>
+            <SelectItem value="PIX_CARD">Pix e cartão</SelectItem>
+          </SelectContent>
+        </Select>
 
-        <div className="select-wrapper border border-slate-200 rounded-lg bg-white px-2">
-          <label>
-            <span className="sr-only">Filtrar por período</span>
-            <select
-              className="filter-select bg-transparent py-2 text-sm font-medium text-slate-700 outline-none"
-              aria-label="Filtrar por período"
-              value={dateFilter}
-              onChange={(event) => {
-                setDateFilter(event.target.value);
-              }}
-            >
-              <option value="30days">Últimos 30 dias</option>
-              <option value="7days">Últimos 7 dias</option>
-              <option value="month">Este mês</option>
-              <option value="all">Todo o período</option>
-            </select>
-          </label>
-        </div>
+        <Select
+          value={dateFilter}
+          onValueChange={(value) => {
+            setDateFilter(value);
+          }}
+        >
+          <SelectTrigger className="w-[170px]" aria-label="Filtrar por período">
+            <SelectValue placeholder="Últimos 30 dias" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="30days">Últimos 30 dias</SelectItem>
+            <SelectItem value="7days">Últimos 7 dias</SelectItem>
+            <SelectItem value="month">Este mês</SelectItem>
+            <SelectItem value="all">Todo o período</SelectItem>
+          </SelectContent>
+        </Select>
 
         <Button variant="outline" className="secondary-filter-btn flex items-center gap-2">
           <SlidersHorizontal className="h-4 w-4" />
@@ -569,17 +561,25 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
                 placeholder="Ex: 35000 para R$ 350,00"
               />
             </label>
-            <label className="flex flex-col text-sm font-semibold text-slate-700 gap-1">
-              Métodos
-              <select
-                name="methods"
-                className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            <fieldset className="flex flex-col text-sm font-semibold text-slate-700 gap-1">
+              <legend className="text-sm font-semibold text-slate-700">Métodos</legend>
+              <input type="hidden" name="methods" value={formMethods} />
+              <Select
+                value={formMethods}
+                onValueChange={(value) => {
+                  setFormMethods(value as PaymentLinkView['methods']);
+                }}
               >
-                <option value="PIX">Pix</option>
-                <option value="CARD">Cartão</option>
-                <option value="PIX_CARD">Pix e cartão</option>
-              </select>
-            </label>
+                <SelectTrigger aria-label="Métodos de pagamento">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PIX">Pix</SelectItem>
+                  <SelectItem value="CARD">Cartão</SelectItem>
+                  <SelectItem value="PIX_CARD">Pix e cartão</SelectItem>
+                </SelectContent>
+              </Select>
+            </fieldset>
             <label className="flex flex-col text-sm font-semibold text-slate-700 gap-1">
               Parcelas
               <Input name="maxInstallments" type="number" min="1" max="21" defaultValue="1" />

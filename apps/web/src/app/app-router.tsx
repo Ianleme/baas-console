@@ -60,6 +60,14 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!authenticated) {
+      void clients.auth.refresh?.().then((success) => {
+        if (success) setAuthenticated(true);
+      });
+    }
+  }, [authenticated, clients.auth]);
+
   if (!authenticated) {
     return (
       <AuthJourney

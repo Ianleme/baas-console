@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -7,9 +7,11 @@ import {
   ApiTags
 } from '@nestjs/swagger';
 import { IsDateString, IsIn, IsInt, IsString, Length, Max, Min } from 'class-validator';
+import type { Request } from 'express';
 
 import { ProblemException } from '../../platform/errors/problem.exception.js';
 import { AuthError, AuthService } from '../auth/auth.service.js';
+import { extractAccessToken } from '../auth/extract-token.js';
 import {
   CheckoutLinkError,
   CheckoutLinkService,
@@ -37,18 +39,15 @@ export class CheckoutLinkController {
   @Get()
   @ApiOperation({ summary: 'List checkout links for the authenticated merchant' })
   @ApiOkResponse({ description: 'Tenant-scoped checkout links' })
-  async list(@Headers('authorization') authorization?: string) {
-    return (await this.links.list(this.merchant(authorization))).map(publicRecord);
+  async list(@Req() request: Request) {
+    return (await this.links.list(this.merchant(request))).map(publicRecord);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a tenant-scoped checkout link' })
-  async detail(
-    @Headers('authorization') authorization: string | undefined,
-    @Param('id') id: string
-  ) {
+  async detail(@Req() request: Request, @Param('id') id: string) {
     try {
-      return publicRecord(await this.links.detail(this.merchant(authorization), id));
+      return publicRecord(await this.links.detail(this.merchant(request), id));
     } catch (error) {
       throw problem(error);
     }
@@ -56,12 +55,9 @@ export class CheckoutLinkController {
 
   @Post()
   @ApiCreatedResponse({ description: 'Checkout link and one-time public fragment token' })
-  async create(
-    @Headers('authorization') authorization: string | undefined,
-    @Body() input: CreateCheckoutLinkDto
-  ) {
+  async create(@Req() request: Request, @Body() input: CreateCheckoutLinkDto) {
     try {
-      const created = await this.links.create(this.merchant(authorization), {
+      const created = await this.links.create(this.merchant(request), {
         publicReference: input.publicReference,
         description: input.description,
         amountCents: input.amountCents,
@@ -77,21 +73,19 @@ export class CheckoutLinkController {
 
   @Post(':id/cancel')
   @ApiOkResponse({ description: 'Checkout link cancelled when no unresolved attempt exists' })
-  async cancel(
-    @Headers('authorization') authorization: string | undefined,
-    @Param('id') id: string
-  ) {
+  async cancel(@Req() request: Request, @Param('id') id: string) {
     try {
-      return publicRecord(await this.links.cancel(this.merchant(authorization), id));
+      return publicRecord(await this.links.cancel(this.merchant(request), id));
     } catch (error) {
       throw problem(error);
     }
   }
 
-  private merchant(authorization: string | undefined): string {
+  private merchant(request: Request): string {
     try {
-      if (!authorization?.startsWith('Bearer ')) throw new AuthError('AUTH_REQUIRED');
-      return this.auth.verifyAccessToken(authorization.slice(7)).merchantId;
+      const token = extractAccessToken(request);
+      if (!token) throw new AuthError('AUTH_REQUIRED');
+      return this.auth.verifyAccessToken(token).merchantId;
     } catch {
       throw new ProblemException('AUTH_REQUIRED', 401, 'Authentication is required.');
     }

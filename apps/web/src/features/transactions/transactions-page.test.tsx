@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import axe from 'axe-core';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import {
@@ -161,10 +161,14 @@ describe('TransactionsPage', () => {
     render(<TransactionsPage api={api} />);
     await screen.findByText('REF-001');
 
-    const select = screen.getByLabelText('Filtrar por status');
-    await user.selectOptions(select, 'APPROVED');
+    const trigger = screen.getByRole('combobox', { name: 'Filtrar por status' });
+    await user.click(trigger);
+    const option = await screen.findByRole('option', { name: 'Aprovadas' });
+    await user.click(option);
 
-    expect(api.list).toHaveBeenCalledWith(expect.objectContaining({ status: 'APPROVED' }));
+    await waitFor(() => {
+      expect(api.list).toHaveBeenCalledWith(expect.objectContaining({ status: 'APPROVED' }));
+    });
   });
 
   it('filters by type select dropdown', async () => {
@@ -173,10 +177,14 @@ describe('TransactionsPage', () => {
     render(<TransactionsPage api={api} />);
     await screen.findByText('REF-001');
 
-    const select = screen.getByLabelText('Filtrar por tipo');
-    await user.selectOptions(select, 'CREDIT');
+    const trigger = screen.getByRole('combobox', { name: 'Filtrar por tipo' });
+    await user.click(trigger);
+    const option = await screen.findByRole('option', { name: 'Crédito (Entrada)' });
+    await user.click(option);
 
-    expect(api.list).toHaveBeenCalledWith(expect.objectContaining({ type: 'CREDIT' }));
+    await waitFor(() => {
+      expect(api.list).toHaveBeenCalledWith(expect.objectContaining({ type: 'CREDIT' }));
+    });
   });
 
   it('filters by origin select dropdown', async () => {
@@ -185,10 +193,14 @@ describe('TransactionsPage', () => {
     render(<TransactionsPage api={api} />);
     await screen.findByText('REF-001');
 
-    const select = screen.getByLabelText('Filtrar por origem');
-    await user.selectOptions(select, 'PAYMENT');
+    const trigger = screen.getByRole('combobox', { name: 'Filtrar por origem' });
+    await user.click(trigger);
+    const option = await screen.findByRole('option', { name: 'Pagamentos' });
+    await user.click(option);
 
-    expect(api.list).toHaveBeenCalledWith(expect.objectContaining({ originType: 'PAYMENT' }));
+    await waitFor(() => {
+      expect(api.list).toHaveBeenCalledWith(expect.objectContaining({ originType: 'PAYMENT' }));
+    });
   });
 
   it('has no automated axe-core accessibility violations', async () => {

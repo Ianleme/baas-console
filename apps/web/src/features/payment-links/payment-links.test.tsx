@@ -96,16 +96,28 @@ describe('PaymentLinks', () => {
     expect(screen.queryByText('Consultoria mensal')).not.toBeInTheDocument();
   });
   test('filters by status', async () => {
+    const user = userEvent.setup();
     await renderReady();
-    await userEvent.selectOptions(screen.getByLabelText('Filtrar por status'), 'PAID');
-    expect(screen.getByText('Consultoria mensal')).toBeVisible();
-    expect(screen.queryByText('Pedido #1048')).not.toBeInTheDocument();
+    const trigger = screen.getByRole('combobox', { name: 'Filtrar por status' });
+    await user.click(trigger);
+    const option = await screen.findByRole('option', { name: 'Pagos' });
+    await user.click(option);
+    await waitFor(() => {
+      expect(screen.getByText('Consultoria mensal')).toBeVisible();
+      expect(screen.queryByText('Pedido #1048')).not.toBeInTheDocument();
+    });
   });
   test('filters by method', async () => {
+    const user = userEvent.setup();
     await renderReady();
-    await userEvent.selectOptions(screen.getByLabelText('Filtrar por método'), 'PIX');
-    expect(screen.getByText('Pedido #1048')).toBeVisible();
-    expect(screen.queryByText('Consultoria mensal')).not.toBeInTheDocument();
+    const trigger = screen.getByRole('combobox', { name: 'Filtrar por método' });
+    await user.click(trigger);
+    const option = await screen.findByRole('option', { name: 'Pix' });
+    await user.click(option);
+    await waitFor(() => {
+      expect(screen.getByText('Pedido #1048')).toBeVisible();
+      expect(screen.queryByText('Consultoria mensal')).not.toBeInTheDocument();
+    });
   });
   test('opens the creation form from the primary action', async () => {
     await renderReady();

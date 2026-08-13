@@ -135,11 +135,11 @@ export function AppShell({ content, activePath }: AppShellProps) {
         <Menu className="h-5 w-5 text-slate-700" aria-hidden="true" />
       </button>
       <aside
-        className={`sidebar fixed inset-y-0 left-0 top-11 z-50 flex w-64 flex-col border-r border-slate-200 bg-[#f8fafc] p-4 transition-transform duration-200 ease-in-out ${
+        className={`sidebar fixed inset-y-0 left-0 top-11 z-50 flex w-[15.5rem] flex-col border-r border-slate-200 bg-[#f7f8f7] px-3 py-4 transition-transform duration-200 ease-in-out ${
           navigationOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
-        <div className="sidebar__head flex items-center justify-between pb-4">
+        <div className="sidebar__head flex items-center justify-between px-1 pb-5">
           <BrandMark />
           <button
             className="sidebar__close flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-200 md:hidden"
@@ -152,21 +152,21 @@ export function AppShell({ content, activePath }: AppShellProps) {
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="merchant-context border-b border-slate-200 pb-4 mb-4 flex flex-col gap-1">
-          <span className="eyebrow text-[0.68rem] font-bold tracking-wider text-slate-400 uppercase">
-            CONTA
+        <div className="merchant-context mx-1 mb-4 border-b border-slate-200 pb-4 flex flex-col gap-1">
+          <span className="text-[0.65rem] font-bold tracking-[0.12em] text-slate-400 uppercase">
+            Conta
           </span>
-          <strong className="merchant-name text-base font-bold text-slate-900">
+          <strong className="merchant-name text-[0.95rem] font-bold text-slate-900">
             {profile.merchantName}
           </strong>
           <span
             className={`merchant-context__state flex items-center gap-1.5 text-xs font-semibold ${
-              profile.verified ? 'text-emerald-600' : 'text-slate-500'
+              profile.verified ? 'text-[#0f8a5f]' : 'text-slate-500'
             }`}
           >
             {profile.verified ? (
               <>
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-[#0f8a5f]" />
                 Conta verificada
               </>
             ) : (
@@ -179,11 +179,11 @@ export function AppShell({ content, activePath }: AppShellProps) {
         <nav
           id="primary-navigation"
           aria-label="Navegação principal"
-          className="flex-1 space-y-4 overflow-y-auto"
+          className="flex-1 space-y-5 overflow-y-auto px-0.5"
         >
           {navSections.map((section) => (
             <div key={section.title} className="sidebar-section space-y-1">
-              <span className="eyebrow text-[0.68rem] font-bold tracking-wider text-slate-400 uppercase px-2">
+              <span className="px-2.5 text-[0.65rem] font-bold tracking-[0.12em] text-slate-400 uppercase">
                 {section.title}
               </span>
               <ul className="navigation-list space-y-0.5">
@@ -196,10 +196,10 @@ export function AppShell({ content, activePath }: AppShellProps) {
                   return (
                     <li key={item.href}>
                       <a
-                        className={`navigation-link flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                        className={`navigation-link relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                           isActive
-                            ? 'navigation-link--active bg-[#d8f3dc] text-[#005c47]'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                            ? 'navigation-link--active bg-[#e8fbd1] text-[#005c47] before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-full before:bg-[#006b57]'
+                            : 'text-slate-600 hover:bg-white/80 hover:text-slate-900'
                         }`}
                         href={item.href}
                       >
@@ -215,28 +215,28 @@ export function AppShell({ content, activePath }: AppShellProps) {
             </div>
           ))}
         </nav>
-        <footer className="sidebar__footer border-t border-slate-200 pt-4 flex items-center justify-between mt-auto">
-          <div className="user-profile flex items-center gap-3">
+        <footer className="sidebar__footer mx-1 mt-auto border-t border-slate-200 pt-4 flex items-center justify-between gap-2">
+          <div className="user-profile flex min-w-0 items-center gap-2.5">
             <span
-              className="sidebar__avatar flex h-9 w-9 items-center justify-center rounded-full bg-[#005c47] text-xs font-bold text-white"
+              className="sidebar__avatar flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#005c47] text-[0.7rem] font-bold text-white"
               aria-hidden="true"
             >
               {profile.initials}
             </span>
-            <div className="user-info flex flex-col">
-              <strong className="text-sm font-semibold text-slate-900 leading-tight">
+            <div className="user-info flex min-w-0 flex-col">
+              <strong className="truncate text-sm font-semibold leading-tight text-slate-900">
                 {profile.userName}
               </strong>
-              <small className="text-xs text-slate-500">Proprietário</small>
+              <small className="text-xs text-slate-500">Administrador</small>
             </div>
           </div>
           <a
-            className="logout-button flex items-center gap-1.5 rounded-md p-1.5 text-xs font-semibold text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+            className="logout-button inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-xs font-semibold text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
             href="#/logout"
             aria-label="Sair"
           >
-            <LogOut className="h-4 w-4" />
-            <span>Sair</span>
+            <LogOut className="h-3.5 w-3.5" />
+            Sair
           </a>
         </footer>
       </aside>
@@ -250,11 +250,11 @@ export function AppShell({ content, activePath }: AppShellProps) {
           }}
         />
       )}
-      <div className="md:pl-64 w-full min-w-0 flex flex-col flex-1">
+      <div className="md:pl-[15.5rem] w-full min-w-0 flex flex-col flex-1">
         <main
           id="main-content"
           tabIndex={-1}
-          className="flex-1 p-6 md:p-8 lg:p-10 w-full max-w-[1700px] mx-auto space-y-6"
+          className="flex-1 p-5 md:p-7 lg:p-8 w-full max-w-[1600px] mx-auto space-y-5"
         >
           {content ?? (
             <>

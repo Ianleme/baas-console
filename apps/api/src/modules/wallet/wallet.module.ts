@@ -35,7 +35,8 @@ export const GATEWAY_WALLET = Symbol('GATEWAY_WALLET');
       ) => new WalletService(gateway, store, credentials)
     },
     { provide: 'WalletPrincipalProvider', useClass: BearerWalletPrincipal }
-  ]
+  ],
+  exports: [WalletService]
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class -- Nest requires a decorated runtime module.
 export class WalletModule {}

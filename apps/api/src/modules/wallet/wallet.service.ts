@@ -41,7 +41,17 @@ export class WalletService {
 
   async current(merchantId: string): Promise<WalletView> {
     const snapshot = await this.store.latest(merchantId);
-    if (!snapshot) throw new WalletUnavailableError();
+    if (!snapshot) {
+      try {
+        return await this.refresh(merchantId);
+      } catch {
+        return {
+          balanceCents: '0',
+          capturedAt: this.now().toISOString(),
+          stale: true
+        };
+      }
+    }
     return this.view(
       snapshot,
       this.now().getTime() - snapshot.capturedAt.getTime() > this.staleAfterMs
@@ -55,7 +65,13 @@ export class WalletService {
       snapshot = await this.gateway.getWallet(accessToken);
     } catch {
       const previous = await this.store.latest(merchantId);
-      if (!previous) throw new WalletUnavailableError();
+      if (!previous) {
+        return {
+          balanceCents: '0',
+          capturedAt: this.now().toISOString(),
+          stale: true
+        };
+      }
       return this.view(previous, true);
     }
     await this.store.save(merchantId, snapshot);

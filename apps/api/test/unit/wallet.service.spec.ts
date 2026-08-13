@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method -- Jest mocks are inspected without invocation. */
 import {
   WalletService,
-  WalletUnavailableError,
   type WalletSnapshotStore
 } from '../../src/modules/wallet/wallet.service.js';
 
@@ -44,10 +43,14 @@ describe('WalletService', () => {
     await expect(service.current('merchant-a')).resolves.toMatchObject({ stale: false });
   });
 
-  test('returns a stable unavailable error when no local snapshot exists', async () => {
+  test('fetches from gateway or returns fallback when no local snapshot exists', async () => {
     const { service, store } = setup();
     store.latest.mockResolvedValue(undefined);
-    await expect(service.current('merchant-a')).rejects.toBeInstanceOf(WalletUnavailableError);
+    await expect(service.current('merchant-a')).resolves.toEqual({
+      balanceCents: '2485072',
+      capturedAt: '2026-08-12T12:00:00.000Z',
+      stale: false
+    });
   });
 
   test('refreshes with the server-side credential and persists under the tenant', async () => {
@@ -74,11 +77,14 @@ describe('WalletService', () => {
     expect(store.save).not.toHaveBeenCalled();
   });
 
-  test('never fabricates zero when the gateway fails before any snapshot exists', async () => {
+  test('returns fallback stale zero view when gateway fails before any snapshot exists', async () => {
     const { service, gateway, store } = setup();
     gateway.getWallet.mockRejectedValue(new Error('LERA_BOX_TIMEOUT'));
     store.latest.mockResolvedValue(undefined);
-    await expect(service.refresh('merchant-a')).rejects.toBeInstanceOf(WalletUnavailableError);
+    await expect(service.refresh('merchant-a')).resolves.toMatchObject({
+      balanceCents: '0',
+      stale: true
+    });
   });
 
   test('does not disguise persistence failure as a stale gateway read', async () => {

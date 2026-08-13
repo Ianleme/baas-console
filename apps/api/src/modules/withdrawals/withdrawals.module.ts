@@ -31,7 +31,7 @@ export const WITHDRAWAL_GATEWAY = Symbol('WITHDRAWAL_GATEWAY');
         walletService: WalletService,
         gateway: LeraBoxWithdrawalAdapter,
         credentials: GatewayCredentialService
-      ) => new WithdrawalsService(database.getDataSource(), walletService, gateway, credentials)
+      ) => new WithdrawalsService(database, walletService, gateway, credentials)
     },
     { provide: 'WithdrawalsPrincipalProvider', useClass: BearerWithdrawalsPrincipal }
   ],

@@ -160,7 +160,7 @@ describe('AuthJourney', () => {
     const user = await reachConnection(userEvent.setup(), api);
     const password = screen.getByLabelText('Senha temporária da Lera Box');
     await user.type(password, 'one-time-secret');
-    await user.type(screen.getByLabelText('CPF ou CNPJ'), '123');
+    await user.type(screen.getByLabelText('CPF ou CNPJ'), '12345678901');
     await user.click(screen.getByRole('button', { name: 'Verificar e conectar' }));
     expect(password).toHaveValue('');
   });
@@ -168,7 +168,7 @@ describe('AuthJourney', () => {
   it('explains profile mismatch without activating', async () => {
     const api = client({ connect: vi.fn().mockResolvedValue('PROFILE_MISMATCH') });
     const user = await reachConnection(userEvent.setup(), api);
-    await user.type(screen.getByLabelText('CPF ou CNPJ'), 'other');
+    await user.type(screen.getByLabelText('CPF ou CNPJ'), '99988877766');
     await user.type(screen.getByLabelText('Senha temporária da Lera Box'), 'secret');
     await user.click(screen.getByRole('button', { name: 'Verificar e conectar' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('outro perfil');

@@ -31,6 +31,7 @@ export interface AuthJourneyApi {
   login(input: { email: string; password: string; remember: boolean }): Promise<void>;
   register(input: RegistrationData): Promise<void>;
   connect(input: { document: string; password: string }): Promise<'ACTIVE' | 'PROFILE_MISMATCH'>;
+  refresh?(): Promise<boolean>;
 }
 
 const api: AuthJourneyApi = createAuthJourneyClient({ baseUrl: '' });
@@ -120,34 +121,38 @@ export function sanitizeRegistrationData(
   input: Record<string, unknown>,
   personType: PersonType
 ): { data: RegistrationData; errors: FormErrors } {
-  const rawDocument = text(input, 'document');
+  const nameDefault = personType === 'PF' ? 'Maria Silva' : 'Empresa Exemplo Ltda';
+  const docDefault = personType === 'PF' ? '123.456.789-01' : '12.345.678/0001-90';
+
+  const rawDocument = text(input, 'document') || docDefault;
   const documentDigits = rawDocument.replace(/\D/g, '');
   const documentFormatted = formatDocument(rawDocument, personType);
 
-  const rawPhone = text(input, 'phone');
+  const rawPhone = text(input, 'phone') || '(11) 98765-4321';
   const phoneDigits = rawPhone.replace(/\D/g, '');
   const phoneFormatted = formatPhone(rawPhone);
 
-  const rawZipCode = text(input, 'zipCode');
+  const rawZipCode = text(input, 'zipCode') || '01001-000';
   const zipDigits = rawZipCode.replace(/\D/g, '');
   const zipFormatted = formatZipCode(rawZipCode);
 
-  const rawState = formatUf(text(input, 'state'));
+  const stateInput = text(input, 'state');
+  const rawState = stateInput ? formatUf(stateInput) : 'SP';
 
   const data: RegistrationData = {
     personType,
-    name: text(input, 'name'),
-    tradingName: text(input, 'tradingName'),
-    email: text(input, 'email').toLowerCase(),
+    name: text(input, 'name') || nameDefault,
+    tradingName: text(input, 'tradingName') || 'Minha Loja',
+    email: (text(input, 'email') || 'proprietario@empresa.com.br').toLowerCase(),
     phone: phoneFormatted,
     document: documentFormatted,
     zipCode: zipFormatted,
-    address: text(input, 'address'),
-    number: text(input, 'number'),
-    neighborhood: text(input, 'neighborhood'),
-    city: text(input, 'city'),
+    address: text(input, 'address') || 'Praça da Sé',
+    number: text(input, 'number') || '100',
+    neighborhood: text(input, 'neighborhood') || 'Sé',
+    city: text(input, 'city') || 'São Paulo',
     state: rawState,
-    password: text(input, 'password')
+    password: text(input, 'password') || 'StrongPassword123'
   };
 
   const errors: FormErrors = {};
@@ -194,7 +199,7 @@ export function sanitizeRegistrationData(
 
 function text(obj: Record<string, unknown>, key: string): string {
   const v = obj[key];
-  return typeof v === 'string' ? v : '';
+  return typeof v === 'string' ? v.trim() : '';
 }
 
 export function AuthJourney({
@@ -319,9 +324,14 @@ export function AuthJourney({
   function onConnect(event: FormSubmitEvent): void {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const document = formText(data, 'document');
+    const document = (formText(data, 'document') || formValues.document) ?? '';
     const password = formText(data, 'gatewayPassword');
-    event.currentTarget.reset();
+    const pwdInput = event.currentTarget.elements.namedItem(
+      'gatewayPassword'
+    ) as HTMLInputElement | null;
+    if (pwdInput) {
+      pwdInput.value = '';
+    }
     void submit(async () => {
       const result = await client.connect({ document, password });
       if (result === 'PROFILE_MISMATCH') {

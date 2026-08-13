@@ -1,8 +1,10 @@
-import { Body, Controller, Headers, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsString, Length } from 'class-validator';
+import type { Request } from 'express';
 import { ProblemException } from '../../platform/errors/problem.exception.js';
 import { AuthError, AuthService } from '../auth/auth.service.js';
+import { extractAccessToken } from '../auth/extract-token.js';
 import { GatewayOnboardingError, GatewayOnboardingService } from './gateway-onboarding.service.js';
 
 class ConnectGatewayDto {
@@ -23,11 +25,13 @@ export class GatewayAccountController {
   @ApiOperation({ summary: 'Verify and connect the current merchant gateway account' })
   @ApiOkResponse({ description: 'Gateway profile verified and credentials encrypted' })
   async connect(
-    @Headers('authorization') authorization: string | undefined,
+    @Req() request: Request,
     @Body() input: ConnectGatewayDto
   ): Promise<{ status: 'ACTIVE' }> {
     try {
-      const principal = this.auth.verifyAccessToken(bearer(authorization));
+      const token = extractAccessToken(request);
+      if (!token) throw new AuthError('AUTH_REQUIRED');
+      const principal = this.auth.verifyAccessToken(token);
       await this.onboarding.connect(principal.merchantId, input.document, input.password);
       return { status: 'ACTIVE' };
     } catch (error) {
@@ -38,8 +42,4 @@ export class GatewayAccountController {
       throw error;
     }
   }
-}
-function bearer(value: string | undefined): string {
-  if (!value?.startsWith('Bearer ')) throw new AuthError('AUTH_REQUIRED');
-  return value.slice(7);
 }

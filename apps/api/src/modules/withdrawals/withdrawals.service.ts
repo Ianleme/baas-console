@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { DataSource } from 'typeorm';
-
+import type { DatabaseService } from '../../database/database.service.js';
 import { ProblemException } from '../../platform/errors/problem.exception.js';
 import type { GatewayCredentialService } from '../gateway-accounts/gateway-credential.service.js';
 import { TransactionEntity } from '../transactions/entities/transaction.entity.js';
@@ -22,11 +22,17 @@ export interface WithdrawalView {
 
 export class WithdrawalsService {
   constructor(
-    private readonly dataSource: DataSource,
+    private readonly dbOrDataSource: DatabaseService | DataSource,
     private readonly walletService: WalletService,
     private readonly gateway: WithdrawalGatewayAdapter,
     private readonly credentials: GatewayCredentialService
   ) {}
+
+  private get dataSource(): DataSource {
+    return 'getDataSource' in this.dbOrDataSource
+      ? this.dbOrDataSource.getDataSource()
+      : this.dbOrDataSource;
+  }
 
   async requestWithdrawal(merchantId: string, dto: CreateWithdrawalDto): Promise<WithdrawalView> {
     const requestedCents = BigInt(dto.amountCents);

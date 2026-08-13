@@ -9,6 +9,8 @@ import { GatewayCredentialService } from '../gateway-accounts/gateway-credential
 import type { ReconciliationPrincipalProvider } from './reconciliation.controller.js';
 import { ReconciliationService, type ReconciliationStore } from './reconciliation.service.js';
 
+import { extractAccessToken } from '../auth/extract-token.js';
+
 @Injectable({ scope: Scope.REQUEST })
 export class BearerReconciliationPrincipal implements ReconciliationPrincipalProvider {
   constructor(
@@ -16,11 +18,10 @@ export class BearerReconciliationPrincipal implements ReconciliationPrincipalPro
     private readonly auth: AuthService
   ) {}
   current() {
-    const authorization = this.request.headers.authorization;
-    if (!authorization?.startsWith('Bearer '))
-      throw new ProblemException('AUTH_REQUIRED', 401, 'Authentication is required.');
+    const token = extractAccessToken(this.request);
+    if (!token) throw new ProblemException('AUTH_REQUIRED', 401, 'Authentication is required.');
     try {
-      const principal = this.auth.verifyAccessToken(authorization.slice(7));
+      const principal = this.auth.verifyAccessToken(token);
       return { merchantId: principal.merchantId, gatewayAccessToken: '' };
     } catch {
       throw new ProblemException('AUTH_REQUIRED', 401, 'Authentication is required.');

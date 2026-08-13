@@ -23,8 +23,10 @@ import {
 import { TypeOrmAuthStore } from './typeorm-auth.store.js';
 import { GatewayOnboardingService } from '../gateway-accounts/gateway-onboarding.service.js';
 
-const REFRESH_COOKIE = '__Host-baas_refresh';
-const CSRF_COOKIE = '__Host-baas_csrf';
+const isProduction = process.env.NODE_ENV === 'production';
+const ACCESS_COOKIE = isProduction ? '__Host-baas_access' : 'baas_access';
+const REFRESH_COOKIE = isProduction ? '__Host-baas_refresh' : 'baas_refresh';
+const CSRF_COOKIE = isProduction ? '__Host-baas_csrf' : 'baas_csrf';
 const COOKIE_PATH = '/';
 
 export class RegisterOwnerDto {
@@ -130,13 +132,13 @@ export class AuthController {
   ): Promise<Record<string, unknown>> {
     try {
       const cookies = parseCookies(request.headers.cookie);
+      const refreshTok =
+        cookies[REFRESH_COOKIE] ?? cookies['__Host-baas_refresh'] ?? cookies.baas_refresh ?? '';
+      const csrfTok =
+        cookies[CSRF_COOKIE] ?? cookies['__Host-baas_csrf'] ?? cookies.baas_csrf ?? '';
       return this.writeSession(
         response,
-        await this.auth.rotate(
-          cookies[REFRESH_COOKIE] ?? '',
-          cookies[CSRF_COOKIE] ?? '',
-          csrfHeader ?? ''
-        )
+        await this.auth.rotate(refreshTok, csrfTok, csrfHeader ?? '')
       );
     } catch (error) {
       if (error instanceof AuthError) throw this.problem(error);
@@ -153,12 +155,11 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response
   ): Promise<void> {
     const cookies = parseCookies(request.headers.cookie);
+    const refreshTok =
+      cookies[REFRESH_COOKIE] ?? cookies['__Host-baas_refresh'] ?? cookies.baas_refresh ?? '';
+    const csrfTok = cookies[CSRF_COOKIE] ?? cookies['__Host-baas_csrf'] ?? cookies.baas_csrf ?? '';
     try {
-      await this.auth.logout(
-        cookies[REFRESH_COOKIE] ?? '',
-        cookies[CSRF_COOKIE] ?? '',
-        csrfHeader ?? ''
-      );
+      await this.auth.logout(refreshTok, csrfTok, csrfHeader ?? '');
       clearSessionCookies(response);
     } catch (error) {
       if (error instanceof AuthError) throw this.problem(error);
@@ -175,10 +176,13 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response
   ): Promise<void> {
     const cookies = parseCookies(request.headers.cookie);
+    const refreshTok =
+      cookies[REFRESH_COOKIE] ?? cookies['__Host-baas_refresh'] ?? cookies.baas_refresh ?? '';
+    const csrfTok = cookies[CSRF_COOKIE] ?? cookies['__Host-baas_csrf'] ?? cookies.baas_csrf ?? '';
     try {
-      const session = await this.store.findSessionHash(cookies[REFRESH_COOKIE] ?? '');
+      const session = await this.store.findSessionHash(refreshTok);
       if (!session || session.revokedAt) throw new AuthError('SESSION_INVALID');
-      await this.auth.logoutAll(session.userId, cookies[CSRF_COOKIE] ?? '', csrfHeader ?? '');
+      await this.auth.logoutAll(session.userId, csrfTok, csrfHeader ?? '');
       clearSessionCookies(response);
     } catch (error) {
       if (error instanceof AuthError) throw this.problem(error);
@@ -187,17 +191,25 @@ export class AuthController {
   }
 
   private writeSession(response: Response, session: IssuedSession): Record<string, unknown> {
+    const isSecure = isProduction || process.env.COOKIE_SECURE === 'true';
+    response.cookie(ACCESS_COOKIE, session.accessToken, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'lax',
+      path: COOKIE_PATH,
+      expires: session.accessExpiresAt
+    });
     response.cookie(REFRESH_COOKIE, session.refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
+      secure: isSecure,
+      sameSite: 'lax',
       path: COOKIE_PATH,
       expires: session.refreshExpiresAt
     });
     response.cookie(CSRF_COOKIE, session.csrfToken, {
       httpOnly: false,
-      secure: true,
-      sameSite: 'strict',
+      secure: isSecure,
+      sameSite: 'lax',
       path: COOKIE_PATH,
       expires: session.refreshExpiresAt
     });
@@ -270,13 +282,41 @@ function parseCookies(header: string | undefined): Record<string, string> {
   return result;
 }
 function clearSessionCookies(response: Response): void {
+  const isSecure = isProduction || process.env.COOKIE_SECURE === 'true';
+  response.clearCookie(ACCESS_COOKIE, {
+    httpOnly: true,
+    secure: isSecure,
+    sameSite: 'lax',
+    path: COOKIE_PATH
+  });
   response.clearCookie(REFRESH_COOKIE, {
+    httpOnly: true,
+    secure: isSecure,
+    sameSite: 'lax',
+    path: COOKIE_PATH
+  });
+  response.clearCookie(CSRF_COOKIE, {
+    secure: isSecure,
+    sameSite: 'lax',
+    path: COOKIE_PATH
+  });
+  response.clearCookie('__Host-baas_access', {
     httpOnly: true,
     secure: true,
     sameSite: 'strict',
     path: COOKIE_PATH
   });
-  response.clearCookie(CSRF_COOKIE, { secure: true, sameSite: 'strict', path: COOKIE_PATH });
+  response.clearCookie('__Host-baas_refresh', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+    path: COOKIE_PATH
+  });
+  response.clearCookie('__Host-baas_csrf', {
+    secure: true,
+    sameSite: 'strict',
+    path: COOKIE_PATH
+  });
 }
 function isDuplicateEntry(error: unknown): boolean {
   return (

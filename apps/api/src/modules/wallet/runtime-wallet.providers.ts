@@ -6,6 +6,8 @@ import { ProblemException } from '../../platform/errors/problem.exception.js';
 import { AuthService } from '../auth/auth.service.js';
 import type { WalletPrincipalProvider } from './wallet.controller.js';
 
+import { extractAccessToken } from '../auth/extract-token.js';
+
 @Injectable({ scope: Scope.REQUEST })
 export class BearerWalletPrincipal implements WalletPrincipalProvider {
   constructor(
@@ -14,12 +16,12 @@ export class BearerWalletPrincipal implements WalletPrincipalProvider {
   ) {}
 
   current(): { merchantId: string } {
-    const authorization = this.request.headers.authorization;
-    if (!authorization?.startsWith('Bearer ')) {
+    const token = extractAccessToken(this.request);
+    if (!token) {
       throw new ProblemException('AUTH_REQUIRED', 401, 'Authentication is required.');
     }
     try {
-      const principal = this.auth.verifyAccessToken(authorization.slice(7));
+      const principal = this.auth.verifyAccessToken(token);
       return { merchantId: principal.merchantId };
     } catch {
       throw new ProblemException('AUTH_REQUIRED', 401, 'Authentication is required.');

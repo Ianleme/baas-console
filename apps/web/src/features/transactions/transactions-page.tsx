@@ -13,6 +13,13 @@ import { Button } from '../../components/ui/button.js';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card.js';
 import { Input } from '../../components/ui/input.js';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '../../components/ui/select.js';
+import {
   Table,
   TableBody,
   TableCell,
@@ -201,56 +208,65 @@ export function TransactionsPage({ api }: { api: TransactionStatementApi }) {
 
           {/* Status Filter */}
           <div>
-            <select
+            <Select
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
+              onValueChange={(value) => {
+                setStatusFilter(value);
                 setPage(1);
               }}
-              className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-              aria-label="Filtrar por status"
             >
-              <option value="ALL">Todos os status</option>
-              <option value="APPROVED">Aprovadas</option>
-              <option value="DENIED">Negadas</option>
-              <option value="PENDING">Pendentes</option>
-              <option value="EXPIRED">Expiradas</option>
-              <option value="CANCELLED">Canceladas</option>
-            </select>
+              <SelectTrigger aria-label="Filtrar por status">
+                <SelectValue placeholder="Todos os status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos os status</SelectItem>
+                <SelectItem value="APPROVED">Aprovadas</SelectItem>
+                <SelectItem value="DENIED">Negadas</SelectItem>
+                <SelectItem value="PENDING">Pendentes</SelectItem>
+                <SelectItem value="EXPIRED">Expiradas</SelectItem>
+                <SelectItem value="CANCELLED">Canceladas</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Type Filter */}
           <div>
-            <select
+            <Select
               value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value);
+              onValueChange={(value) => {
+                setTypeFilter(value);
                 setPage(1);
               }}
-              className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-              aria-label="Filtrar por tipo"
             >
-              <option value="ALL">Todos os tipos (Crédito/Débito)</option>
-              <option value="CREDIT">Crédito (Entrada)</option>
-              <option value="DEBIT">Débito (Saída)</option>
-            </select>
+              <SelectTrigger aria-label="Filtrar por tipo">
+                <SelectValue placeholder="Todos os tipos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos os tipos (Crédito/Débito)</SelectItem>
+                <SelectItem value="CREDIT">Crédito (Entrada)</SelectItem>
+                <SelectItem value="DEBIT">Débito (Saída)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Origin Filter */}
           <div>
-            <select
+            <Select
               value={originFilter}
-              onChange={(e) => {
-                setOriginFilter(e.target.value);
+              onValueChange={(value) => {
+                setOriginFilter(value);
                 setPage(1);
               }}
-              className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-              aria-label="Filtrar por origem"
             >
-              <option value="ALL">Todas as origens</option>
-              <option value="PAYMENT">Pagamentos</option>
-              <option value="WITHDRAWAL">Saques</option>
-            </select>
+              <SelectTrigger aria-label="Filtrar por origem">
+                <SelectValue placeholder="Todas as origens" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todas as origens</SelectItem>
+                <SelectItem value="PAYMENT">Pagamentos</SelectItem>
+                <SelectItem value="WITHDRAWAL">Saques</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
