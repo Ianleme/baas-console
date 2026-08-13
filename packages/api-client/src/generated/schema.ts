@@ -153,6 +153,39 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/demo/session': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Issue a short-lived read-only demo session */
+    post: operations['DemoController_session'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/demo/view': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['DemoController_view'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/gateway-account/connect': {
     parameters: {
       query?: never;
@@ -164,6 +197,23 @@ export type paths = {
     put?: never;
     /** Verify and connect the current merchant gateway account */
     post: operations['GatewayAccountController_connect'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/gateway-account/register': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Register or retry the current merchant at the gateway */
+    post: operations['GatewayAccountController_register'];
     delete?: never;
     options?: never;
     head?: never;
@@ -481,6 +531,22 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
+  '/health/dependencies': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['ObservabilityController_dependenciesHealth'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/health/live': {
     parameters: {
       query?: never;
@@ -526,6 +592,7 @@ export type components = {
     ExchangeDto: Record<string, never>;
     LoginDto: Record<string, never>;
     PixDto: Record<string, never>;
+    RegisterGatewayDto: Record<string, never>;
     RegisterOwnerDto: Record<string, never>;
     SendCheckoutLinkEmailDto: Record<string, never>;
   };
@@ -736,6 +803,40 @@ export interface operations {
       };
     };
   };
+  DemoController_session: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  DemoController_view: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   GatewayAccountController_connect: {
     parameters: {
       query?: never;
@@ -750,6 +851,27 @@ export interface operations {
     };
     responses: {
       /** @description Gateway profile verified and credentials encrypted */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  GatewayAccountController_register: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RegisterGatewayDto'];
+      };
+    };
+    responses: {
       200: {
         headers: {
           [name: string]: unknown;
@@ -1169,6 +1291,23 @@ export interface operations {
     responses: {
       /** @description Request a new payout withdrawal */
       201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ObservabilityController_dependenciesHealth: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
         headers: {
           [name: string]: unknown;
         };

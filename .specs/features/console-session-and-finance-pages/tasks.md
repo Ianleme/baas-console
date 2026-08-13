@@ -221,6 +221,12 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Status:** Complete — focused tests and typecheck pass; verify:quick remains blocked by pre-existing formatting failures.
 **Commit:** `test(session): cover terminal recovery and logout`
 
+### T11: Validation fix — discriminate terminal retry outcomes ✅
+
+**What:** Add behavior-level assertions distinguishing successful non-401 retries from terminal repeated 401 retries (CONSOLE-13).
+**Status:** Complete — focused API-runtime tests and typecheck pass; temporary mutant is killed.
+**Commit:** `test(api-client): discriminate terminal retry outcomes`
+
 ---
 
 ## Phase Execution Map
