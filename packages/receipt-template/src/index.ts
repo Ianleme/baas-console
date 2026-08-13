@@ -38,11 +38,86 @@ export function formatReceiptDate(isoDate: string): string {
   }
 }
 
+export function translateStatus(status: string): string {
+  const upper = status.trim().toUpperCase();
+  switch (upper) {
+    case 'APPROVED':
+    case 'PAID':
+    case 'SUCCESS':
+      return 'APROVADO';
+    case 'DENIED':
+    case 'FAILED':
+    case 'REJECTED':
+      return 'NEGADO';
+    case 'PENDING':
+      return 'PENDENTE';
+    case 'EXPIRED':
+      return 'EXPIRADO';
+    case 'CANCELLED':
+    case 'CANCELED':
+      return 'CANCELADO';
+    default:
+      return upper;
+  }
+}
+
+export function translateType(type: string): string {
+  const upper = type.trim().toUpperCase();
+  switch (upper) {
+    case 'DEBIT':
+      return 'DÉBITO';
+    case 'CREDIT':
+      return 'CRÉDITO';
+    case 'PAYMENT':
+    case 'PAYMENT_PIX':
+    case 'PAYMENT_CARD':
+      return 'PAGAMENTO';
+    case 'WITHDRAWAL':
+      return 'SAQUE';
+    case 'PIX':
+      return 'PIX';
+    case 'CARD':
+      return 'CARTÃO';
+    default:
+      return upper;
+  }
+}
+
+export function getStatusBadgeStyle(status: string): { bg: string; color: string; border: string } {
+  const upper = status.trim().toUpperCase();
+  switch (upper) {
+    case 'APPROVED':
+    case 'PAID':
+    case 'SUCCESS':
+    case 'APROVADO':
+      return { bg: '#dcfce7', color: '#15803d', border: '#86efac' };
+    case 'DENIED':
+    case 'FAILED':
+    case 'REJECTED':
+    case 'NEGADO':
+      return { bg: '#fee2e2', color: '#b91c1c', border: '#fca5a5' };
+    case 'PENDING':
+    case 'PENDENTE':
+      return { bg: '#fef3c7', color: '#b45309', border: '#fde68a' };
+    case 'EXPIRED':
+    case 'EXPIRADO':
+    case 'CANCELLED':
+    case 'CANCELED':
+    case 'CANCELADO':
+      return { bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' };
+    default:
+      return { bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' };
+  }
+}
+
 export function renderReceiptHtml(data: ReceiptData): string {
   const gross = formatBrlCurrency(data.grossAmountCents);
   const fee = formatBrlCurrency(data.feeAmountCents);
   const net = formatBrlCurrency(data.netAmountCents);
   const dateFormatted = formatReceiptDate(data.occurredAt);
+  const translatedStatus = translateStatus(data.status);
+  const translatedType = translateType(data.type);
+  const badgeStyle = getStatusBadgeStyle(data.status);
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -91,8 +166,9 @@ export function renderReceiptHtml(data: ReceiptData): string {
       border-radius: 9999px;
       font-size: 12px;
       font-weight: 700;
-      background: #dcfce7;
-      color: #15803d;
+      background: ${badgeStyle.bg};
+      color: ${badgeStyle.color};
+      border: 1px solid ${badgeStyle.border};
       margin-top: 8px;
     }
     .amount-large {
@@ -139,7 +215,7 @@ export function renderReceiptHtml(data: ReceiptData): string {
     <div class="receipt-header">
       <div class="brand">BaaS Console</div>
       <h1 class="title">Comprovante de Operação</h1>
-      <span class="status-badge">${escapeHtml(data.status)}</span>
+      <span class="status-badge">${escapeHtml(translatedStatus)}</span>
     </div>
 
     <div class="amount-large">${net}</div>
@@ -151,7 +227,7 @@ export function renderReceiptHtml(data: ReceiptData): string {
       </div>
       <div class="detail-row">
         <span class="detail-label">Tipo</span>
-        <span class="detail-value">${escapeHtml(data.type)}</span>
+        <span class="detail-value">${escapeHtml(translatedType)}</span>
       </div>
       <div class="detail-row">
         <span class="detail-label">Valor Bruto</span>
@@ -195,3 +271,4 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+

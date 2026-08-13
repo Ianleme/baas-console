@@ -20,29 +20,25 @@ export interface BaasMemorySession {
   readonly clear: () => void;
 }
 
-const SESSION_STORAGE_KEY = 'baas_access_token';
+const LEGACY_STORAGE_KEY = 'baas_access_token';
 
 export function createBaasMemorySession(): BaasMemorySession {
   let accessToken = '';
   try {
-    accessToken = globalThis.localStorage.getItem(SESSION_STORAGE_KEY) ?? '';
+    // Access tokens are session-only and also protected by the HttpOnly cookie.
+    globalThis.localStorage.removeItem(LEGACY_STORAGE_KEY);
   } catch {
-    // SSR or restricted storage — fall back to empty
+    // SSR or restricted storage.
   }
   return {
     token: () => accessToken,
     setToken: (token) => {
       accessToken = token;
-      try {
-        globalThis.localStorage.setItem(SESSION_STORAGE_KEY, token);
-      } catch {
-        // ignore
-      }
     },
     clear: () => {
       accessToken = '';
       try {
-        globalThis.localStorage.removeItem(SESSION_STORAGE_KEY);
+        globalThis.localStorage.removeItem(LEGACY_STORAGE_KEY);
       } catch {
         // ignore
       }
@@ -120,10 +116,13 @@ export function createAuthJourneyClient(options: BaasClientOptions) {
   const request = options.fetch ?? globalThis.fetch;
   let accessToken = '';
   async function post(path: string, body: unknown): Promise<unknown> {
+    const headers = new Headers({ 'content-type': 'application/json' });
+    const csrfToken = options.csrfToken?.();
+    if (csrfToken) headers.set('x-csrf-token', csrfToken);
     const response = await request(`${options.baseUrl}${path}`, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'content-type': 'application/json' },
+      headers,
       body: JSON.stringify(body)
     });
     if (!response.ok) {
@@ -153,8 +152,12 @@ export function createAuthJourneyClient(options: BaasClientOptions) {
     async login(input: { email: string; password: string; remember: boolean }): Promise<void> {
       await post('/api/v1/auth/login', input);
     },
-    async register(input: unknown): Promise<void> {
-      await post('/api/v1/auth/register', input);
+    async register(input: unknown): Promise<string | null> {
+      const result = (await post('/api/v1/auth/register', input)) as {
+        gatewayOnboarding?: { status?: unknown } | null;
+      };
+      const status = result.gatewayOnboarding?.status;
+      return typeof status === 'string' ? status : null;
     },
     async connect(input: {
       document: string;
@@ -177,6 +180,20 @@ export function createAuthJourneyClient(options: BaasClientOptions) {
       const result = (await response.json()) as { status?: unknown };
       return result.status === 'ACTIVE' ? 'ACTIVE' : 'PROFILE_MISMATCH';
     },
+    async registerGateway(input: unknown): Promise<string> {
+      const headers = new Headers({ 'content-type': 'application/json' });
+      const csrfToken = options.csrfToken?.();
+      if (csrfToken) headers.set('x-csrf-token', csrfToken);
+      const response = await request(`${options.baseUrl}/api/v1/gateway-account/register`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify(input)
+      });
+      if (!response.ok) throw new Error('GATEWAY_REGISTRATION_FAILED');
+      const result = (await response.json()) as { status?: unknown };
+      return typeof result.status === 'string' ? result.status : 'GATEWAY_REGISTRATION_UNKNOWN';
+    },
     async refresh(): Promise<boolean> {
       try {
         await post('/api/v1/auth/refresh', {});
@@ -190,7 +207,10 @@ export function createAuthJourneyClient(options: BaasClientOptions) {
       const headers = new Headers({ 'content-type': 'application/json' });
       if (csrfToken) headers.set('x-csrf-token', csrfToken);
       await request(`${options.baseUrl}/api/v1/auth/logout`, {
-        method: 'POST', credentials: 'include', headers, body: '{}'
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: '{}'
       });
     }
   };
@@ -357,22 +377,65 @@ export function createDashboardClient(options: BaasClientOptions) {
   const request = createAuthenticatedTransport(options);
   return {
     async load() {
-      const accessToken = options.accessToken?.();
-      const response = await request('/api/v1/wallet');
-      if (!response.ok) throw new Error('DASHBOARD_UNAVAILABLE');
+      const [walletResponse, transactionsResponse, webhooksResponse] = await Promise.all([
+        request('/api/v1/wallet'),
+        request('/api/v1/transactions?limit=100&offset=0'),
+        request('/api/v1/webhooks')
+      ]);
+      if (!walletResponse.ok || !transactionsResponse.ok || !webhooksResponse.ok)
+        throw new Error('DASHBOARD_UNAVAILABLE');
+      const wallet = (await walletResponse.json()) as {
+        balanceCents: string;
+        capturedAt: string;
+        stale: boolean;
+      };
+      const statement = (await transactionsResponse.json()) as {
+        items?: Array<{
+          id: string;
+          originType: 'PAYMENT' | 'WITHDRAWAL';
+          externalReference: string;
+          status: 'APPROVED' | 'DENIED' | 'PENDING' | 'EXPIRED' | 'CANCELLED';
+          grossAmountCents: string;
+          netAmountCents: string;
+          occurredAt: string;
+        }>;
+      };
+      const items = statement.items ?? [];
+      const payments = items.filter((item) => item.originType === 'PAYMENT');
+      const approvedPayments = payments.filter((item) => item.status === 'APPROVED');
+      const receivedCents = approvedPayments.reduce(
+        (total, item) => total + BigInt(item.netAmountCents),
+        0n
+      );
+      const pixReceivedCents = approvedPayments
+        .filter((item) => item.externalReference.startsWith('PIX-'))
+        .reduce((total, item) => total + BigInt(item.netAmountCents), 0n);
+      const cardReceivedCents = receivedCents - pixReceivedCents;
+      const webhooks = (await webhooksResponse.json()) as Array<{ status?: string }>;
       return {
-        wallet: (await response.json()) as {
-          balanceCents: string;
-          capturedAt: string;
-          stale: boolean;
-        },
-        receivedCents: '0',
-        approvedCount: 0,
-        deniedCount: 0,
-        pendingCount: 0,
-        pixReceivedCents: '0',
-        cardReceivedCents: '0',
-        operations: []
+        wallet,
+        receivedCents: receivedCents.toString(),
+        approvedCount: payments.filter((item) => item.status === 'APPROVED').length,
+        deniedCount: payments.filter((item) => item.status === 'DENIED').length,
+        pendingCount: payments.filter((item) => item.status === 'PENDING').length,
+        pixReceivedCents: pixReceivedCents.toString(),
+        cardReceivedCents: cardReceivedCents.toString(),
+        webhooksActive: webhooks.some((item) => item.status === 'ACTIVE'),
+        operations: items.slice(0, 10).map((item) => ({
+          id: item.id,
+          reference: item.externalReference,
+          method:
+            item.originType === 'WITHDRAWAL'
+              ? ('WITHDRAWAL' as const)
+              : item.externalReference.startsWith('PIX-')
+                ? ('PIX' as const)
+                : ('CARD' as const),
+          amountCents: item.grossAmountCents,
+          status: ['APPROVED', 'DENIED', 'EXPIRED', 'CANCELLED'].includes(item.status)
+            ? item.status
+            : ('PENDING' as const),
+          occurredAt: item.occurredAt
+        }))
       };
     }
   };
@@ -397,10 +460,14 @@ export function createTransactionsClient(options: BaasClientOptions) {
       return (await response.json()) as unknown;
     },
     async getReceiptHtml(id: string): Promise<string> {
-      const accessToken = options.accessToken?.();
       const response = await request(`/api/v1/transactions/${encodeURIComponent(id)}/receipt`);
       if (!response.ok) throw new Error('RECEIPT_UNAVAILABLE');
       return response.text();
+    },
+    async downloadReceiptPdf(id: string): Promise<Blob> {
+      const response = await request(`/api/v1/transactions/${encodeURIComponent(id)}/receipt?format=pdf`);
+      if (!response.ok) throw new Error('RECEIPT_UNAVAILABLE');
+      return response.blob();
     }
   };
 }
@@ -573,9 +640,12 @@ export function createNotificationsClient(options: BaasClientOptions) {
     },
     async retryDelivery(id: string): Promise<unknown> {
       const accessToken = options.accessToken?.();
-      const response = await request(`/api/v1/notifications/email-deliveries/${encodeURIComponent(id)}/retry`, {
-        method: 'POST'
-      });
+      const response = await request(
+        `/api/v1/notifications/email-deliveries/${encodeURIComponent(id)}/retry`,
+        {
+          method: 'POST'
+        }
+      );
       if (!response.ok) throw new Error('RETRY_FAILED');
       return (await response.json()) as unknown;
     }

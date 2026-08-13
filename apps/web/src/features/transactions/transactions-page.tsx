@@ -61,6 +61,7 @@ export interface TransactionQueryFilters {
 
 export interface TransactionStatementApi {
   list(query?: TransactionQueryFilters): Promise<TransactionStatementData>;
+  downloadReceiptPdf?(id: string): Promise<Blob>;
 }
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -106,7 +107,37 @@ export function TransactionsPage({ api }: { api: TransactionStatementApi }) {
   const [originFilter, setOriginFilter] = useState<string>('ALL');
   const [referenceSearch, setReferenceSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const limit = 10;
+
+  const handleDownloadPdf = async (id: string, ref: string) => {
+    setDownloadingId(id);
+    try {
+      let blob: Blob;
+      if (api.downloadReceiptPdf) {
+        blob = await api.downloadReceiptPdf(id);
+      } else {
+        const res = await fetch(`/api/v1/transactions/${encodeURIComponent(id)}/receipt?format=pdf`, {
+          credentials: 'include'
+        });
+        if (!res.ok) throw new Error('Download failed');
+        blob = await res.blob();
+      }
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `comprovante-${ref}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch {
+      window.open(`/api/v1/transactions/${encodeURIComponent(id)}/receipt?format=pdf`, '_blank');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -339,16 +370,14 @@ export function TransactionsPage({ api }: { api: TransactionStatementApi }) {
                       <Button
                         variant="outline"
                         size="sm"
+                        disabled={downloadingId === tx.id}
                         className="h-8 gap-1.5 text-xs text-[#007a5a] hover:bg-emerald-50"
                         onClick={() => {
-                          window.open(
-                            `/api/v1/transactions/${encodeURIComponent(tx.id)}/receipt`,
-                            '_blank'
-                          );
+                          void handleDownloadPdf(tx.id, tx.externalReference);
                         }}
                       >
                         <FileText className="w-3.5 h-3.5" />
-                        Comprovante
+                        {downloadingId === tx.id ? 'Baixando...' : 'Comprovante PDF'}
                       </Button>
                     </TableCell>
                   </TableRow>

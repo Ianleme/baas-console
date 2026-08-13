@@ -1,7 +1,10 @@
 import {
   formatBrlCurrency,
   formatReceiptDate,
+  getStatusBadgeStyle,
   renderReceiptHtml,
+  translateStatus,
+  translateType,
   type ReceiptData
 } from './index.js';
 
@@ -29,14 +32,49 @@ describe('@baas/receipt-template', () => {
     expect(formatted).toContain('12/08/2026');
   });
 
-  it('renders complete HTML receipt with escape guards and CSS print media rules', () => {
+  it('translates status and type into PT-BR correctly', () => {
+    expect(translateStatus('APPROVED')).toBe('APROVADO');
+    expect(translateStatus('DENIED')).toBe('NEGADO');
+    expect(translateStatus('PENDING')).toBe('PENDENTE');
+    expect(translateStatus('EXPIRED')).toBe('EXPIRADO');
+
+    expect(translateType('DEBIT')).toBe('DÉBITO');
+    expect(translateType('CREDIT')).toBe('CRÉDITO');
+    expect(translateType('PAYMENT_PIX')).toBe('PAGAMENTO');
+    expect(translateType('WITHDRAWAL')).toBe('SAQUE');
+  });
+
+  it('provides red badge styles for DENIED status and green for APPROVED', () => {
+    const deniedStyle = getStatusBadgeStyle('DENIED');
+    expect(deniedStyle.bg).toBe('#fee2e2');
+    expect(deniedStyle.color).toBe('#b91c1c');
+
+    const approvedStyle = getStatusBadgeStyle('APPROVED');
+    expect(approvedStyle.bg).toBe('#dcfce7');
+    expect(approvedStyle.color).toBe('#15803d');
+  });
+
+  it('renders complete HTML receipt with translated strings, escape guards and CSS print media rules', () => {
     const html = renderReceiptHtml(sampleData);
     expect(html).toContain('<!DOCTYPE html>');
     expect(html).toContain('REF-2026-99');
-    expect(html).toContain('PAYMENT_PIX');
+    expect(html).toContain('APROVADO');
+    expect(html).toContain('PAGAMENTO');
     expect(html).toContain('gw-999');
     expect(html).toContain('tx-12345');
     expect(html).toContain('@media print');
+  });
+
+  it('renders DENIED receipt with red badge and translated text NEGADO', () => {
+    const html = renderReceiptHtml({
+      ...sampleData,
+      status: 'DENIED',
+      type: 'DEBIT'
+    });
+    expect(html).toContain('NEGADO');
+    expect(html).toContain('DÉBITO');
+    expect(html).toContain('background: #fee2e2');
+    expect(html).toContain('color: #b91c1c');
   });
 
   it('escapes dangerous HTML characters in reference and status', () => {
@@ -50,3 +88,4 @@ describe('@baas/receipt-template', () => {
     expect(html).toContain('&lt;script&gt;');
   });
 });
+

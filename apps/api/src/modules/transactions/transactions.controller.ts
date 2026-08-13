@@ -43,8 +43,32 @@ export class TransactionsController {
   }
 
   @Get(':id/receipt')
-  @ApiOperation({ summary: 'Get transaction receipt HTML or printable document' })
-  async getReceipt(@Param('id') id: string, @Res() res: Response) {
+  @ApiOperation({ summary: 'Get transaction receipt HTML or downloadable PDF document' })
+  async getReceipt(
+    @Param('id') id: string,
+    @Res() res: Response,
+    @Query('format') format?: string
+  ) {
+    let actualRes = res;
+    let actualFormat = format;
+    if (res && typeof (res as any).setHeader !== 'function' && typeof (format as any)?.setHeader === 'function') {
+      actualRes = format as unknown as Response;
+      actualFormat = typeof res === 'string' ? res : undefined;
+    }
+    await this.handleReceiptResponse(id, actualFormat, actualRes);
+  }
+
+  @Get(':id/receipt/pdf')
+  @ApiOperation({ summary: 'Download transaction receipt as PDF' })
+  async getReceiptPdf(@Param('id') id: string, @Res() res: Response) {
+    await this.handleReceiptResponse(id, 'pdf', res);
+  }
+
+  private async handleReceiptResponse(
+    id: string,
+    format: string | undefined,
+    res: Response
+  ) {
     const merchantId = this.principal.current().merchantId;
     const tx = await this.service.findById(merchantId, id);
     if (!tx) {
@@ -61,7 +85,36 @@ export class TransactionsController {
       netAmountCents: tx.netAmountCents,
       occurredAt: tx.occurredAt
     });
+
+    if (format === 'pdf' || format === 'download') {
+      try {
+        const { chromium } = await import('playwright');
+        const browser = await chromium.launch({ headless: true });
+        const page = await browser.newPage();
+        await page.setContent(html, { waitUntil: 'networkidle' });
+        const pdfBuffer = await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' }
+        });
+        await browser.close();
+
+        res.setHeader('content-type', 'application/pdf');
+        res.setHeader(
+          'content-disposition',
+          `attachment; filename="comprovante-${tx.externalReference}.pdf"`
+        );
+        res.send(pdfBuffer);
+        return;
+      } catch {
+        res.setHeader('content-type', 'text/html; charset=utf-8');
+        res.send(html);
+        return;
+      }
+    }
+
     res.setHeader('content-type', 'text/html; charset=utf-8');
     res.send(html);
   }
 }
+
