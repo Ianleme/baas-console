@@ -94,7 +94,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Gate:** API full + Contract build
 **Commit:** `feat(profile): expose current session identity`
 
-### T3: Centralizar transporte autenticado com recuperação de 401
+### T3: Centralizar transporte autenticado com recuperação de 401 ✅
 
 **What:** Criar o transporte compartilhado do API client que injeta Bearer/credenciais, executa refresh single-flight no primeiro 401, repete uma vez e encerra a sessão nos casos terminais.
 **Where:** `packages/api-client/src/index.ts`, `apps/web/src/api-runtime.test.ts`.
@@ -103,11 +103,11 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Requirement:** CONSOLE-11, CONSOLE-12, CONSOLE-13, CONSOLE-14, CONSOLE-15
 **Tools:** MCP: filesystem; Skill: NONE
 **Done when:**
-- [ ] Primeiro 401 inicia/aguarda uma única renovação e repete a chamada uma vez.
-- [ ] Refresh falho e segundo 401 removem a sessão e disparam callback terminal uma vez.
-- [ ] Erros não-401 não acionam refresh.
-- [ ] Múltiplos 401 simultâneos compartilham uma renovação.
-- [ ] Testes cobrem cada resultado especificado; mínimo 6 novas asserções comportamentais passam.
+- [x] Primeiro 401 inicia/aguarda uma única renovação e repete a chamada uma vez.
+- [x] Refresh falho e segundo 401 removem a sessão e disparam callback terminal uma vez.
+- [x] Erros não-401 não acionam refresh.
+- [x] Múltiplos 401 simultâneos compartilham uma renovação.
+- [x] Testes cobrem cada resultado especificado; mínimo 6 novas asserções comportamentais passam.
 **Tests:** frontend unit
 **Gate:** Quick web
 **Commit:** `feat(api-client): recover authenticated requests once`

@@ -11,6 +11,7 @@ export interface BaasClientOptions {
   onAccessToken?: (token: string) => void;
   csrfToken?: () => string;
   onCsrfToken?: (token: string) => void;
+  onUnauthenticated?: () => void;
 }
 
 export interface BaasMemorySession {
@@ -54,6 +55,65 @@ export function createBaasClient(options: BaasClientOptions) {
     baseUrl: options.baseUrl,
     ...(options.fetch ? { fetch: options.fetch } : {})
   });
+}
+
+function createAuthenticatedTransport(options: BaasClientOptions) {
+  const request = options.fetch ?? globalThis.fetch;
+  let refreshInFlight: Promise<boolean> | undefined;
+  let unauthenticatedNotified = false;
+
+  const notifyUnauthenticated = () => {
+    if (unauthenticatedNotified) return;
+    unauthenticatedNotified = true;
+    options.onUnauthenticated?.();
+  };
+
+  const refresh = async (): Promise<boolean> => {
+    try {
+      const csrfToken = options.csrfToken?.();
+      const headers = new Headers({ 'content-type': 'application/json' });
+      if (csrfToken) headers.set('x-csrf-token', csrfToken);
+      const response = await request(`${options.baseUrl}/api/v1/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: '{}'
+      });
+      if (!response.ok) return false;
+      const result = (await response.json()) as { accessToken?: unknown; csrfToken?: unknown };
+      if (typeof result.accessToken !== 'string') return false;
+      options.onAccessToken?.(result.accessToken);
+      if (typeof result.csrfToken === 'string') options.onCsrfToken?.(result.csrfToken);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  return async (path: string, init?: RequestInit): Promise<Response> => {
+    const send = () => {
+      const headers = new Headers(init?.headers);
+      const token = options.accessToken?.();
+      if (token) headers.set('authorization', `Bearer ${token}`);
+      return request(`${options.baseUrl}${path}`, {
+        ...init,
+        credentials: 'include',
+        headers
+      });
+    };
+    const response = await send();
+    if (response.status !== 401) return response;
+    refreshInFlight ??= refresh().finally(() => {
+      refreshInFlight = undefined;
+    });
+    if (!(await refreshInFlight)) {
+      notifyUnauthenticated();
+      return response;
+    }
+    const retry = await send();
+    if (retry.status === 401) notifyUnauthenticated();
+    return retry;
+  };
 }
 
 export function createAuthJourneyClient(options: BaasClientOptions) {
@@ -129,14 +189,13 @@ export function createAuthJourneyClient(options: BaasClientOptions) {
 }
 
 export function createPaymentLinksClient(options: BaasClientOptions) {
-  const request = options.fetch ?? globalThis.fetch;
+  const request = createAuthenticatedTransport(options);
   async function json(path: string, init?: RequestInit): Promise<unknown> {
     const headers = new Headers(init?.headers);
     headers.set('content-type', 'application/json');
     const accessToken = options.accessToken?.();
     if (accessToken) headers.set('authorization', `Bearer ${accessToken}`);
-    const response = await request(`${options.baseUrl}${path}`, {
-      credentials: 'include',
+    const response = await request(path, {
       ...init,
       headers: Object.fromEntries(headers)
     });

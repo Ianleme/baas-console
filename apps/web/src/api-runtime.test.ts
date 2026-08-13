@@ -138,4 +138,59 @@ describe('runtime API composition', () => {
       }
     });
   });
+
+  test('refreshes once after a 401 and returns the retried response with the new token', async () => {
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(response([], 401))
+      .mockResolvedValueOnce(response({ accessToken: 'refreshed-token', csrfToken: 'csrf-2' }))
+      .mockResolvedValueOnce(response([{ id: 'link-1', feeSnapshot: [], maxInstallments: 1 }]));
+    const session = createBaasMemorySession();
+    session.setToken('expired-token');
+    const client = createPaymentLinksClient({
+      baseUrl: '', fetch: request, accessToken: session.token, onAccessToken: session.setToken
+    });
+    await expect(client.list()).resolves.toEqual([{ id: 'link-1', reference: undefined, description: undefined, amountCents: undefined, methods: undefined, maxInstallments: 1, selectedFeeBps: null, status: undefined, expiresAt: undefined }]);
+    expect(request).toHaveBeenCalledTimes(3);
+    expect(new Headers(request.mock.calls[2]?.[1]?.headers).get('authorization')).toBe('Bearer refreshed-token');
+  });
+
+  test('cleans up once when refresh fails or the retry is still unauthorized', async () => {
+    const onUnauthenticated = vi.fn();
+    const refreshFails = vi.fn<typeof fetch>().mockResolvedValueOnce(response({}, 401)).mockResolvedValueOnce(response({}, 401));
+    const first = createPaymentLinksClient({ baseUrl: '', fetch: refreshFails, accessToken: () => 'token', onUnauthenticated });
+    await expect(first.list()).rejects.toThrow('BAAS_REQUEST_FAILED');
+    expect(refreshFails).toHaveBeenCalledTimes(2);
+    expect(onUnauthenticated).toHaveBeenCalledTimes(1);
+
+    const retryFails = vi.fn<typeof fetch>().mockResolvedValueOnce(response({}, 401)).mockResolvedValueOnce(response({ accessToken: 'new' })).mockResolvedValueOnce(response({}, 401));
+    const terminal = createPaymentLinksClient({ baseUrl: '', fetch: retryFails, accessToken: () => 'token', onAccessToken: () => undefined, onUnauthenticated: vi.fn() });
+    await expect(terminal.list()).rejects.toThrow('BAAS_REQUEST_FAILED');
+    expect(retryFails).toHaveBeenCalledTimes(3);
+  });
+
+  test('does not refresh non-401 errors', async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(response({}, 500));
+    const client = createPaymentLinksClient({ baseUrl: '', fetch: request, accessToken: () => 'token' });
+    await expect(client.list()).rejects.toThrow('BAAS_REQUEST_FAILED');
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  test('shares one refresh across concurrent unauthorized requests', async () => {
+    let releaseRefresh!: () => void;
+    const refreshPending = new Promise<void>((resolve) => { releaseRefresh = resolve; });
+    const request = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(response({}, 401))
+      .mockResolvedValueOnce(response({}, 401))
+      .mockImplementationOnce(async () => { await refreshPending; return response({ accessToken: 'shared-token' }); })
+      .mockResolvedValueOnce(response([{ id: 'a', feeSnapshot: [], maxInstallments: 1 }]))
+      .mockResolvedValueOnce(response([{ id: 'b', feeSnapshot: [], maxInstallments: 1 }]));
+    const client = createPaymentLinksClient({ baseUrl: '', fetch: request, accessToken: () => 'old', onAccessToken: () => undefined });
+    const first = client.list();
+    const second = client.list();
+    await Promise.resolve();
+    releaseRefresh();
+    await expect(Promise.all([first, second])).resolves.toHaveLength(2);
+    expect(request).toHaveBeenCalledTimes(5);
+  });
 });
