@@ -181,10 +181,10 @@
 ## Handoff
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
-- **Phase / Task**: Execute / Batch 6 (Phase 6, T039 Concluído!)
-- **Completed**: T001-T039; T039 validada (Comprovante de pagamento Pix e Cartão enfileirado automaticamente no outbox ao aprovar pagamento, idempotência garantida por tentativa e testes unitários 100% verdes)
+- **Phase / Task**: Execute / Batch 6 (Phase 6, T040 Concluído!)
+- **Completed**: T001-T040; T040 validada (Renderização de comprovantes em HTML/PDF via @baas/receipt-template, endpoint GET /api/v1/transactions/:id/receipt com isolamento tenant e botão de emissão na UI do extrato)
 - **In-progress** (file:line): none
-- **Next step**: Executar T040 (Implementar exportação de comprovante em PDF e HTML)
+- **Next step**: Executar T041 (Implementar retenção e expiração de dados auditáveis)
 - **Blockers**: none
 - **Uncommitted files**: progress bookkeeping only
 - **Branch**: main
