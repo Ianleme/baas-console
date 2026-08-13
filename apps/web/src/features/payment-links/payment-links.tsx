@@ -3,6 +3,7 @@ import {
   Check,
   Copy,
   CreditCard,
+  Mail,
   QrCode,
   RotateCw,
   Search,
@@ -51,6 +52,10 @@ export interface PaymentLinksApi {
   list: () => Promise<PaymentLinkView[]>;
   create: (input: Omit<PaymentLinkView, 'id' | 'status'>) => Promise<PaymentLinkView>;
   cancel: (id: string) => Promise<PaymentLinkView>;
+  sendEmail?: (
+    id: string,
+    email: string
+  ) => Promise<{ deliveryId: string; status: string; recipientMasked: string }>;
 }
 
 const statusLabels: Record<PaymentLinkStatus, string> = {
@@ -78,9 +83,26 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<PaymentLinkView | null>(null);
   const [cancelCandidate, setCancelCandidate] = useState<PaymentLinkView | null>(null);
+  const [emailTargetLink, setEmailTargetLink] = useState<PaymentLinkView | null>(null);
   const [notice, setNotice] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [formMethods, setFormMethods] = useState<PaymentLinkView['methods']>('PIX');
+
+  async function submitEmail(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
+    event.preventDefault();
+    if (!emailTargetLink) return;
+    const data = new FormData(event.currentTarget);
+    const email = formText(data, 'email');
+    try {
+      const res = await api.sendEmail?.(emailTargetLink.id, email);
+      const masked = res?.recipientMasked ?? email;
+      setNotice(`E-mail enfileirado com sucesso para ${masked}.`);
+    } catch {
+      setNotice('Não foi possível enviar o e-mail. Verifique o endereço digitado.');
+    } finally {
+      setEmailTargetLink(null);
+    }
+  }
 
   function loadLinks() {
     setState('loading');
@@ -489,6 +511,16 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
                     >
                       Ver detalhes
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="action-btn text-[#007a5a] hover:bg-emerald-50"
+                      onClick={() => {
+                        setEmailTargetLink(link);
+                      }}
+                    >
+                      <Mail className="h-3.5 w-3.5" /> Enviar por e-mail
+                    </Button>
                     {link.status === 'ACTIVE' && (
                       <Button
                         variant="destructive"
@@ -671,6 +703,38 @@ export function PaymentLinks({ api }: { api: PaymentLinksApi }) {
           >
             Confirmar cancelamento
           </Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(emailTargetLink)}
+        onOpenChange={(open) => {
+          if (!open) setEmailTargetLink(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enviar link por e-mail</DialogTitle>
+          </DialogHeader>
+          {emailTargetLink && (
+            <form
+              aria-label="Enviar link por e-mail"
+              onSubmit={(event) => void submitEmail(event)}
+              className="email-form space-y-4"
+            >
+              <p className="text-sm text-slate-600">
+                Enviaremos uma notificação com o link de pagamento do item{' '}
+                <strong>{emailTargetLink.description}</strong>.
+              </p>
+              <label className="flex flex-col text-sm font-semibold text-slate-700 gap-1">
+                E-mail do destinatário
+                <Input name="email" type="email" required placeholder="cliente@exemplo.com" />
+              </label>
+              <Button className="w-full bg-[#007a5a] hover:bg-[#005c47]" type="submit">
+                Enviar e-mail
+              </Button>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </section>

@@ -187,6 +187,31 @@ describe('PaymentLinks', () => {
     await user.tab();
     expect(screen.getByPlaceholderText('Buscar por descrição ou referência')).toHaveFocus();
   });
+  test('opens email modal and submits recipient email', async () => {
+    const sendEmailMock = vi.fn().mockResolvedValue({
+      deliveryId: 'del-1',
+      status: 'QUEUED',
+      recipientMasked: 'c***@loja.com'
+    });
+    const api = client({ sendEmail: sendEmailMock });
+    await renderReady(api);
+    const buttons = screen.getAllByRole('button', { name: 'Enviar por e-mail' });
+    const firstBtn = buttons[0];
+    if (!firstBtn) throw new Error('EMAIL_BTN_MISSING');
+    await userEvent.click(firstBtn);
+    expect(screen.getByRole('dialog', { name: 'Enviar link por e-mail' })).toBeVisible();
+    const form = screen.getByRole('form', { name: 'Enviar link por e-mail' });
+    fireEvent.change(within(form).getByLabelText('E-mail do destinatário'), {
+      target: { value: 'cliente@loja.com' }
+    });
+    fireEvent.submit(form);
+    await waitFor(() => {
+      expect(sendEmailMock).toHaveBeenCalledWith('link-1', 'cliente@loja.com');
+    });
+    expect(
+      await screen.findByText('E-mail enfileirado com sucesso para c***@loja.com.')
+    ).toBeVisible();
+  });
   test('has no automated axe violations in the populated state', async () => {
     const { container } = render(<PaymentLinks api={client()} />);
     await screen.findByText('Pedido #1048');

@@ -164,7 +164,12 @@ export function createPaymentLinksClient(options: BaasClientOptions) {
         await json(`/api/v1/checkout-links/${encodeURIComponent(id)}/cancel`, {
           method: 'POST'
         })
-      )
+      ),
+    sendEmail: async (id: string, email: string) =>
+      json(`/api/v1/checkout-links/${encodeURIComponent(id)}/send-email`, {
+        method: 'POST',
+        body: JSON.stringify({ email })
+      }) as Promise<{ deliveryId: string; status: string; recipientMasked: string }>
   };
 }
 

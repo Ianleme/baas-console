@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Optional, Param, Post, Req } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -6,12 +6,13 @@ import {
   ApiOperation,
   ApiTags
 } from '@nestjs/swagger';
-import { IsDateString, IsIn, IsInt, IsString, Length, Max, Min } from 'class-validator';
+import { IsDateString, IsEmail, IsIn, IsInt, IsString, Length, Max, Min } from 'class-validator';
 import type { Request } from 'express';
 
 import { ProblemException } from '../../platform/errors/problem.exception.js';
 import { AuthError, AuthService } from '../auth/auth.service.js';
 import { extractAccessToken } from '../auth/extract-token.js';
+import { EmailOutboxService } from '../notifications/email-outbox.service.js';
 import {
   CheckoutLinkError,
   CheckoutLinkService,
@@ -27,13 +28,18 @@ class CreateCheckoutLinkDto {
   @IsDateString() expiresAt!: string;
 }
 
+export class SendCheckoutLinkEmailDto {
+  @IsEmail() email!: string;
+}
+
 @ApiTags('checkout-links')
 @ApiBearerAuth()
 @Controller('api/v1/checkout-links')
 export class CheckoutLinkController {
   constructor(
     private readonly links: CheckoutLinkService,
-    private readonly auth: AuthService
+    private readonly auth: AuthService,
+    @Optional() private readonly outbox?: EmailOutboxService
   ) {}
 
   @Get()
@@ -76,6 +82,48 @@ export class CheckoutLinkController {
   async cancel(@Req() request: Request, @Param('id') id: string) {
     try {
       return publicRecord(await this.links.cancel(this.merchant(request), id));
+    } catch (error) {
+      throw problem(error);
+    }
+  }
+
+  @Post(':id/send-email')
+  @ApiCreatedResponse({ description: 'Checkout link delivery enqueued' })
+  async sendEmail(
+    @Req() request: Request,
+    @Param('id') id: string,
+    @Body() input: SendCheckoutLinkEmailDto
+  ) {
+    try {
+      const merchantId = this.merchant(request);
+      const link = await this.links.detail(merchantId, id);
+      if (!this.outbox) {
+        throw new ProblemException(
+          'OUTBOX_UNAVAILABLE',
+          503,
+          'Email outbox service is not configured.'
+        );
+      }
+      const recipient = input.email.trim();
+      const idempotencyKey = `checkout-email:${link.id}:${recipient.toLowerCase()}`;
+      const delivery = await this.outbox.enqueue({
+        merchantId,
+        kind: 'CHECKOUT_LINK',
+        idempotencyKey,
+        recipient,
+        payload: {
+          linkId: link.id,
+          publicReference: link.publicReference,
+          description: link.description,
+          amountCents: link.amountCents,
+          text: `Checkout Link: ${link.description} (Ref: ${link.publicReference})`
+        }
+      });
+      return {
+        deliveryId: delivery.id,
+        status: delivery.status,
+        recipientMasked: delivery.recipientMasked
+      };
     } catch (error) {
       throw problem(error);
     }

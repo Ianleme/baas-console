@@ -13,6 +13,7 @@ import { TypeOrmCheckoutLinkStore } from '../checkout-links/typeorm-checkout-lin
 import { EncryptionService } from '../gateway-accounts/encryption.service.js';
 import { CheckoutSessionService } from '../public-checkout/checkout-session.service.js';
 import { TypeOrmCheckoutSessionStore } from '../public-checkout/typeorm-checkout-session.store.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { CardPaymentService } from './card/card-payment.service.js';
 import { PaymentsController, CheckoutQuoteSigner } from './payments.controller.js';
 import { PixPaymentService } from './pix/pix-payment.service.js';
@@ -26,7 +27,7 @@ export const GATEWAY_PIX = Symbol('GATEWAY_PIX');
 export const GATEWAY_CARD = Symbol('GATEWAY_CARD');
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, NotificationsModule],
   controllers: [CheckoutLinkController, PaymentsController],
   providers: [
     TypeOrmCheckoutLinkStore,
