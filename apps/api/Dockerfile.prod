@@ -1,0 +1,23 @@
+FROM node:24.15.0-bookworm-slim@sha256:4e6b70dd6cbfc88c8157ba19aa3d9f9cce6ba4703576d55459e45efcbc9c5f5d AS build
+WORKDIR /workspace
+COPY package.json package-lock.json tsconfig.base.json ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY packages/api-client/package.json packages/api-client/package.json
+COPY packages/receipt-template/package.json packages/receipt-template/package.json
+COPY packages/test-support/package.json packages/test-support/package.json
+RUN npm ci
+COPY packages/receipt-template packages/receipt-template
+RUN npm run build --workspace @baas/receipt-template
+COPY apps/api apps/api
+RUN npm run build --workspace @baas/api
+
+FROM node:24.15.0-bookworm-slim@sha256:4e6b70dd6cbfc88c8157ba19aa3d9f9cce6ba4703576d55459e45efcbc9c5f5d
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=build --chown=node:node /workspace/node_modules ./node_modules
+COPY --from=build --chown=node:node /workspace/packages/receipt-template ./packages/receipt-template
+COPY --from=build --chown=node:node /workspace/apps/api/dist ./apps/api/dist
+USER node
+EXPOSE 3000
+CMD ["node", "apps/api/dist/main.js"]

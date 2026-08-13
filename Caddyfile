@@ -1,0 +1,16 @@
+{
+  email {$ACME_EMAIL}
+  auto_https prefer_wildcard
+}
+
+{$APP_HOST} {
+  reverse_proxy web:4173
+}
+
+{$PAY_HOST} {
+  reverse_proxy web:4173
+}
+
+{$API_HOST} {
+  reverse_proxy api:3000
+}

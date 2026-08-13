@@ -1,0 +1,23 @@
+FROM node:24.15.0-bookworm-slim@sha256:4e6b70dd6cbfc88c8157ba19aa3d9f9cce6ba4703576d55459e45efcbc9c5f5d AS build
+WORKDIR /workspace
+COPY package.json package-lock.json tsconfig.base.json ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY packages/api-client/package.json packages/api-client/package.json
+COPY packages/receipt-template/package.json packages/receipt-template/package.json
+COPY packages/test-support/package.json packages/test-support/package.json
+RUN npm ci
+COPY packages/api-client packages/api-client
+RUN npm run build --workspace @baas/api-client
+COPY apps/web apps/web
+WORKDIR /workspace/apps/web
+RUN npm run build
+
+FROM node:24.15.0-bookworm-slim@sha256:4e6b70dd6cbfc88c8157ba19aa3d9f9cce6ba4703576d55459e45efcbc9c5f5d
+ENV NODE_ENV=production
+WORKDIR /app/apps/web
+COPY --from=build --chown=node:node /workspace/apps/web/dist ./dist
+COPY --from=build --chown=node:node /workspace/apps/web/server.mjs ./server.mjs
+USER node
+EXPOSE 4173
+CMD ["node", "server.mjs"]
