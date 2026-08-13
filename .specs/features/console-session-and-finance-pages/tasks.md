@@ -198,7 +198,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Gate:** Quick web
 **Commit:** `feat(router): coordinate console session routes`
 
-### T9: Cobrir jornada real do console
+### T9: Cobrir jornada real do console ✅
 
 **What:** Adicionar E2E para a identidade autenticada, abertura de Carteira/Configurações e logout, com fixtures determinísticas.
 **Where:** novo ou existente `tests/e2e/*console*.spec.ts`.
@@ -207,10 +207,10 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Requirement:** CONSOLE-01, CONSOLE-04..10, CONSOLE-16..18
 **Tools:** MCP: filesystem; Skill: `webapp-testing`
 **Done when:**
-- [ ] Jornada visualiza identidade de API, navega às duas rotas e encerra a sessão.
-- [ ] Fixture cobre uma carteira stale sem apresentar zero inventado.
-- [ ] Teste não depende de credenciais ou gateway externos.
-- [ ] Especificação E2E passa localmente; mínimo 3 checkpoints de comportamento passam.
+- [x] Jornada visualiza identidade de API, navega às duas rotas e encerra a sessão.
+- [x] Fixture cobre uma carteira stale sem apresentar zero inventado.
+- [x] Teste não depende de credenciais ou gateway externos.
+- [x] Especificação E2E passa localmente; mínimo 3 checkpoints de comportamento passam.
 **Tests:** E2E
 **Gate:** Release
 **Commit:** `test(console): cover session and finance navigation`
