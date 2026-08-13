@@ -153,22 +153,35 @@ describe('runtime API composition', () => {
       baseUrl: '', fetch: request, accessToken: session.token, onAccessToken: session.setToken
     });
     await expect(client.list()).resolves.toEqual([{ id: 'link-1', reference: undefined, description: undefined, amountCents: undefined, methods: undefined, maxInstallments: 1, selectedFeeBps: null, status: undefined, expiresAt: undefined }]);
-    expect(request).toHaveBeenCalledTimes(3);
+    expect(request.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(1);
+    expect(request.mock.calls.filter(([url]) => url === '/api/v1/checkout-links')).toHaveLength(2);
+    expect(request.mock.invocationCallOrder[1] ?? 0).toBeGreaterThan(request.mock.invocationCallOrder[0] ?? 0);
     expect(new Headers(request.mock.calls[2]?.[1]?.headers).get('authorization')).toBe('Bearer refreshed-token');
   });
 
-  test('cleans up once when refresh fails or the retry is still unauthorized', async () => {
-    const onUnauthenticated = vi.fn();
+  test('refresh failure clears session and notifies once without another refresh', async () => {
+    const session = createBaasMemorySession();
+    session.setToken('token');
+    const onUnauthenticated = vi.fn(() => session.clear());
     const refreshFails = vi.fn<typeof fetch>().mockResolvedValueOnce(response({}, 401)).mockResolvedValueOnce(response({}, 401));
-    const first = createPaymentLinksClient({ baseUrl: '', fetch: refreshFails, accessToken: () => 'token', onUnauthenticated });
+    const first = createPaymentLinksClient({ baseUrl: '', fetch: refreshFails, accessToken: session.token, onUnauthenticated });
     await expect(first.list()).rejects.toThrow('BAAS_REQUEST_FAILED');
-    expect(refreshFails).toHaveBeenCalledTimes(2);
+    expect(session.token()).toBe('');
+    expect(refreshFails.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(1);
     expect(onUnauthenticated).toHaveBeenCalledTimes(1);
+  });
 
+  test('retry 401 clears session and notifies once without a second refresh', async () => {
+    const session = createBaasMemorySession();
+    session.setToken('token');
+    const onUnauthenticated = vi.fn(() => session.clear());
     const retryFails = vi.fn<typeof fetch>().mockResolvedValueOnce(response({}, 401)).mockResolvedValueOnce(response({ accessToken: 'new' })).mockResolvedValueOnce(response({}, 401));
-    const terminal = createPaymentLinksClient({ baseUrl: '', fetch: retryFails, accessToken: () => 'token', onAccessToken: () => undefined, onUnauthenticated: vi.fn() });
+    const terminal = createPaymentLinksClient({ baseUrl: '', fetch: retryFails, accessToken: session.token, onAccessToken: session.setToken, onUnauthenticated });
     await expect(terminal.list()).rejects.toThrow('BAAS_REQUEST_FAILED');
-    expect(retryFails).toHaveBeenCalledTimes(3);
+    expect(session.token()).toBe('');
+    expect(retryFails.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(1);
+    expect(retryFails.mock.calls.filter(([url]) => url === '/api/v1/checkout-links')).toHaveLength(2);
+    expect(onUnauthenticated).toHaveBeenCalledTimes(1);
   });
 
   test('does not refresh non-401 errors', async () => {
@@ -193,7 +206,9 @@ describe('runtime API composition', () => {
     await Promise.resolve();
     releaseRefresh();
     await expect(Promise.all([first, second])).resolves.toHaveLength(2);
-    expect(request).toHaveBeenCalledTimes(5);
+    expect(request.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(1);
+    expect(request.mock.calls.filter(([url]) => url === '/api/v1/checkout-links')).toHaveLength(4);
+    expect(request.mock.calls.slice(-2).every(([url]) => url === '/api/v1/checkout-links')).toBe(true);
   });
 
   test('loads the typed current profile through authenticated transport', async () => {

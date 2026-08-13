@@ -215,6 +215,12 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Gate:** Release
 **Commit:** `test(console): cover session and finance navigation`
 
+### T10: Validation follow-up — terminal recovery and logout evidence ✅
+
+**What:** Add precise web-test evidence for CONSOLE-10..18 verifier gaps without changing application behavior.
+**Status:** Complete — focused tests and typecheck pass; verify:quick remains blocked by pre-existing formatting failures.
+**Commit:** `test(session): cover terminal recovery and logout`
+
 ---
 
 ## Phase Execution Map

@@ -45,4 +45,21 @@ describe('SettingsPage', () => {
     );
     expect(screen.queryByText('internal payload')).not.toBeInTheDocument();
   });
+
+  test('maps a specific non-401 profile failure to the safe Portuguese state', async () => {
+    render(
+      <SettingsPage
+        api={{
+          load: async () => {
+            const error = new Error('PROFILE_UNAVAILABLE') as Error & { status: number };
+            error.status = 503;
+            throw error;
+          }
+        }}
+      />
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Não foi possível carregar as configurações'
+    );
+  });
 });

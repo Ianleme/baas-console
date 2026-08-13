@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { vi } from 'vitest';
 
@@ -15,6 +15,8 @@ describe('AppRouter', () => {
           gatewayConnectionStatus: null
         }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
       }
+      if (String(input).includes('/auth/refresh'))
+        return Promise.resolve(new Response('{}', { status: 401 }));
       return Promise.resolve(
         new Response(
           JSON.stringify({
@@ -35,6 +37,7 @@ describe('AppRouter', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    cleanup();
   });
 
   test('reacts to hash navigation without a page reload', async () => {
@@ -72,6 +75,54 @@ describe('AppRouter', () => {
     session.setToken('expired-token');
     render(<AppRouter session={session} />);
     await waitFor(() => expect(session.token()).toBe(''));
-    expect(await screen.findByText('Entrar')).toBeVisible();
+    expect(localStorage.getItem('baas_access_token')).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument());
+    expect(screen.getByRole('form', { name: 'Entrar' })).toBeVisible();
+  });
+
+  test('logout calls the endpoint, clears profile/token, and returns to auth', async () => {
+    const session = createBaasMemorySession();
+    session.setToken('logout-token');
+    render(<AppRouter session={session} />);
+    expect((await screen.findAllByText('Owner Aurora')).length).toBeGreaterThan(0);
+    await act(async () => {
+      screen.getByRole('button', { name: 'Sair' }).click();
+    });
+    await waitFor(() => expect(session.token()).toBe(''));
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/v1/auth/logout', expect.objectContaining({ method: 'POST' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument());
+    expect(screen.getByRole('form', { name: 'Entrar' })).toBeVisible();
+    expect(screen.queryAllByText('Owner Aurora')).toHaveLength(0);
+  });
+
+  test('remote logout failure still clears local state and prevents token reuse', async () => {
+    vi.restoreAllMocks();
+    const calls: string[] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = String(input);
+      calls.push(url);
+      if (url.includes('/session/profile')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          merchant: { legalName: 'Aurora Ltda', displayName: 'Aurora Store' },
+          owner: { fullName: 'Owner Aurora', email: 'owner@example.test' },
+          gatewayConnectionStatus: null
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      }
+      if (url.includes('/auth/logout')) return Promise.resolve(new Response('server unavailable', { status: 503 }));
+      if (url.includes('/auth/refresh')) return Promise.resolve(new Response('{}', { status: 401 }));
+      return Promise.resolve(new Response('{}', { status: 200 }));
+    });
+    const session = createBaasMemorySession();
+    session.setToken('old-token');
+    render(<AppRouter session={session} />);
+    expect((await screen.findAllByText('Owner Aurora')).length).toBeGreaterThan(0);
+    await act(async () => {
+      screen.getByRole('button', { name: 'Sair' }).click();
+    });
+    await waitFor(() => expect(session.token()).toBe(''));
+    expect(calls).toContain('/api/v1/auth/logout');
+    expect(await screen.findByRole('form', { name: 'Entrar' })).toBeVisible();
+    expect(screen.queryAllByText('Owner Aurora')).toHaveLength(0);
+    expect(session.token()).not.toBe('old-token');
   });
 });
