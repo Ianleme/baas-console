@@ -189,6 +189,12 @@ describe('Dashboard', () => {
     expect(today).toHaveClass('bg-[#dff5a8]');
     expect(screen.queryByRole('button', { name: /notifica/i })).not.toBeInTheDocument();
   });
+  test('groups KPIs into a connected desktop rail with the approval ring at the end', async () => {
+    await ready();
+    expect(screen.getByRole('region', { name: 'Resumo financeiro' })).toHaveClass('xl:grid-cols-[30%_1fr_1fr_1fr]');
+    expect(screen.getByText('Saldo disponível').closest('[data-kpi]')).toHaveClass('bg-[#005746]');
+    expect(screen.getByText('Taxa de aprovação').closest('[data-kpi]')).toHaveClass('xl:border-l');
+  });
   test('has no axe violations in populated state', async () => {
     const { container } = render(<Dashboard api={api()} />);
     await screen.findByText('PED-1048');

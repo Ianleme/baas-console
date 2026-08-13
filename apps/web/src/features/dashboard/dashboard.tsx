@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ArrowUp, CheckCircle2, ChevronRight, CreditCard, QrCode, Wallet } from 'lucide-react';
 
 import { Badge } from '../../components/ui/badge.js';
@@ -168,6 +168,10 @@ function PeriodFilters({ period, onChange }: { period: (typeof periods)[number];
   );
 }
 
+function KpiRail({ children }: { children: ReactNode }) {
+  return <section className="kpis grid grid-cols-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-none sm:grid-cols-2 xl:grid-cols-[30%_1fr_1fr_1fr]" aria-label="Resumo financeiro">{children}</section>;
+}
+
 export function Dashboard({ api }: { api: DashboardApi }) {
   const [data, setData] = useState<DashboardData>();
   const [failed, setFailed] = useState(false);
@@ -227,11 +231,8 @@ export function Dashboard({ api }: { api: DashboardApi }) {
 
       <PeriodFilters period={period} onChange={setPeriod} />
 
-      <section
-        className="kpis grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
-        aria-label="Resumo financeiro"
-      >
-        <Card className={`${cardClass} border-0 bg-[#005746] text-white`}>
+      <KpiRail>
+        <Card data-kpi className="rounded-none border-0 bg-[#005746] text-white">
           <CardContent className="p-5 flex flex-col justify-between min-h-[8.25rem]">
             <div className="flex items-center gap-2.5">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
@@ -259,7 +260,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
           </CardContent>
         </Card>
 
-        <Card className={cardClass}>
+        <Card data-kpi className={`${cardClass} rounded-none border-0 xl:border-l`}>
           <CardContent className="p-5 flex flex-col justify-between min-h-[8.25rem]">
             <span className="text-sm font-medium text-slate-500">Recebimentos</span>
             <strong className="mt-4 text-[1.75rem] font-extrabold tracking-tight text-slate-900">
@@ -280,7 +281,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
           </CardContent>
         </Card>
 
-        <Card className={cardClass}>
+        <Card data-kpi className={`${cardClass} rounded-none border-0 xl:border-l`}>
           <CardContent className="p-5 flex flex-col justify-between min-h-[8.25rem]">
             <span className="text-sm font-medium text-slate-500">Transações</span>
             <strong
@@ -295,7 +296,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
           </CardContent>
         </Card>
 
-        <Card className={cardClass}>
+        <Card data-kpi className={`${cardClass} rounded-none border-0 xl:border-l`}>
           <CardContent className="p-5 flex items-center justify-between gap-4 min-h-[8.25rem]">
             <div className="flex flex-col justify-between self-stretch">
               <span className="text-sm font-medium text-slate-500">Taxa de aprovação</span>
@@ -323,9 +324,9 @@ export function Dashboard({ api }: { api: DashboardApi }) {
             </div>
           </CardContent>
         </Card>
-      </section>
+      </KpiRail>
 
-      <div className="dashboard__grid grid grid-cols-1 xl:grid-cols-12 gap-4">
+      <div className="dashboard__grid grid grid-cols-1 gap-4 xl:grid-cols-13">
         <Card className={`${cardClass} xl:col-span-3`} aria-labelledby="composition-title">
           <CardHeader className="space-y-0 p-5 pb-3">
             <h2 id="composition-title" className="text-[0.95rem] font-bold text-slate-900">
