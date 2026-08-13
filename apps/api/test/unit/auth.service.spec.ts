@@ -34,6 +34,7 @@ class MemoryStore implements AuthStore {
       merchantId: input.merchantId,
       email: input.email,
       emailNormalized: input.emailNormalized,
+      fullName: input.fullName,
       passwordHash: input.passwordHash,
       status: 'ACTIVE'
     };
@@ -78,6 +79,7 @@ const now = new Date('2026-08-12T12:00:00.000Z');
 const validInput = {
   legalName: 'Loja Aurora Ltda',
   displayName: 'Loja Aurora',
+  fullName: '  Owner Aurora  ',
   email: 'Owner@Example.Test',
   password: 'StrongPassword123'
 };
@@ -98,6 +100,10 @@ describe('AuthService', () => {
   it('normalizes owner email', async () => {
     const user = await service.registerOwner(validInput);
     expect(user.emailNormalized).toBe('owner@example.test');
+  });
+  it('persists the validated owner full name', async () => {
+    const user = await service.registerOwner(validInput);
+    expect(user.fullName).toBe('Owner Aurora');
   });
   it('hashes owner password with Argon2id', async () => {
     const user = await service.registerOwner(validInput);

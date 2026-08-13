@@ -36,6 +36,7 @@ export class TypeOrmAuthStore implements AuthStore {
         merchantId: input.merchantId,
         email: input.email,
         emailNormalized: input.emailNormalized,
+        fullName: input.fullName,
         passwordHash: input.passwordHash,
         status: 'ACTIVE',
         lastLoginAt: null
@@ -96,6 +97,7 @@ export class TypeOrmAuthStore implements AuthStore {
       merchantId: user.merchantId,
       email: user.email,
       emailNormalized: user.emailNormalized,
+      fullName: user.fullName,
       passwordHash: user.passwordHash,
       status: user.status
     };

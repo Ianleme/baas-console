@@ -7,6 +7,7 @@ export interface LocalUser {
   merchantId: string;
   email: string;
   emailNormalized: string;
+  fullName: string | null;
   passwordHash: string;
   status: 'ACTIVE' | 'DISABLED';
 }
@@ -30,6 +31,7 @@ export interface AuthStore {
     userId: string;
     legalName: string;
     displayName: string;
+    fullName: string;
     email: string;
     emailNormalized: string;
     passwordHash: string;
@@ -75,6 +77,7 @@ export class AuthService {
     displayName: string;
     email: string;
     password: string;
+    fullName: string;
   }): Promise<LocalUser> {
     const emailNormalized = normalizeEmail(input.email);
     validatePassword(input.password);
@@ -85,6 +88,7 @@ export class AuthService {
         userId: randomUUID(),
         legalName: input.legalName.trim(),
         displayName: input.displayName.trim(),
+        fullName: input.fullName.trim(),
         email: input.email.trim(),
         emailNormalized,
         passwordHash
@@ -121,6 +125,7 @@ export class AuthService {
         merchantId: current.merchantId,
         email: '',
         emailNormalized: '',
+        fullName: null,
         passwordHash: '',
         status: 'ACTIVE'
       },

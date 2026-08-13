@@ -76,6 +76,7 @@ export class AuthController {
       const user = await this.auth.registerOwner({
         legalName: input.name ?? input.legalName ?? '',
         displayName: input.tradingName ?? input.displayName ?? '',
+        fullName: input.name ?? input.legalName ?? '',
         email: input.email,
         password: input.password
       });
