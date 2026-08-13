@@ -1,0 +1,72 @@
+name: Publish immutable images
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    outputs:
+      api-digest: ${{ steps.build-api.outputs.digest }}
+      web-digest: ${{ steps.build-web.outputs.digest }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
+      - uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: tags
+        name: Compute immutable tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "commit=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then echo "semver=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"; else echo "semver=" >> "$GITHUB_OUTPUT"; fi
+      - id: build-api
+        uses: docker/build-push-action@ca052bb799b7e5c1d5c0d3a4a5b6c7d8e9f0a1b2
+        with:
+          context: .
+          file: apps/api/Dockerfile.prod
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/api:sha-${{ steps.tags.outputs.commit }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          sbom: true
+          provenance: mode=max
+      - id: build-web
+        uses: docker/build-push-action@ca052bb799b7e5c1d5c0d3a4a5b6c7d8e9f0a1b2
+        with:
+          context: .
+          file: apps/web/Dockerfile.prod
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/web:sha-${{ steps.tags.outputs.commit }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          sbom: true
+          provenance: mode=max
+      - uses: aquasecurity/trivy-action@0d9d8d4c1e4c5e6f7a8b9c0d1e2f3a4b5c6d7e8f
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/api:sha-${{ steps.tags.outputs.commit }}
+          format: sarif
+          output: trivy-api.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+      - uses: github/codeql-action/upload-sarif@2119cf9a2c3f4d5e6a7b8c9d0e1f2a3b4c5d6e7f
+        if: always()
+        with:
+          sarif_file: trivy-api.sarif
