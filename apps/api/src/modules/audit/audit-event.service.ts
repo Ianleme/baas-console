@@ -32,7 +32,10 @@ export class AuditEventService {
   constructor(private readonly database: DatabaseService) {}
 
   private get dataSource(): DataSource {
-    return this.database.getDataSource();
+    if (this.database && typeof (this.database as any).getDataSource === 'function') {
+      return this.database.getDataSource();
+    }
+    return this.database as unknown as DataSource;
   }
 
   async record(input: AuditEventInput): Promise<void> {

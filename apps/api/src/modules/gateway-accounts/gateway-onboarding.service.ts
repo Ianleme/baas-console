@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { Logger } from '@nestjs/common';
 
 import {
   LeraBoxDependencyError,
@@ -46,6 +47,8 @@ export class GatewayOnboardingError extends Error {
 }
 
 export class GatewayOnboardingService {
+  private readonly logger = new Logger(GatewayOnboardingService.name);
+
   constructor(
     private readonly gateway: GatewayIdentityPort,
     private readonly store: GatewayAccountStore,
@@ -59,7 +62,7 @@ export class GatewayOnboardingService {
       id: randomUUID(),
       merchantId,
       status: 'REGISTRATION_PENDING',
-      expectedDocument: input.document,
+      expectedDocument: input.document.replace(/\D/g, ''),
       expectedPersonType: input.personType
     };
     await this.store.createPending(record);
@@ -67,11 +70,32 @@ export class GatewayOnboardingService {
       await this.gateway.registerUser(input);
       record.status = 'AWAITING_CREDENTIALS';
     } catch (error) {
-      record.status =
-        error instanceof LeraBoxDependencyError && error.code === 'LERA_BOX_TIMEOUT'
-          ? 'GATEWAY_REGISTRATION_UNKNOWN'
-          : 'GATEWAY_REGISTRATION_FAILED';
-      record.lastErrorCode = record.status;
+      this.recordRegistrationFailure(record, error);
+    }
+    await this.store.update(record);
+    return record;
+  }
+
+  async retryRegistration(
+    merchantId: string,
+    input: GatewayRegistration
+  ): Promise<GatewayAccountRecord> {
+    const record = await this.store.findByMerchant(merchantId);
+    if (!record) return this.register(merchantId, input);
+    if (record.status !== 'GATEWAY_REGISTRATION_FAILED')
+      throw new GatewayOnboardingError('REGISTRATION_NOT_ALLOWED');
+
+    record.status = 'REGISTRATION_PENDING';
+    record.expectedDocument = input.document.replace(/\D/g, '');
+    record.expectedPersonType = input.personType;
+    delete record.lastErrorCode;
+    await this.store.update(record);
+
+    try {
+      await this.gateway.registerUser(input);
+      record.status = 'AWAITING_CREDENTIALS';
+    } catch (error) {
+      this.recordRegistrationFailure(record, error);
     }
     await this.store.update(record);
     return record;
@@ -93,7 +117,6 @@ export class GatewayOnboardingService {
         personType: record.expectedPersonType
       })
     ) {
-      record.status = 'ERROR';
       record.lastErrorCode = 'GATEWAY_PROFILE_MISMATCH';
       await this.store.update(record);
       throw new GatewayOnboardingError('GATEWAY_PROFILE_MISMATCH');
@@ -121,5 +144,28 @@ export class GatewayOnboardingService {
     delete record.lastErrorCode;
     await this.store.update(record);
     return record;
+  }
+
+  private recordRegistrationFailure(record: GatewayAccountRecord, error: unknown): void {
+    const dependencyError = error instanceof LeraBoxDependencyError ? error : undefined;
+    record.status =
+      dependencyError?.code === 'LERA_BOX_TIMEOUT'
+        ? 'GATEWAY_REGISTRATION_UNKNOWN'
+        : 'GATEWAY_REGISTRATION_FAILED';
+    record.lastErrorCode = dependencyError
+      ? `${dependencyError.code}${dependencyError.remoteStatus ? `_${dependencyError.remoteStatus}` : ''}`
+      : record.status;
+
+    this.logger.error(
+      JSON.stringify({
+        event: 'lera_box.registration_failed',
+        merchantId: record.merchantId,
+        operation: dependencyError?.operation ?? 'register-user',
+        code: record.lastErrorCode,
+        remoteStatus: dependencyError?.remoteStatus ?? null,
+        remoteResponse: dependencyError?.remoteResponse ?? null,
+        cause: dependencyError ? null : error instanceof Error ? error.message : String(error)
+      })
+    );
   }
 }

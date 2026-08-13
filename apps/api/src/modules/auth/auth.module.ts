@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service.js';
+import { DatabaseModule } from '../../database/database.module.js';
 import { LeraBoxIdentityClient } from '../../integrations/lera-box/auth/lera-box-identity.client.js';
 import { GatewayAccountController } from '../gateway-accounts/gateway-account.controller.js';
 import { GATEWAY_IDENTITY } from '../gateway-accounts/gateway-accounts.module.js';
@@ -12,11 +13,13 @@ import { TypeOrmGatewayAccountStore } from '../gateway-accounts/typeorm-gateway-
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { TypeOrmAuthStore } from './typeorm-auth.store.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
+import { EmailDeliveriesController } from '../notifications/email-deliveries.controller.js';
 
 @Module({
-  controllers: [AuthController, GatewayAccountController],
+  imports: [NotificationsModule, DatabaseModule],
+  controllers: [AuthController, GatewayAccountController, EmailDeliveriesController],
   providers: [
-    DatabaseService,
     TypeOrmAuthStore,
     TypeOrmGatewayAccountStore,
     {
@@ -45,7 +48,7 @@ import { TypeOrmAuthStore } from './typeorm-auth.store.js';
         new AuthService(store, undefined, required('AUTH_TOKEN_SECRET'))
     }
   ],
-  exports: [DatabaseService, AuthService, EncryptionService]
+  exports: [AuthService, EncryptionService, TypeOrmAuthStore]
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS requires a decorated runtime module class.
 export class AuthModule {}

@@ -49,7 +49,8 @@ export class LeraBoxDependencyError extends Error {
   constructor(
     readonly operation: string,
     readonly code: string,
-    readonly remoteStatus?: number
+    readonly remoteStatus?: number,
+    readonly remoteResponse?: string
   ) {
     super(`${code}: ${operation}`);
     this.name = 'LeraBoxDependencyError';
@@ -73,13 +74,19 @@ export class LeraBoxIdentityClient {
   ) {}
 
   async registerUser(input: GatewayRegistration): Promise<void> {
+    const payload = {
+      ...input,
+      phone: input.phone.replace(/\D/g, ''),
+      document: input.document.replace(/\D/g, ''),
+      zipCode: input.zipCode.replace(/\D/g, '')
+    };
     await this.send(
       'register-user',
       '/api/users',
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(input)
+        body: JSON.stringify(payload)
       },
       201
     );
@@ -92,7 +99,10 @@ export class LeraBoxIdentityClient {
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(input)
+        body: JSON.stringify({
+          ...input,
+          document: input.document.replace(/\D/g, '')
+        })
       },
       201
     );
@@ -143,7 +153,13 @@ export class LeraBoxIdentityClient {
     profile: GatewayUserProfile,
     expected: { document: string; personType: GatewayPersonType }
   ): boolean {
-    return profile.document === expected.document && profile.personType === expected.personType;
+    const profileDocument = profile.document.replace(/\D/g, '');
+    const expectedDocument = expected.document.replace(/\D/g, '');
+    return (
+      profileDocument.length > 0 &&
+      profileDocument === expectedDocument &&
+      profile.personType === expected.personType
+    );
   }
 
   async send(
@@ -162,7 +178,13 @@ export class LeraBoxIdentityClient {
         signal: controller.signal
       });
       if (response.status !== expectedStatus) {
-        throw new LeraBoxDependencyError(operation, 'LERA_BOX_CONCLUSIVE_FAILURE', response.status);
+        const remoteResponse = (await response.text()).slice(0, 2_000);
+        throw new LeraBoxDependencyError(
+          operation,
+          'LERA_BOX_CONCLUSIVE_FAILURE',
+          response.status,
+          remoteResponse || undefined
+        );
       }
       return response;
     } catch (error) {

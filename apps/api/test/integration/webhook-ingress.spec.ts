@@ -85,6 +85,21 @@ describe('WebhookIngressService', () => {
     }
   );
 
+  test('accepts the transactionId field sent by Lera Box', async () => {
+    const { service } = setup();
+    const rawBody = Buffer.from(
+      JSON.stringify({ event: 'PAYMENT_PIX', transactionId: 'gateway-event-id', status: 'APPROVED' })
+    );
+    await expect(
+      service.receive({
+        publicEndpointId: 'opaque-endpoint',
+        rawBody,
+        signature: signature(rawBody),
+        eventHeader: 'PAYMENT_PIX'
+      })
+    ).resolves.toEqual({ status: 'RECEIVED' });
+  });
+
   test('signs exact raw bytes rather than parsed or normalized JSON', async () => {
     const { service, store } = setup();
     const signed = Buffer.from(

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { DatabaseService } from '../../database/database.service.js';
-import { LeraBoxReconciliationClient } from '../../integrations/lera-box/reconciliation/lera-box-reconciliation.client.js';
+import { LeraBoxIdentityClient } from '../../integrations/lera-box/auth/lera-box-identity.client.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { GatewayCredentialService } from '../gateway-accounts/gateway-credential.service.js';
 import { WalletModule } from '../wallet/wallet.module.js';
@@ -21,7 +21,7 @@ export const WITHDRAWAL_GATEWAY = Symbol('WITHDRAWAL_GATEWAY');
     {
       provide: WITHDRAWAL_GATEWAY,
       useFactory: () =>
-        new LeraBoxWithdrawalAdapter(new LeraBoxReconciliationClient(required('LERA_BOX_BASE_URL')))
+        new LeraBoxWithdrawalAdapter(new LeraBoxIdentityClient(required('LERA_BOX_BASE_URL')))
     },
     {
       provide: WithdrawalsService,

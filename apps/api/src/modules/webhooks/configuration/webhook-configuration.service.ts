@@ -66,7 +66,10 @@ export class WebhookConfigurationService {
     private readonly id: () => string = randomUUID,
     private readonly opaqueId: () => string = () => randomBytes(24).toString('hex'),
     private readonly secret: () => string = () => randomBytes(32).toString('base64url')
-  ) {}
+  ) {
+    assertPublicBaseUrl(publicBaseUrl);
+    this.publicBaseUrl = publicBaseUrl.replace(/\/$/u, '');
+  }
 
   async configure(input: {
     merchantId: string;
@@ -77,7 +80,6 @@ export class WebhookConfigurationService {
   }): Promise<WebhookConfigurationView> {
     assertEvent(input.event);
     const previous = await this.store.find(input.merchantId, input.event);
-    if (previous) await this.gateway.delete(input.accessToken, previous.gatewayWebhookId);
 
     const id = previous?.id ?? this.id();
     const publicEndpointId = this.opaqueId();
@@ -87,6 +89,7 @@ export class WebhookConfigurationService {
       url: `${this.publicBaseUrl}/api/v1/webhooks/${publicEndpointId}`,
       secret
     });
+    if (previous) await this.gateway.delete(input.accessToken, previous.gatewayWebhookId);
     const record: WebhookConfigurationRecord = {
       id,
       merchantId: input.merchantId,
@@ -141,6 +144,23 @@ export class WebhookConfigurationService {
 function assertEvent(event: string): asserts event is GatewayWebhookEvent {
   if (!['PAYMENT_PIX', 'PAYMENT_CARD', 'WITHDRAWAL'].includes(event))
     throw new WebhookConfigurationError('WEBHOOK_EVENT_INVALID');
+}
+
+function assertPublicBaseUrl(value: string): void {
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol !== 'https:' ||
+      url.pathname !== '/' ||
+      url.search ||
+      url.hash ||
+      url.username ||
+      url.password
+    )
+      throw new Error('PUBLIC_API_BASE_URL_INVALID');
+  } catch {
+    throw new WebhookConfigurationError('PUBLIC_API_BASE_URL_INVALID');
+  }
 }
 
 function view(record: WebhookConfigurationRecord): WebhookConfigurationView {

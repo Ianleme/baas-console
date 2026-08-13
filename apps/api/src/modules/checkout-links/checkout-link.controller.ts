@@ -156,16 +156,21 @@ function publicRecord(link: CheckoutLinkRecord) {
 }
 function problem(error: unknown): ProblemException {
   if (error instanceof ProblemException) return error;
-  if (error instanceof CheckoutLinkError) {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code: unknown }).code)
+      : undefined;
+  if (error instanceof CheckoutLinkError || code === 'LINK_NOT_FOUND') {
+    const errorCode = code ?? (error instanceof CheckoutLinkError ? error.code : 'LINK_NOT_FOUND');
     const status =
-      error.code === 'LINK_NOT_FOUND'
+      errorCode === 'LINK_NOT_FOUND'
         ? 404
         : ['LINK_STATE_CONFLICT', 'PAYMENT_ATTEMPT_UNRESOLVED', 'LINK_NOT_ACTIVE'].includes(
-              error.code
+              errorCode
             )
           ? 409
           : 400;
-    return new ProblemException(error.code, status, 'Checkout link request was rejected.');
+    return new ProblemException(errorCode, status, 'Checkout link request was rejected.');
   }
   if (
     typeof error === 'object' &&

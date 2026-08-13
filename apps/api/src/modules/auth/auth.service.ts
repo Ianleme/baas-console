@@ -37,6 +37,7 @@ export interface AuthStore {
     passwordHash: string;
   }): Promise<LocalUser>;
   findUserByEmail(emailNormalized: string): Promise<LocalUser | undefined>;
+  findUserById(userId: string): Promise<LocalUser | undefined>;
   saveSession(session: LocalSession): Promise<void>;
   findSession(refreshTokenHash: Buffer): Promise<LocalSession | undefined>;
   rotateSession(current: LocalSession, replacement: LocalSession, at: Date): Promise<void>;

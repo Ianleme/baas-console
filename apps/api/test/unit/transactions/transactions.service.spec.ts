@@ -58,7 +58,7 @@ describe('TransactionsService', () => {
     };
 
     mockCredentials = {
-      getActiveGatewayAuth: jest.fn().mockResolvedValue({ accessToken: 'test_token' })
+      accessToken: jest.fn().mockResolvedValue('test_token')
     };
 
     service = new TransactionsService(

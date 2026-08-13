@@ -10,12 +10,13 @@ export class TypeOrmWalletSnapshotStore implements WalletSnapshotStore {
   async latest(merchantId: string): Promise<WalletSnapshotRecord | undefined> {
     const entity = await this.database.getDataSource().manager.findOne(WalletSnapshotEntity, {
       where: { merchantId },
-      order: { capturedAt: 'DESC', createdAt: 'DESC' }
+      order: { createdAt: 'DESC', capturedAt: 'DESC' }
     });
     return entity
       ? {
           balanceCents: entity.balanceCents,
           capturedAt: entity.capturedAt,
+          observedAt: entity.createdAt,
           sourceRequestId: entity.sourceRequestId
         }
       : undefined;
@@ -23,10 +24,13 @@ export class TypeOrmWalletSnapshotStore implements WalletSnapshotStore {
 
   async save(merchantId: string, snapshot: WalletSnapshotRecord): Promise<void> {
     await this.database.getDataSource().manager.insert(WalletSnapshotEntity, {
-      ...snapshot,
       id: randomUUID(),
       merchantId,
-      availableCents: null
+      balanceCents: snapshot.balanceCents,
+      availableCents: null,
+      capturedAt: snapshot.capturedAt,
+      sourceRequestId: snapshot.sourceRequestId,
+      createdAt: snapshot.observedAt
     });
   }
 }

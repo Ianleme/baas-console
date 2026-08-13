@@ -44,6 +44,9 @@ class MemoryStore implements AuthStore {
   findUserByEmail(email: string): Promise<LocalUser | undefined> {
     return Promise.resolve(this.users.find((user) => user.emailNormalized === email));
   }
+  findUserById(userId: string): Promise<LocalUser | undefined> {
+    return Promise.resolve(this.users.find((user) => user.id === userId));
+  }
   saveSession(session: LocalSession): Promise<void> {
     this.sessions.push(session);
     return Promise.resolve();

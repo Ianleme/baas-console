@@ -121,8 +121,9 @@ function classify(
   if (eventHeader !== expectedEvent) return 'UNPROCESSABLE';
   try {
     const body = JSON.parse(rawBody.toString('utf8')) as Record<string, unknown>;
+    const transactionId = body.transactionId ?? body.id;
     return body.event === expectedEvent &&
-      typeof body.id === 'string' &&
+      typeof transactionId === 'string' &&
       ['APPROVED', 'DENIED'].includes(String(body.status))
       ? 'RECEIVED'
       : 'UNPROCESSABLE';

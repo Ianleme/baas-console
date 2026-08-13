@@ -114,29 +114,24 @@ export class WithdrawalsService {
 
     // 5. Execute gateway transfer if credentials exist
     try {
-      const creds = this.credentials as unknown as {
-        getActiveGatewayAuth(id: string): Promise<{ accessToken?: string } | null>;
-      };
-      const auth = await creds.getActiveGatewayAuth(merchantId);
+      const auth = await this.credentials.activeAuth(merchantId);
+      const transferResult = await this.gateway.executeTransfer(auth.accessToken, {
+        amountCents: dto.amountCents,
+        externalReference: reference,
+        pixKey: dto.pixKey,
+        pixKeyType: dto.pixKeyType,
+        document: auth.document
+      });
 
-      if (auth?.accessToken) {
-        const transferResult = await this.gateway.executeTransfer(auth.accessToken, {
-          amountCents: dto.amountCents,
-          externalReference: reference,
-          pixKey: dto.pixKey,
-          pixKeyType: dto.pixKeyType
-        });
+      withdrawal.status = transferResult.status;
+      withdrawal.gatewayWithdrawalId = transferResult.id;
+      transaction.status = transferResult.status;
+      transaction.gatewayTransactionId = transferResult.id;
 
-        withdrawal.status = transferResult.status;
-        withdrawal.gatewayWithdrawalId = transferResult.id;
-        transaction.status = transferResult.status;
-        transaction.gatewayTransactionId = transferResult.id;
-
-        await this.dataSource.transaction(async (manager) => {
-          await manager.save(withdrawal);
-          await manager.save(transaction);
-        });
-      }
+      await this.dataSource.transaction(async (manager) => {
+        await manager.save(withdrawal);
+        await manager.save(transaction);
+      });
     } catch (err: unknown) {
       const errObj = (err ?? {}) as { message?: string };
       withdrawal.status = 'DENIED';

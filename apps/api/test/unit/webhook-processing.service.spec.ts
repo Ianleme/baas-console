@@ -29,6 +29,20 @@ function leased(
   };
 }
 
+function leasedFromGateway(eventType: LeasedWebhookEvent['eventType']): LeasedWebhookEvent {
+  const event = leased(eventType);
+  const raw = Buffer.from(
+    JSON.stringify({ event: eventType, transactionId: 'gateway-id', status: 'APPROVED' })
+  ).toString('base64');
+  event.rawBodyCiphertext = encryption.encrypt(
+    raw,
+    event.merchantId,
+    event.id,
+    'webhook-raw-body'
+  );
+  return event;
+}
+
 function setup(event = leased()) {
   const store: jest.Mocked<WebhookProcessingStore> = {
     acquire: jest.fn().mockResolvedValue([event]),
@@ -40,6 +54,16 @@ function setup(event = leased()) {
 }
 
 describe('WebhookProcessingService', () => {
+  test('accepts the transactionId field sent by Lera Box', async () => {
+    const { service, store } = setup(leasedFromGateway('PAYMENT_PIX'));
+    await service.run();
+    expect(store.applyPayment).toHaveBeenCalledWith(
+      'merchant-a',
+      'gateway-id',
+      ['PROCESSING', 'PENDING', 'RECONCILIATION_PENDING'],
+      'APPROVED'
+    );
+  });
   test.each(['PAYMENT_PIX', 'PAYMENT_CARD'] as const)(
     'applies a %s outcome to the payment projection',
     async (eventType) => {

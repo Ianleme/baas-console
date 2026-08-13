@@ -87,6 +87,12 @@ describe('LeraBoxPixClient', () => {
       qrCodeBase64: 'qr'
     });
   });
+  test('accepts externalReference from metadata', async () => {
+    const { client } = setup({ ...response, externalReference: undefined });
+    await expect(client.create('access', input)).resolves.toMatchObject({
+      externalReference: 'REF-PIX-FIXTURE'
+    });
+  });
   test('rejects malformed response states', async () => {
     const { client } = setup({ ...response, status: 'UNKNOWN' });
     await expect(client.create('access', input)).rejects.toMatchObject({

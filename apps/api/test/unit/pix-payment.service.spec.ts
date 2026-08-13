@@ -1,4 +1,7 @@
-import { LeraBoxTimeoutError } from '../../src/integrations/lera-box/auth/lera-box-identity.client.js';
+import {
+  LeraBoxDependencyError,
+  LeraBoxTimeoutError
+} from '../../src/integrations/lera-box/auth/lera-box-identity.client.js';
 import type { GatewayPixResult } from '../../src/integrations/lera-box/payments/lera-box-pix.client.js';
 import type { EmailOutboxService } from '../../src/modules/notifications/email-outbox.service.js';
 import {
@@ -104,7 +107,7 @@ describe('PixPaymentService', () => {
         amountCents: '32000',
         payerDocument: '52998224725',
         description: 'Pedido sandbox',
-        externalReference: 'PIX-link-a-id-2'
+        externalReference: 'PIX-id-1'
       })
     );
   });
@@ -148,6 +151,16 @@ describe('PixPaymentService', () => {
     await expect(service.start(input)).resolves.toMatchObject({
       httpStatus: 202,
       attempt: { status: 'RECONCILIATION_PENDING' }
+    });
+  });
+  test('conclusive gateway rejection closes the local attempt', async () => {
+    const { service, store } = setup(
+      new LeraBoxDependencyError('create-pix', 'LERA_BOX_CONCLUSIVE_FAILURE', 400)
+    );
+    await expect(service.start(input)).rejects.toMatchObject({ remoteStatus: 400 });
+    expect(store.attempts[0]).toMatchObject({
+      status: 'DENIED',
+      failureCode: 'LERA_BOX_CONCLUSIVE_FAILURE'
     });
   });
   test('timeout performs only one remote POST', async () => {
@@ -206,8 +219,8 @@ describe('PixPaymentService', () => {
     const service = new PixPaymentService(
       gateway,
       store,
-      mockOutbox as unknown as EmailOutboxService,
-      () => 'id'
+      () => 'id',
+      mockOutbox as unknown as EmailOutboxService
     );
     await service.start({ ...input, payerEmail: 'comprador@loja.com' });
     expect(mockOutbox.enqueue).toHaveBeenCalledWith(
@@ -218,6 +231,19 @@ describe('PixPaymentService', () => {
         recipient: 'comprador@loja.com'
       })
     );
+  });
+  test('does not send a receipt to a placeholder address without a payer e-mail', async () => {
+    const store = new MemoryPixStore();
+    const gateway = { create: jest.fn().mockResolvedValue(approved) };
+    const mockOutbox = { enqueue: jest.fn() };
+    const service = new PixPaymentService(
+      gateway,
+      store,
+      () => 'id',
+      mockOutbox as unknown as EmailOutboxService
+    );
+    await service.start(input);
+    expect(mockOutbox.enqueue).not.toHaveBeenCalled();
   });
   test('validates known CPF and CNPJ check digits', () => {
     expect(isValidDocument('52998224725')).toBe(true);

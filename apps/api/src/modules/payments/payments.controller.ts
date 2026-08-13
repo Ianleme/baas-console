@@ -5,6 +5,7 @@ import { IsIn, IsInt, IsObject, IsString, Length, Max, Min } from 'class-validat
 import type { Request, Response } from 'express';
 
 import type { CardBrand } from '../../integrations/lera-box/fees/lera-box-fees.client.js';
+import { LeraBoxDependencyError } from '../../integrations/lera-box/auth/lera-box-identity.client.js';
 import { ProblemException } from '../../platform/errors/problem.exception.js';
 import { CheckoutLinkError, CheckoutLinkService } from '../checkout-links/checkout-link.service.js';
 import {
@@ -266,6 +267,12 @@ function pixAttemptView(
 }
 function paymentProblem(error: unknown): ProblemException {
   if (error instanceof ProblemException) return error;
+  if (error instanceof LeraBoxDependencyError)
+    return new ProblemException(
+      'GATEWAY_PAYMENT_REJECTED',
+      error.remoteStatus && error.remoteStatus < 500 ? 422 : 503,
+      'The gateway could not process the payment.'
+    );
   if (
     error instanceof CardPaymentError ||
     error instanceof PixPaymentError ||

@@ -3,6 +3,7 @@ import { In } from 'typeorm';
 
 import { DatabaseService } from '../../../database/database.service.js';
 import { PaymentAttemptEntity } from '../../payments/entities/payment-attempt.entity.js';
+import { TransactionEntity } from '../../transactions/entities/transaction.entity.js';
 import { WithdrawalEntity } from '../../withdrawals/entities/withdrawal.entity.js';
 import { WebhookEventEntity } from '../entities/webhook-event.entity.js';
 import type {
@@ -63,13 +64,21 @@ export class TypeOrmWebhookProcessingStore implements WebhookProcessingStore {
       where: { merchantId, gatewayPaymentId: gatewayId }
     });
     if (!current) return { applied: false, currentStatus: 'NOT_FOUND' };
-    const result = await this.database
-      .getDataSource()
-      .manager.update(
+    const result = await this.database.getDataSource().transaction(async (manager) => {
+      const update = await manager.update(
         PaymentAttemptEntity,
         { id: current.id, merchantId, status: In(expectedStatuses as never[]) },
         { status: nextStatus }
       );
+      if (update.affected === 1) {
+        await manager.update(
+          TransactionEntity,
+          { merchantId, originType: 'PAYMENT', originId: current.id },
+          { status: nextStatus }
+        );
+      }
+      return update;
+    });
     return {
       applied: result.affected === 1,
       currentStatus: result.affected === 1 ? nextStatus : current.status
@@ -85,13 +94,21 @@ export class TypeOrmWebhookProcessingStore implements WebhookProcessingStore {
       .getDataSource()
       .manager.findOne(WithdrawalEntity, { where: { merchantId, gatewayWithdrawalId: gatewayId } });
     if (!current) return { applied: false, currentStatus: 'NOT_FOUND' };
-    const result = await this.database
-      .getDataSource()
-      .manager.update(
+    const result = await this.database.getDataSource().transaction(async (manager) => {
+      const update = await manager.update(
         WithdrawalEntity,
         { id: current.id, merchantId, status: In(expectedStatuses as never[]) },
         { status: nextStatus }
       );
+      if (update.affected === 1) {
+        await manager.update(
+          TransactionEntity,
+          { merchantId, originType: 'WITHDRAWAL', originId: current.id },
+          { status: nextStatus }
+        );
+      }
+      return update;
+    });
     return {
       applied: result.affected === 1,
       currentStatus: result.affected === 1 ? nextStatus : current.status

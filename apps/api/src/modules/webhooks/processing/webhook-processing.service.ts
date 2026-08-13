@@ -110,9 +110,13 @@ export class WebhookProcessingService {
         string,
         unknown
       >;
-      if (typeof value.id !== 'string' || !['APPROVED', 'DENIED'].includes(String(value.status)))
+      const transactionId = value.transactionId ?? value.id;
+      if (
+        typeof transactionId !== 'string' ||
+        !['APPROVED', 'DENIED'].includes(String(value.status))
+      )
         throw new Error();
-      return { id: value.id, status: value.status as 'APPROVED' | 'DENIED' };
+      return { id: transactionId, status: value.status as 'APPROVED' | 'DENIED' };
     } catch {
       throw new WebhookPayloadError('WEBHOOK_PAYLOAD_INVALID');
     }

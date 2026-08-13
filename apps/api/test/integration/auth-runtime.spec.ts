@@ -44,6 +44,7 @@ describe('authentication HTTP runtime', () => {
     process.env.DATABASE_USER = process.env.MYSQL_TEST_USER ?? 'baas';
     process.env.DATABASE_PASSWORD = process.env.MYSQL_TEST_PASSWORD ?? 'baas-test-password';
     process.env.DATABASE_NAME = process.env.MYSQL_TEST_DATABASE ?? 'baas_test';
+    process.env.SECURE_COOKIES = 'true';
     const bootstrap: DataSource = createApplicationDataSource();
     await bootstrap.initialize();
     await bootstrap.dropDatabase();

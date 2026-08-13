@@ -78,7 +78,7 @@ describe('WithdrawalsService', () => {
     };
 
     mockCredentials = {
-      getActiveGatewayAuth: jest.fn().mockResolvedValue({ accessToken: 'test_token' })
+      activeAuth: jest.fn().mockResolvedValue({ accessToken: 'test_token', document: '12345678901' })
     };
 
     service = new WithdrawalsService(
@@ -196,7 +196,8 @@ describe('WithdrawalsService', () => {
       amountCents: '5000',
       externalReference: 'WTH-007',
       pixKey: '12345678901',
-      pixKeyType: 'CPF'
+      pixKeyType: 'CPF',
+      document: '12345678901'
     });
   });
 

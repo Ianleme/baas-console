@@ -3,7 +3,10 @@ import type {
   GatewaySession,
   GatewayUserProfile
 } from '../../src/integrations/lera-box/auth/lera-box-identity.client.js';
-import { LeraBoxTimeoutError } from '../../src/integrations/lera-box/auth/lera-box-identity.client.js';
+import {
+  LeraBoxDependencyError,
+  LeraBoxTimeoutError
+} from '../../src/integrations/lera-box/auth/lera-box-identity.client.js';
 import { EncryptionService } from '../../src/modules/gateway-accounts/encryption.service.js';
 import {
   GatewayOnboardingService,
@@ -93,7 +96,10 @@ class Gateway implements GatewayIdentityPort {
     actual: GatewayUserProfile,
     expected: { document: string; personType: 'PF' | 'PJ' }
   ): boolean {
-    return actual.document === expected.document && actual.personType === expected.personType;
+    return (
+      actual.document.replace(/\D/g, '') === expected.document.replace(/\D/g, '') &&
+      actual.personType === expected.personType
+    );
   }
 }
 
@@ -119,9 +125,15 @@ describe('GatewayOnboardingService', () => {
     });
   });
   it('marks conclusive registration failure', async () => {
-    gateway.registrationError = new Error('denied');
+    gateway.registrationError = new LeraBoxDependencyError(
+      'register-user',
+      'LERA_BOX_CONCLUSIVE_FAILURE',
+      400,
+      '{"message":"denied"}'
+    );
     await expect(service.register('tenant-a', registration)).resolves.toMatchObject({
-      status: 'GATEWAY_REGISTRATION_FAILED'
+      status: 'GATEWAY_REGISTRATION_FAILED',
+      lastErrorCode: 'LERA_BOX_CONCLUSIVE_FAILURE_400'
     });
   });
   it('marks timeout as unknown', async () => {
@@ -161,7 +173,14 @@ describe('GatewayOnboardingService', () => {
     await expect(service.connect('tenant-a', '123', 'password')).rejects.toMatchObject({
       code: 'GATEWAY_PROFILE_MISMATCH'
     });
-    expect(store.record?.status).toBe('ERROR');
+    expect(store.record?.status).toBe('AWAITING_CREDENTIALS');
+  });
+  it('matches the same document with or without punctuation', async () => {
+    await service.register('tenant-a', { ...registration, document: '385.477.020-08' });
+    gateway.returnedProfile = { ...profile, document: '38547702008' };
+    await expect(service.connect('tenant-a', '385.477.020-08', 'password')).resolves.toMatchObject({
+      status: 'ACTIVE'
+    });
   });
   it('rejects a person-type mismatch', async () => {
     await service.register('tenant-a', registration);

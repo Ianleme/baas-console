@@ -8,6 +8,8 @@ COPY packages/api-client/package.json packages/api-client/package.json
 COPY packages/receipt-template/package.json packages/receipt-template/package.json
 COPY packages/test-support/package.json packages/test-support/package.json
 RUN npm ci
+COPY packages/receipt-template packages/receipt-template
+RUN npm run build --workspace @baas/receipt-template
 COPY apps/api apps/api
 RUN npm run build --workspace @baas/api
 
@@ -16,6 +18,7 @@ FROM node:24.15.0-bookworm-slim@sha256:4e6b70dd6cbfc88c8157ba19aa3d9f9cce6ba4703
 ENV NODE_ENV=development
 WORKDIR /app
 COPY --from=build --chown=node:node /workspace/node_modules ./node_modules
+COPY --from=build --chown=node:node /workspace/packages/receipt-template ./packages/receipt-template
 COPY --from=build --chown=node:node /workspace/apps/api/dist ./apps/api/dist
 USER node
 EXPOSE 3000

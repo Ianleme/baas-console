@@ -38,16 +38,17 @@ export class LeraBoxPixClient {
     );
     const body = (await response.json()) as Record<string, unknown>;
     const metadata = objectOrEmpty(body.metadata);
+    const externalReference = body.externalReference ?? metadata.externalReference;
     if (
       typeof body.id !== 'string' ||
       !['APPROVED', 'DENIED', 'PENDING'].includes(String(body.status)) ||
-      typeof body.externalReference !== 'string'
+      typeof externalReference !== 'string'
     )
       throw malformed();
     return {
       gatewayPaymentId: body.id,
       status: body.status as GatewayPixResult['status'],
-      externalReference: body.externalReference,
+      externalReference,
       txid: optionalString(metadata.txid),
       emv: optionalString(body.emv ?? metadata.emv),
       qrCodeBase64: optionalString(body.qrCodeBase64 ?? metadata.qrCodeBase64),

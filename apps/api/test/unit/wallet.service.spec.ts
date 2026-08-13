@@ -1,11 +1,17 @@
 /* eslint-disable @typescript-eslint/unbound-method -- Jest mocks are inspected without invocation. */
 import {
   WalletService,
+  WalletUnavailableError,
   type WalletSnapshotStore
 } from '../../src/modules/wallet/wallet.service.js';
 
 const capturedAt = new Date('2026-08-12T12:00:00.000Z');
-const snapshot = { balanceCents: '2485072', capturedAt, sourceRequestId: 'wallet-request-1' };
+const snapshot = {
+  balanceCents: '2485072',
+  capturedAt,
+  observedAt: capturedAt,
+  sourceRequestId: 'wallet-request-1'
+};
 
 function setup(now = new Date('2026-08-12T12:04:00.000Z')) {
   const gateway = { getWallet: jest.fn().mockResolvedValue(snapshot) };
@@ -43,7 +49,22 @@ describe('WalletService', () => {
     await expect(service.current('merchant-a')).resolves.toMatchObject({ stale: false });
   });
 
-  test('fetches from gateway or returns fallback when no local snapshot exists', async () => {
+  test('measures cache freshness from the local observation time', async () => {
+    const now = new Date('2026-08-12T13:00:00.000Z');
+    const { service, store } = setup(now);
+    store.latest.mockResolvedValue({
+      ...snapshot,
+      capturedAt: new Date('2026-08-12T10:00:00.000Z'),
+      observedAt: now
+    });
+    await expect(service.current('merchant-a')).resolves.toEqual({
+      balanceCents: '2485072',
+      capturedAt: '2026-08-12T10:00:00.000Z',
+      stale: false
+    });
+  });
+
+  test('fetches from gateway when no local snapshot exists', async () => {
     const { service, store } = setup();
     store.latest.mockResolvedValue(undefined);
     await expect(service.current('merchant-a')).resolves.toEqual({
@@ -62,7 +83,10 @@ describe('WalletService', () => {
     });
     expect(credentials.accessToken).toHaveBeenCalledWith('merchant-a');
     expect(gateway.getWallet).toHaveBeenCalledWith('server-token');
-    expect(store.save).toHaveBeenCalledWith('merchant-a', snapshot);
+    expect(store.save).toHaveBeenCalledWith('merchant-a', {
+      ...snapshot,
+      observedAt: new Date('2026-08-12T12:04:00.000Z')
+    });
   });
 
   test('preserves the last tenant snapshot and marks it stale when the gateway fails', async () => {
@@ -77,14 +101,11 @@ describe('WalletService', () => {
     expect(store.save).not.toHaveBeenCalled();
   });
 
-  test('returns fallback stale zero view when gateway fails before any snapshot exists', async () => {
+  test('reports gateway unavailable when the first snapshot cannot be loaded', async () => {
     const { service, gateway, store } = setup();
     gateway.getWallet.mockRejectedValue(new Error('LERA_BOX_TIMEOUT'));
     store.latest.mockResolvedValue(undefined);
-    await expect(service.refresh('merchant-a')).resolves.toMatchObject({
-      balanceCents: '0',
-      stale: true
-    });
+    await expect(service.refresh('merchant-a')).rejects.toBeInstanceOf(WalletUnavailableError);
   });
 
   test('does not disguise persistence failure as a stale gateway read', async () => {

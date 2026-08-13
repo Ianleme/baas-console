@@ -3,6 +3,7 @@ import type { LeraBoxWalletClient } from '../../integrations/lera-box/wallet/ler
 export interface WalletSnapshotRecord {
   balanceCents: string;
   capturedAt: Date;
+  observedAt: Date;
   sourceRequestId: string | null;
 }
 
@@ -41,20 +42,10 @@ export class WalletService {
 
   async current(merchantId: string): Promise<WalletView> {
     const snapshot = await this.store.latest(merchantId);
-    if (!snapshot) {
-      try {
-        return await this.refresh(merchantId);
-      } catch {
-        return {
-          balanceCents: '0',
-          capturedAt: this.now().toISOString(),
-          stale: true
-        };
-      }
-    }
+    if (!snapshot) return this.refresh(merchantId);
     return this.view(
       snapshot,
-      this.now().getTime() - snapshot.capturedAt.getTime() > this.staleAfterMs
+      this.now().getTime() - snapshot.observedAt.getTime() > this.staleAfterMs
     );
   }
 
@@ -62,16 +53,13 @@ export class WalletService {
     let snapshot: WalletSnapshotRecord;
     try {
       const accessToken = await this.credentials.accessToken(merchantId);
-      snapshot = await this.gateway.getWallet(accessToken);
+      snapshot = {
+        ...(await this.gateway.getWallet(accessToken)),
+        observedAt: this.now()
+      };
     } catch {
       const previous = await this.store.latest(merchantId);
-      if (!previous) {
-        return {
-          balanceCents: '0',
-          capturedAt: this.now().toISOString(),
-          stale: true
-        };
-      }
+      if (!previous) throw new WalletUnavailableError();
       return this.view(previous, true);
     }
     await this.store.save(merchantId, snapshot);

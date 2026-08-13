@@ -12,9 +12,9 @@ const registration: GatewayRegistration = {
   name: 'Cliente Sandbox',
   tradingName: 'Loja Sandbox',
   email: 'fixture@example.invalid',
-  phone: 'masked-phone',
-  document: 'masked-document',
-  zipCode: 'masked-postal-code',
+  phone: '(18) 99691-0501',
+  document: '385.477.020-08',
+  zipCode: '19807-806',
   address: 'Endereco Sandbox',
   number: '100',
   complement: 'Teste',
@@ -24,7 +24,7 @@ const registration: GatewayRegistration = {
 };
 
 describe('LeraBoxIdentityClient contract', () => {
-  it('serializes every PF registration field exactly', async () => {
+  it('serializes every PF registration field in the Lera Box format', async () => {
     let captured: RequestInit | undefined;
     const request: typeof fetch = (_input, init) => {
       captured = init;
@@ -32,7 +32,12 @@ describe('LeraBoxIdentityClient contract', () => {
     };
     await new LeraBoxIdentityClient('https://gateway.invalid', request).registerUser(registration);
     expect(typeof captured?.body).toBe('string');
-    expect(JSON.parse(captured?.body as string)).toEqual(registration);
+    expect(JSON.parse(captured?.body as string)).toEqual({
+      ...registration,
+      phone: '18996910501',
+      document: '38547702008',
+      zipCode: '19807806'
+    });
   });
 
   it('serializes PJ registration without changing its person type', async () => {
@@ -52,10 +57,16 @@ describe('LeraBoxIdentityClient contract', () => {
   });
 
   it('accepts only the observed registration status', async () => {
-    const request = jest.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 200 }));
+    const request = jest
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response('{"message":"invalid registration"}', { status: 200 }));
     await expect(
       new LeraBoxIdentityClient('https://gateway.invalid', request).registerUser(registration)
-    ).rejects.toMatchObject({ code: 'LERA_BOX_CONCLUSIVE_FAILURE', remoteStatus: 200 });
+    ).rejects.toMatchObject({
+      code: 'LERA_BOX_CONCLUSIVE_FAILURE',
+      remoteStatus: 200,
+      remoteResponse: '{"message":"invalid registration"}'
+    });
   });
 
   it('serializes only document and password during login', async () => {
@@ -64,14 +75,14 @@ describe('LeraBoxIdentityClient contract', () => {
         {
           method: 'POST',
           path: '/api/auth/login',
-          body: { document: 'masked-document', password: 'one-time-password' }
+          body: { document: '38547702008', password: 'one-time-password' }
         }
       ]
     });
     await stub.start();
     try {
       await new LeraBoxIdentityClient(stub.baseUrl).login({
-        document: 'masked-document',
+        document: '385.477.020-08',
         password: 'one-time-password'
       });
       expect(() => {
@@ -177,13 +188,13 @@ describe('LeraBoxIdentityClient contract', () => {
           tradingName: 't',
           email: 'e',
           phone: 'p',
-          document: 'doc',
+          document: '38547702008',
           codigoCliente: 1,
           chaveLoja: 'k',
           emailConfirmed: true,
           createdAt: 'date'
         },
-        { document: 'doc', personType: 'PF' }
+        { document: '385.477.020-08', personType: 'PF' }
       )
     ).toBe(true);
   });
@@ -199,13 +210,13 @@ describe('LeraBoxIdentityClient contract', () => {
           tradingName: 't',
           email: 'e',
           phone: 'p',
-          document: 'other',
+          document: '11122233344',
           codigoCliente: 1,
           chaveLoja: 'k',
           emailConfirmed: true,
           createdAt: 'date'
         },
-        { document: 'doc', personType: 'PF' }
+        { document: '38547702008', personType: 'PF' }
       )
     ).toBe(false);
   });
@@ -221,13 +232,13 @@ describe('LeraBoxIdentityClient contract', () => {
           tradingName: 't',
           email: 'e',
           phone: 'p',
-          document: 'doc',
+          document: '38547702008',
           codigoCliente: 1,
           chaveLoja: 'k',
           emailConfirmed: true,
           createdAt: 'date'
         },
-        { document: 'doc', personType: 'PF' }
+        { document: '38547702008', personType: 'PF' }
       )
     ).toBe(false);
   });

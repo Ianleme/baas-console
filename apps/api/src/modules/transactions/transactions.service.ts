@@ -73,24 +73,19 @@ export class TransactionsService {
 
     // Check if remote gateway synchronization is available
     try {
-      const creds = this.credentials as unknown as {
-        getActiveGatewayAuth(id: string): Promise<{ accessToken?: string } | null>;
-      };
-      const auth = await creds.getActiveGatewayAuth(merchantId);
-      if (auth?.accessToken) {
-        const remoteTransactions = await this.gateway.listStatement(auth.accessToken);
-        const remoteMap = new Map(remoteTransactions.map((item) => [item.id, item]));
+      const accessToken = await this.credentials.accessToken(merchantId);
+      const remoteTransactions = await this.gateway.listStatement(accessToken);
+      const remoteMap = new Map(remoteTransactions.map((item) => [item.id, item]));
 
-        // Merge remote status updates into local projections in memory
-        for (const record of records) {
-          if (record.gatewayTransactionId) {
-            const remote = remoteMap.get(record.gatewayTransactionId);
-            if (remote) {
-              if (remote.status === 'APPROVED' && record.status !== 'APPROVED') {
-                record.status = 'APPROVED';
-              } else if (remote.status === 'DENIED' && record.status !== 'DENIED') {
-                record.status = 'DENIED';
-              }
+      // Merge remote status updates into local projections in memory
+      for (const record of records) {
+        if (record.gatewayTransactionId) {
+          const remote = remoteMap.get(record.gatewayTransactionId);
+          if (remote) {
+            if (remote.status === 'APPROVED' && record.status !== 'APPROVED') {
+              record.status = 'APPROVED';
+            } else if (remote.status === 'DENIED' && record.status !== 'DENIED') {
+              record.status = 'DENIED';
             }
           }
         }

@@ -17,9 +17,11 @@ import { DemoModule } from './modules/demo/demo.module.js';
 import { ObservabilityModule } from './modules/observability/observability.module.js';
 import { AuditModule } from './modules/audit/audit.module.js';
 import { SecurityModule } from './platform/security/security.module.js';
+import { DatabaseModule } from './database/database.module.js';
 
 @Module({
   imports: [
+    DatabaseModule,
     AuthModule,
     PaymentsModule,
     WebhooksModule,

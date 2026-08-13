@@ -1,4 +1,7 @@
-import { LeraBoxTimeoutError } from '../../src/integrations/lera-box/auth/lera-box-identity.client.js';
+import {
+  LeraBoxDependencyError,
+  LeraBoxTimeoutError
+} from '../../src/integrations/lera-box/auth/lera-box-identity.client.js';
 import type { GatewayCardResult } from '../../src/integrations/lera-box/payments/lera-box-card.client.js';
 import type { EmailOutboxService } from '../../src/modules/notifications/email-outbox.service.js';
 import {
@@ -163,7 +166,7 @@ describe('CardPaymentService', () => {
         amountCents: '32000',
         installments: 3,
         feeBps: 319,
-        externalReference: 'CARD-link-id-3'
+        externalReference: 'CARD-id-2'
       })
     );
   });
@@ -205,6 +208,18 @@ describe('CardPaymentService', () => {
       attempt: { status: 'RECONCILIATION_PENDING' }
     });
     expect(gateway.create).toHaveBeenCalledTimes(1);
+  });
+  test('conclusive gateway rejection closes the local attempt', async () => {
+    const { service, store } = setup(
+      new LeraBoxDependencyError('create-card', 'LERA_BOX_CONCLUSIVE_FAILURE', 400)
+    );
+    await expect(service.confirm(await confirmInput(service))).rejects.toMatchObject({
+      remoteStatus: 400
+    });
+    expect(store.attempts[0]).toMatchObject({
+      status: 'DENIED',
+      failureCode: 'LERA_BOX_CONCLUSIVE_FAILURE'
+    });
   });
   test('an unresolved card blocks another attempt', async () => {
     const { service } = setup(new LeraBoxTimeoutError('create-card'));
@@ -267,9 +282,9 @@ describe('CardPaymentService', () => {
       fees,
       gateway,
       store,
-      mockOutbox as unknown as EmailOutboxService,
       () => 'id',
-      () => new Date('2026-08-12T00:00:00Z')
+      () => new Date('2026-08-12T00:00:00Z'),
+      mockOutbox as unknown as EmailOutboxService
     );
     const input = await confirmInput(service);
     await service.confirm({ ...input, payerEmail: 'comprador@loja.com' });
@@ -277,9 +292,25 @@ describe('CardPaymentService', () => {
       expect.objectContaining({
         merchantId: 'merchant',
         kind: 'PAYMENT_RECEIPT',
-        idempotencyKey: 'receipt:card:id-2',
+        idempotencyKey: 'receipt:card:id',
         recipient: 'comprador@loja.com'
       })
     );
+  });
+  test('does not send a receipt to a placeholder address without a payer e-mail', async () => {
+    const store = new MemoryCardStore();
+    const fees = { list: jest.fn().mockResolvedValue([fee]) };
+    const gateway = { create: jest.fn().mockResolvedValue(approved) };
+    const mockOutbox = { enqueue: jest.fn() };
+    const service = new CardPaymentService(
+      fees,
+      gateway,
+      store,
+      () => 'id',
+      () => new Date('2026-08-12T00:00:00Z'),
+      mockOutbox as unknown as EmailOutboxService
+    );
+    await service.confirm(await confirmInput(service));
+    expect(mockOutbox.enqueue).not.toHaveBeenCalled();
   });
 });

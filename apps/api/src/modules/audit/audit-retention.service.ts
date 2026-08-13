@@ -34,7 +34,10 @@ export class AuditRetentionService {
   constructor(private readonly database: DatabaseService) {}
 
   private get dataSource(): DataSource {
-    return this.database.getDataSource();
+    if (this.database && typeof (this.database as any).getDataSource === 'function') {
+      return this.database.getDataSource();
+    }
+    return this.database as unknown as DataSource;
   }
 
   async purgeOutbox(now = new Date()): Promise<{ purged: number; cutoff: string }> {

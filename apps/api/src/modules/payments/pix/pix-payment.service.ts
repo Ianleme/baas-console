@@ -52,16 +52,17 @@ export class PixPaymentService {
   constructor(
     private readonly gateway: Pick<LeraBoxPixClient, 'create'>,
     private readonly store: PixAttemptStore,
-    private readonly outbox?: EmailOutboxService,
-    private readonly id: () => string = randomUUID
+    private readonly id: () => string = randomUUID,
+    private readonly outbox?: EmailOutboxService
   ) {}
   async start(input: PixStartInput): Promise<{ httpStatus: 201 | 202; attempt: PixAttempt }> {
     validate(input);
+    const attemptId = this.id();
     const attempt = await this.store.begin({
-      id: this.id(),
+      id: attemptId,
       merchantId: input.merchantId,
       checkoutLinkId: input.checkoutLinkId,
-      externalReference: `PIX-${input.checkoutLinkId}-${this.id()}`
+      externalReference: `PIX-${attemptId}`
     });
     let result: GatewayPixResult;
     try {
@@ -72,7 +73,13 @@ export class PixPaymentService {
         externalReference: attempt.externalReference
       });
     } catch (error) {
-      if (!(error instanceof LeraBoxTimeoutError)) throw error;
+      if (!(error instanceof LeraBoxTimeoutError)) {
+        await this.store.transition(attempt.id, ['PROCESSING'], {
+          status: 'DENIED',
+          failureCode: dependencyCode(error)
+        });
+        throw error;
+      }
       return {
         httpStatus: 202,
         attempt: await this.store.transition(attempt.id, ['PROCESSING'], {
@@ -111,12 +118,12 @@ export class PixPaymentService {
     );
     if (result.status === 'APPROVED') {
       await this.store.markLinkPaid(next.checkoutLinkId);
-      if (this.outbox) {
+      if (this.outbox && payerEmail) {
         await this.outbox.enqueue({
           merchantId: next.merchantId,
           kind: 'PAYMENT_RECEIPT',
           idempotencyKey: `receipt:pix:${next.id}`,
-          recipient: payerEmail ?? 'comprovante@baas.local',
+          recipient: payerEmail,
           payload: {
             attemptId: next.id,
             checkoutLinkId: next.checkoutLinkId,
@@ -158,4 +165,10 @@ export function isValidDocument(value: string): boolean {
   return (
     Number(number[base]) === calculate(base) && Number(number[base + 1]) === calculate(base + 1)
   );
+}
+
+function dependencyCode(error: unknown): string {
+  return error instanceof Error && /^LERA_BOX_[A-Z_]+/u.test(error.message)
+    ? (error.message.split(':')[0] ?? 'GATEWAY_PAYMENT_FAILED')
+    : 'GATEWAY_PAYMENT_FAILED';
 }

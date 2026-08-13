@@ -72,7 +72,7 @@ export const GATEWAY_CARD = Symbol('GATEWAY_CARD');
         gateway: LeraBoxPixClient,
         store: TypeOrmPixAttemptStore,
         outbox: EmailOutboxService
-      ) => new PixPaymentService(gateway, store, outbox)
+      ) => new PixPaymentService(gateway, store, undefined, outbox)
     },
     {
       provide: CardPaymentService,
@@ -82,7 +82,7 @@ export const GATEWAY_CARD = Symbol('GATEWAY_CARD');
         gateway: LeraBoxCardClient,
         store: TypeOrmCardAttemptStore,
         outbox: EmailOutboxService
-      ) => new CardPaymentService(fees, gateway, store, outbox)
+      ) => new CardPaymentService(fees, gateway, store, undefined, undefined, outbox)
     },
     {
       provide: CheckoutQuoteSigner,

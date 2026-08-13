@@ -74,9 +74,9 @@ export class CardPaymentService {
     private readonly fees: { list(brand?: CardBrand): Promise<GatewayFee[]> },
     private readonly gateway: Pick<LeraBoxCardClient, 'create'>,
     private readonly store: CardAttemptStore,
-    private readonly outbox?: EmailOutboxService,
     private readonly id: () => string = randomUUID,
-    private readonly now: () => Date = () => new Date()
+    private readonly now: () => Date = () => new Date(),
+    private readonly outbox?: EmailOutboxService
   ) {}
   async quote(amountCents: string, brand: CardBrand, installments: number): Promise<CardQuote> {
     const gross = positiveCents(amountCents);
@@ -105,11 +105,12 @@ export class CardPaymentService {
     const current = await this.currentFee(input.quote.brand, input.quote.installments);
     if (current.feeBps !== input.quote.feeBps) throw new CardPaymentError('FEE_CHANGED');
     const last4 = digits(input.card.number).slice(-4);
+    const attemptId = this.id();
     const attempt = await this.store.begin({
-      id: this.id(),
+      id: attemptId,
       merchantId: input.merchantId,
       checkoutLinkId: input.checkoutLinkId,
-      externalReference: `CARD-${input.checkoutLinkId}-${this.id()}`,
+      externalReference: `CARD-${attemptId}`,
       installments: input.quote.installments,
       feeBps: input.quote.feeBps,
       grossAmountCents: input.quote.grossAmountCents,
@@ -133,7 +134,13 @@ export class CardPaymentService {
         externalReference: attempt.externalReference
       });
     } catch (error) {
-      if (!(error instanceof LeraBoxTimeoutError)) throw error;
+      if (!(error instanceof LeraBoxTimeoutError)) {
+        await this.store.transition(attempt.id, ['PROCESSING'], {
+          status: 'DENIED',
+          failureCode: dependencyCode(error)
+        });
+        throw error;
+      }
       return {
         httpStatus: 202,
         attempt: await this.store.transition(attempt.id, ['PROCESSING'], {
@@ -148,12 +155,12 @@ export class CardPaymentService {
     });
     if (result.status === 'APPROVED') {
       await this.store.markLinkPaid(next.checkoutLinkId);
-      if (this.outbox) {
+      if (this.outbox && input.payerEmail) {
         await this.outbox.enqueue({
           merchantId: next.merchantId,
           kind: 'PAYMENT_RECEIPT',
           idempotencyKey: `receipt:card:${next.id}`,
-          recipient: input.payerEmail ?? 'comprovante@baas.local',
+          recipient: input.payerEmail,
           payload: {
             attemptId: next.id,
             checkoutLinkId: next.checkoutLinkId,
@@ -209,4 +216,10 @@ function luhn(number: string) {
     double = !double;
   }
   return sum % 10 === 0;
+}
+
+function dependencyCode(error: unknown): string {
+  return error instanceof Error && /^LERA_BOX_[A-Z_]+/u.test(error.message)
+    ? (error.message.split(':')[0] ?? 'GATEWAY_PAYMENT_FAILED')
+    : 'GATEWAY_PAYMENT_FAILED';
 }

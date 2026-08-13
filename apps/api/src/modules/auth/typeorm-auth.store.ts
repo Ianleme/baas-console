@@ -49,6 +49,10 @@ export class TypeOrmAuthStore implements AuthStore {
     const user = await this.manager().findOne(UserEntity, { where: { emailNormalized } });
     return user ? this.toUser(user) : undefined;
   }
+  async findUserById(userId: string): Promise<LocalUser | undefined> {
+    const user = await this.manager().findOne(UserEntity, { where: { id: userId } });
+    return user ? this.toUser(user) : undefined;
+  }
   async saveSession(session: LocalSession): Promise<void> {
     await this.manager().insert(AuthSessionEntity, session);
   }

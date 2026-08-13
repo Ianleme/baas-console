@@ -100,6 +100,19 @@ const input = {
 };
 
 describe('WebhookConfigurationService integration boundary', () => {
+  test('rejects a public callback base URL that is not an HTTPS origin', () => {
+    const store = new MemoryStore();
+    expect(
+      () =>
+        new WebhookConfigurationService(
+          { create: jest.fn(), delete: jest.fn() },
+          store,
+          new EncryptionService(Buffer.alloc(32, 7)),
+          'http://localhost:3000'
+        )
+    ).toThrow('PUBLIC_API_BASE_URL_INVALID');
+  });
+
   test.each(['PAYMENT_PIX', 'PAYMENT_CARD', 'WITHDRAWAL'] as const)(
     'configures the mandatory %s event',
     async (event) => {
@@ -166,6 +179,19 @@ describe('WebhookConfigurationService integration boundary', () => {
     expect(gateway.delete).toHaveBeenCalledWith('gateway-token', 'gateway-PAYMENT_PIX');
     expect(store.audits.at(-1)?.action).toBe('WEBHOOK_RECONFIGURED');
     expect(store.records).toHaveLength(1);
+  });
+
+  test('keeps the old callback when creating its replacement fails', async () => {
+    const { gateway, service, store } = setup();
+    await service.configure(input);
+    const previous = store.records[0];
+    gateway.create.mockRejectedValueOnce(new Error('GATEWAY_UNAVAILABLE'));
+
+    await expect(service.configure(input)).rejects.toThrow('GATEWAY_UNAVAILABLE');
+
+    expect(gateway.delete).not.toHaveBeenCalled();
+    expect(store.records).toEqual([previous]);
+    expect(store.audits).toHaveLength(1);
   });
 
   test('removes only the tenant-owned callback and records an audit event', async () => {

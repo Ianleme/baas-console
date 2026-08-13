@@ -21,10 +21,15 @@ describe('authoritative wallet HTTP runtime', () => {
   let bearerA = '';
   let bearerB = '';
   const gateway = {
-    getWallet: jest.fn().mockResolvedValue({
-      balanceCents: '97',
-      capturedAt: new Date('2026-08-12T00:00:00.000Z'),
-      sourceRequestId: 'gateway-wallet-1'
+    getWallet: jest.fn().mockImplementation((token: string) => {
+      if (token === 'server-gateway-token-a') {
+        return Promise.resolve({
+          balanceCents: '97',
+          capturedAt: new Date('2026-08-12T00:00:00.000Z'),
+          sourceRequestId: 'gateway-wallet-1'
+        });
+      }
+      return Promise.reject(new Error('LERA_BOX_CONNECTION_FAILED'));
     })
   };
 
@@ -136,7 +141,6 @@ describe('authoritative wallet HTTP runtime', () => {
   });
 
   test('returns gateway unavailable instead of zero when first refresh fails', async () => {
-    gateway.getWallet.mockRejectedValueOnce(new Error('LERA_BOX_CONNECTION_FAILED'));
     const response = await request(server())
       .post('/api/v1/wallet/refresh')
       .set('Authorization', `Bearer ${bearerB}`)
