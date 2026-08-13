@@ -181,7 +181,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Gate:** Quick web
 **Commit:** `feat(shell): load identity and handle logout`
 
-### T8: Orquestrar sessão, perfil e novas rotas no router
+### T8: Orquestrar sessão, perfil e novas rotas no router ✅
 
 **What:** Ligar transporte, perfil, logout, limpeza terminal de sessão e as rotas `#/carteira` e `#/configuracoes` no AppRouter.
 **Where:** `apps/web/src/app/app-router.tsx`, `app-router.test.tsx`.
@@ -190,10 +190,10 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Requirement:** CONSOLE-01, CONSOLE-04, CONSOLE-08, CONSOLE-11..18
 **Tools:** MCP: filesystem; Skill: NONE
 **Done when:**
-- [ ] Login/refresh bem-sucedido carrega perfil atual antes/depois da shell sem depender de localStorage.
-- [ ] Terminal 401 e logout removem token/perfil e apresentam autenticação.
-- [ ] Rotas de carteira e configurações renderizam suas páginas dentro da shell.
-- [ ] Testes cobrem rotas, refresh terminal, logout remoto com falha e não reutilização de token/perfil; mínimo 6 novas asserções comportamentais passam.
+- [x] Login/refresh bem-sucedido carrega perfil atual antes/depois da shell sem depender de localStorage.
+- [x] Terminal 401 e logout removem token/perfil e apresentam autenticação.
+- [x] Rotas de carteira e configurações renderizam suas páginas dentro da shell.
+- [x] Testes cobrem rotas, refresh terminal, logout remoto com falha e não reutilização de token/perfil; mínimo 6 novas asserções comportamentais passam.
 **Tests:** frontend unit/component
 **Gate:** Quick web
 **Commit:** `feat(router): coordinate console session routes`

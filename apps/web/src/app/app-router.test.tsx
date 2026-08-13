@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { vi } from 'vitest';
 
@@ -7,7 +7,14 @@ import { AppRouter } from './app-router.js';
 
 describe('AppRouter', () => {
   beforeEach(() => {
-    vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      if (String(input).includes('/session/profile')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          merchant: { legalName: 'Aurora Ltda', displayName: 'Aurora Store' },
+          owner: { fullName: 'Owner Aurora', email: 'owner@example.test' },
+          gatewayConnectionStatus: null
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      }
       return Promise.resolve(
         new Response(
           JSON.stringify({
@@ -43,5 +50,28 @@ describe('AppRouter', () => {
     });
 
     expect(await screen.findByRole('heading', { name: 'Links de pagamento' })).toBeVisible();
+  });
+
+  test('loads API identity and renders wallet and settings routes', async () => {
+    const session = createBaasMemorySession();
+    session.setToken('access-token');
+    render(<AppRouter session={session} />);
+    expect(await screen.findByText('Aurora Store')).toBeVisible();
+    globalThis.location.hash = '#/carteira';
+    globalThis.dispatchEvent(new HashChangeEvent('hashchange'));
+    expect(await screen.findByRole('heading', { name: 'Carteira' })).toBeVisible();
+    globalThis.location.hash = '#/configuracoes';
+    globalThis.dispatchEvent(new HashChangeEvent('hashchange'));
+    expect(await screen.findByRole('heading', { name: 'Configurações' })).toBeVisible();
+  });
+
+  test('terminal profile 401 clears session and returns to authentication', async () => {
+    vi.restoreAllMocks();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 401 }));
+    const session = createBaasMemorySession();
+    session.setToken('expired-token');
+    render(<AppRouter session={session} />);
+    await waitFor(() => expect(session.token()).toBe(''));
+    expect(await screen.findByText('Entrar')).toBeVisible();
   });
 });
