@@ -179,6 +179,16 @@ describe('Dashboard', () => {
     expect(screen.getByRole('button', { name: 'Todo o período' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Personalizado' })).toBeVisible();
   });
+  test('aligns the compact header and outlined lime filters', async () => {
+    await ready();
+    expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Solicitar saque' })).toBeVisible();
+    const today = screen.getByRole('button', { name: 'Hoje' });
+    expect(today).toHaveAttribute('aria-pressed', 'true');
+    expect(today).toHaveClass('border');
+    expect(today).toHaveClass('bg-[#dff5a8]');
+    expect(screen.queryByRole('button', { name: /notifica/i })).not.toBeInTheDocument();
+  });
   test('has no axe violations in populated state', async () => {
     const { container } = render(<Dashboard api={api()} />);
     await screen.findByText('PED-1048');

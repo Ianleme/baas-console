@@ -140,6 +140,34 @@ function buildAreaPath(linePath: string, width: number, height: number) {
   return `${linePath} L${String(width - 4)},${String(height - 10)} L4,${String(height - 10)} Z`;
 }
 
+function DashboardHeader() {
+  return (
+    <header className="dashboard__heading flex flex-wrap items-start justify-between gap-4">
+      <div className="space-y-1">
+        <span className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#006b57]">Visão geral</span>
+        <h1 className="text-[2rem] font-extrabold leading-none tracking-tight text-slate-900">Dashboard</h1>
+        <p className="text-sm text-slate-500">Acompanhe sua operação em tempo real.</p>
+      </div>
+      <div className="dashboard__actions flex items-center gap-2.5">
+        <a className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50" href="#/saques" tabIndex={-1}>Solicitar saque</a>
+        <a className="inline-flex items-center justify-center rounded-xl bg-[#006b57] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#005746]" href="#/links" tabIndex={-1}>+ Criar link de pagamento</a>
+      </div>
+    </header>
+  );
+}
+
+function PeriodFilters({ period, onChange }: { period: (typeof periods)[number]; onChange: (period: (typeof periods)[number]) => void }) {
+  return (
+    <div className="periods flex flex-wrap gap-2" aria-label="Período do painel">
+      {periods.map((item) => (
+        <button key={item} type="button" aria-pressed={period === item} onClick={() => onChange(item)} className={`rounded-lg border px-3.5 py-1.5 text-[0.8rem] font-semibold transition-colors ${period === item ? 'border-[#b8d873] bg-[#dff5a8] text-[#24513b]' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+          {item}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function Dashboard({ api }: { api: DashboardApi }) {
   const [data, setData] = useState<DashboardData>();
   const [failed, setFailed] = useState(false);
@@ -195,53 +223,9 @@ export function Dashboard({ api }: { api: DashboardApi }) {
 
   return (
     <div className="dashboard space-y-5">
-      <header className="dashboard__heading flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <span className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#006b57]">
-            Visão geral
-          </span>
-          <h1 className="text-[2rem] font-extrabold leading-none tracking-tight text-slate-900">
-            Dashboard
-          </h1>
-          <p className="text-sm text-slate-500">Acompanhe sua operação em tempo real.</p>
-        </div>
-        <div className="dashboard__actions flex items-center gap-2.5">
-          <a
-            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-            href="#/saques"
-            tabIndex={-1}
-          >
-            Solicitar saque
-          </a>
-          <a
-            className="inline-flex items-center justify-center rounded-xl bg-[#006b57] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#005746] transition-colors"
-            href="#/links"
-            tabIndex={-1}
-          >
-            + Criar link de pagamento
-          </a>
-        </div>
-      </header>
+      <DashboardHeader />
 
-      <div className="periods flex flex-wrap gap-2" aria-label="Período do painel">
-        {periods.map((item) => (
-          <button
-            key={item}
-            type="button"
-            aria-pressed={period === item}
-            onClick={() => {
-              setPeriod(item);
-            }}
-            className={`rounded-full px-3.5 py-1.5 text-[0.8rem] font-semibold transition-colors ${
-              period === item
-                ? 'bg-[#006b57] text-white'
-                : 'bg-[#eef1ef] text-slate-600 hover:bg-[#e4e8e6]'
-            }`}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
+      <PeriodFilters period={period} onChange={setPeriod} />
 
       <section
         className="kpis grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
