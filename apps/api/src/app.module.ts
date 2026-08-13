@@ -14,6 +14,8 @@ import { RequestContextMiddleware } from './platform/request-context/request-con
 import { WithdrawalsModule } from './modules/withdrawals/withdrawals.module.js';
 import { SessionProfileModule } from './modules/session-profile/session-profile.module.js';
 import { DemoModule } from './modules/demo/demo.module.js';
+import { ObservabilityModule } from './modules/observability/observability.module.js';
+import { AuditModule } from './modules/audit/audit.module.js';
 
 @Module({
   imports: [
@@ -24,7 +26,9 @@ import { DemoModule } from './modules/demo/demo.module.js';
     TransactionsModule,
     WithdrawalsModule,
     SessionProfileModule,
-    DemoModule
+    DemoModule,
+    ObservabilityModule,
+    AuditModule
   ],
   controllers: [HealthController],
   providers: [HealthProbe, platformLoggerProvider]
