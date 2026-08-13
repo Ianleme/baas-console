@@ -20,6 +20,12 @@ import '../styles/tokens.css';
 export interface AppShellProps {
   content?: ReactNode;
   activePath?: string;
+  profile?: {
+    merchant: { displayName: string };
+    owner: { fullName: string | null; email: string };
+  } | null;
+  profileState?: 'loading' | 'ready' | 'unavailable';
+  onLogout?: () => Promise<void> | void;
 }
 
 const navSections = [
@@ -106,9 +112,29 @@ function useUserProfile() {
   };
 }
 
-export function AppShell({ content, activePath }: AppShellProps) {
+export function AppShell({
+  content,
+  activePath,
+  profile,
+  profileState = 'unavailable',
+  onLogout
+}: AppShellProps) {
   const [navigationOpen, setNavigationOpen] = useState(false);
-  const profile = useUserProfile();
+  const [logoutPending, setLogoutPending] = useState(false);
+  const identityAvailable = profileState === 'ready' && profile !== null && profile !== undefined;
+  const merchantName = identityAvailable ? profile.merchant.displayName : 'Identidade indisponível';
+  const userName = identityAvailable
+    ? (profile.owner.fullName ?? profile.owner.email)
+    : 'Identidade indisponível';
+  const initials = identityAvailable
+    ? userName
+        .split(' ')
+        .filter(Boolean)
+        .map((part) => part[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
+    : '—';
 
   const currentHash =
     activePath ?? (typeof window !== 'undefined' ? window.location.hash || '#/' : '#/');
@@ -157,21 +183,21 @@ export function AppShell({ content, activePath }: AppShellProps) {
             Conta
           </span>
           <strong className="merchant-name text-[0.95rem] font-bold text-slate-900">
-            {profile.merchantName}
+            {merchantName}
           </strong>
           <span
             className={`merchant-context__state flex items-center gap-1.5 text-xs font-semibold ${
-              profile.verified ? 'text-[#0f8a5f]' : 'text-slate-500'
+              identityAvailable ? 'text-[#0f8a5f]' : 'text-slate-500'
             }`}
           >
-            {profile.verified ? (
+            {identityAvailable ? (
               <>
                 <CheckCircle2 className="h-3.5 w-3.5 text-[#0f8a5f]" />
                 Conta verificada
               </>
             ) : (
               <>
-                <span aria-hidden="true">◇</span> {profile.statusText}
+                <span aria-hidden="true">◇</span> Identidade indisponível
               </>
             )}
           </span>
@@ -221,23 +247,29 @@ export function AppShell({ content, activePath }: AppShellProps) {
               className="sidebar__avatar flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#005c47] text-[0.7rem] font-bold text-white"
               aria-hidden="true"
             >
-              {profile.initials}
+              {initials}
             </span>
             <div className="user-info flex min-w-0 flex-col">
               <strong className="truncate text-sm font-semibold leading-tight text-slate-900">
-                {profile.userName}
+                {userName}
               </strong>
               <small className="text-xs text-slate-500">Administrador</small>
             </div>
           </div>
-          <a
+          <button
             className="logout-button inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-xs font-semibold text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
-            href="#/logout"
+            type="button"
             aria-label="Sair"
+            disabled={logoutPending}
+            onClick={() => {
+              if (!onLogout || logoutPending) return;
+              setLogoutPending(true);
+              void Promise.resolve(onLogout()).finally(() => setLogoutPending(false));
+            }}
           >
             <LogOut className="h-3.5 w-3.5" />
-            Sair
-          </a>
+            {logoutPending ? 'Saindo…' : 'Sair'}
+          </button>
         </footer>
       </aside>
       {navigationOpen && (

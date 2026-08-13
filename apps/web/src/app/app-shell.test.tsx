@@ -5,6 +5,45 @@ import userEvent from '@testing-library/user-event';
 import { AppShell } from './app-shell.js';
 
 describe('AppShell', () => {
+  test('renders injected identity without reading local profile storage', () => {
+    const getItem = vi.spyOn(Storage.prototype, 'getItem');
+    render(
+      <AppShell
+        profileState="ready"
+        profile={{
+          merchant: { displayName: 'Loja Remota' },
+          owner: { fullName: 'Ana Lima', email: 'ana@test' }
+        }}
+      />
+    );
+    expect(screen.getByText('Loja Remota')).toBeVisible();
+    expect(screen.getByText('Ana Lima')).toBeVisible();
+    expect(getItem).not.toHaveBeenCalledWith('baas_user_profile');
+  });
+
+  test('shows unavailable identity instead of a fictitious fallback', () => {
+    render(<AppShell profileState="unavailable" />);
+    expect(screen.getAllByText('Identidade indisponível').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Seu negócio')).not.toBeInTheDocument();
+  });
+
+  test('logout is a pending accessible action without hash navigation', async () => {
+    const user = userEvent.setup();
+    let resolve!: () => void;
+    const onLogout = vi.fn(
+      () =>
+        new Promise<void>((done) => {
+          resolve = done;
+        })
+    );
+    render(<AppShell onLogout={onLogout} />);
+    const button = screen.getByRole('button', { name: 'Sair' });
+    await user.click(button);
+    expect(onLogout).toHaveBeenCalledTimes(1);
+    expect(button).toBeDisabled();
+    expect(window.location.hash).not.toBe('#/logout');
+    resolve();
+  });
   test('renders the authenticated shell landmarks and sandbox banner', () => {
     render(<AppShell />);
     expect(screen.getByRole('banner')).toHaveTextContent('Ambiente de teste');

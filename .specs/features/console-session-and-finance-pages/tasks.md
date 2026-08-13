@@ -173,10 +173,10 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Requirement:** CONSOLE-01, CONSOLE-02, CONSOLE-16, CONSOLE-17, CONSOLE-18
 **Tools:** MCP: filesystem; Skill: `frontend-design`
 **Done when:**
-- [ ] Sidebar exibe dados recebidos por props/estado da API, sem ler `baas_user_profile`.
-- [ ] Falha de perfil mostra identidade indisponível sem fallback fictício.
-- [ ] Sair chama callback, evita clique repetido enquanto pendente e mantém interação acessível.
-- [ ] Testes cobrem identidade remota, estado indisponível e ação de saída; mínimo 5 novas asserções comportamentais passam.
+- [x] Sidebar exibe dados recebidos por props/estado da API, sem ler `baas_user_profile`.
+- [x] Falha de perfil mostra identidade indisponível sem fallback fictício.
+- [x] Sair chama callback, evita clique repetido enquanto pendente e mantém interação acessível.
+- [x] Testes cobrem identidade remota, estado indisponível e ação de saída; mínimo 5 novas asserções comportamentais passam.
 **Tests:** frontend unit/component
 **Gate:** Quick web
 **Commit:** `feat(shell): load identity and handle logout`
