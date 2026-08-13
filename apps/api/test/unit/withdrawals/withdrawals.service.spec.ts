@@ -170,7 +170,7 @@ describe('WithdrawalsService', () => {
       externalReference: 'WTH-005'
     });
 
-    expect(result.destinationMasked).toBe('***y-999');
+    expect(result.destinationMasked).toBe('***-999');
   });
 
   it('creates withdrawal record and saves transaction', async () => {

@@ -6,9 +6,16 @@ export default {
   testEnvironment: 'node',
   testMatch: ['<rootDir>/test/unit/**/*.spec.ts'],
   transform: {
-    '^.+\\.ts$': [
+    '^.+\\.(t|j)s$': [
       '@swc/jest',
-      { jsc: { parser: { syntax: 'typescript' }, target: 'es2023' }, module: { type: 'es6' } }
+      {
+        jsc: {
+          parser: { syntax: 'typescript', decorators: true },
+          transform: { decoratorMetadata: true },
+          target: 'es2023'
+        },
+        module: { type: 'es6' }
+      }
     ]
   }
 };

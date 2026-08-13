@@ -9,7 +9,11 @@ export default {
     '^.+\\.(t|j)s$': [
       '@swc/jest',
       {
-        jsc: { parser: { syntax: 'typescript' }, target: 'es2023' },
+        jsc: {
+          parser: { syntax: 'typescript', decorators: true },
+          transform: { decoratorMetadata: true },
+          target: 'es2023'
+        },
         module: { type: 'es6' }
       }
     ]
