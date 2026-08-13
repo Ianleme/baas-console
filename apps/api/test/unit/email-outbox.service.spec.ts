@@ -8,12 +8,11 @@ import {
 } from '../../src/modules/notifications/email-outbox.service.js';
 import type { EmailDeliveryEntity } from '../../src/modules/notifications/entities/email-delivery.entity.js';
 import {
-  SmtpEmailGateway,
   type EmailGateway
-} from '../../src/modules/notifications/smtp-email.gateway.js';
+} from '../../src/modules/notifications/brevo-email.gateway.js';
 import { EncryptionService } from '../../src/modules/gateway-accounts/encryption.service.js';
 
-describe('EmailOutboxService and SmtpEmailGateway', () => {
+describe('EmailOutboxService', () => {
   const masterKey = Buffer.alloc(32, 7);
   const encryptionService = new EncryptionService(masterKey);
 
@@ -35,22 +34,6 @@ describe('EmailOutboxService and SmtpEmailGateway', () => {
       expect(getRetryBackoffMs(3)).toBe(900_000);
       expect(getRetryBackoffMs(4)).toBe(3_600_000);
       expect(getRetryBackoffMs(5)).toBe(0);
-    });
-  });
-
-  describe('SmtpEmailGateway configuration', () => {
-    it('defaults to 127.0.0.1:1025 Mailpit defaults', () => {
-      const gateway = new SmtpEmailGateway();
-      expect(gateway).toBeDefined();
-    });
-
-    it('accepts explicit options', () => {
-      const gateway = new SmtpEmailGateway({
-        host: 'smtp.test',
-        port: 2525,
-        from: 'test@baas.local'
-      });
-      expect(gateway).toBeDefined();
     });
   });
 
@@ -114,7 +97,7 @@ describe('EmailOutboxService and SmtpEmailGateway', () => {
       service = new EmailOutboxService(mockRepository, encryptionService, mockGateway);
     });
 
-    it('enqueues e-mail outbox record in QUEUED status without invoking SMTP gateway', async () => {
+    it('enqueues e-mail outbox record in QUEUED status without invoking the gateway', async () => {
       const merchantId = randomUUID();
       const delivery = await service.enqueue({
         merchantId,
@@ -195,14 +178,15 @@ describe('EmailOutboxService and SmtpEmailGateway', () => {
       expect(sendEmailMock).toHaveBeenCalledWith({
         to: 'comprador@loja.com',
         subject: 'Seu link de pagamento',
-        html: '<p>Link de pagamento https://pay.baas.test/1</p>'
+        html: '<p>Link de pagamento https://pay.baas.test/1</p>',
+        text: 'Link de pagamento https://pay.baas.test/1'
       });
       expect(mockDeliveries[0]?.status).toBe('SENT');
       expect(mockDeliveries[0]?.providerMessageId).toBe('<msg-123@baas.local>');
     });
 
-    it('schedules retry on 1st transient SMTP failure', async () => {
-      sendEmailMock.mockRejectedValueOnce(new Error('SMTP_CONNECTION_REFUSED'));
+    it('schedules retry on 1st provider failure', async () => {
+      sendEmailMock.mockRejectedValueOnce(new Error('BREVO_NETWORK_ERROR'));
 
       const merchantId = randomUUID();
       await service.enqueue({
@@ -218,12 +202,12 @@ describe('EmailOutboxService and SmtpEmailGateway', () => {
       expect(res.failed).toBe(1);
       expect(mockDeliveries[0]?.status).toBe('FAILED');
       expect(mockDeliveries[0]?.attempts).toBe(1);
-      expect(mockDeliveries[0]?.lastErrorCode).toBe('SMTP_CONNECTION_REFUSED');
+      expect(mockDeliveries[0]?.lastErrorCode).toBe('BREVO_NETWORK_ERROR');
       expect(mockDeliveries[0]?.nextAttemptAt).toBeDefined();
     });
 
     it('transitions to DEAD_LETTER after 5 failed attempts', async () => {
-      sendEmailMock.mockRejectedValue(new Error('SMTP_PERMANENT_ERROR'));
+      sendEmailMock.mockRejectedValue(new Error('BREVO_HTTP_400'));
 
       const merchantId = randomUUID();
       await service.enqueue({

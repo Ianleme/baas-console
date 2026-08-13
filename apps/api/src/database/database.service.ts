@@ -24,6 +24,10 @@ export class DatabaseService implements OnApplicationShutdown {
     }
   }
 
+  isConnected(): boolean {
+    return this.dataSource?.isInitialized ?? false;
+  }
+
   getDataSource(): DataSource {
     if (!this.dataSource?.isInitialized) throw new Error('DATABASE_NOT_CONNECTED');
     return this.dataSource;

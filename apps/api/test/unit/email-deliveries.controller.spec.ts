@@ -4,13 +4,17 @@ import {
   type EmailDeliveriesPrincipalProvider
 } from '../../src/modules/notifications/email-deliveries.controller.js';
 import type { EmailOutboxService } from '../../src/modules/notifications/email-outbox.service.js';
+import type { AuthService } from '../../src/modules/auth/auth.service.js';
+import type { Request } from 'express';
 
 describe('EmailDeliveriesController', () => {
   let mockService: EmailOutboxService;
+  let mockAuth: AuthService;
   let mockPrincipal: EmailDeliveriesPrincipalProvider;
   let controller: EmailDeliveriesController;
   let listDeliveriesMock: jest.Mock;
   let retryDeadLetterMock: jest.Mock;
+  const mockReq = {} as Request;
 
   const mockItem = {
     id: 'del-1',
@@ -29,6 +33,8 @@ describe('EmailDeliveriesController', () => {
       current: jest.fn().mockReturnValue({ merchantId: 'merchant-1' })
     };
 
+    mockAuth = {} as unknown as AuthService;
+
     listDeliveriesMock = jest.fn().mockResolvedValue({ items: [mockItem], total: 1 });
     retryDeadLetterMock = jest.fn().mockImplementation((merchantId: string, id: string) => {
       if (merchantId === 'merchant-1' && id === 'del-1') {
@@ -45,11 +51,11 @@ describe('EmailDeliveriesController', () => {
       retryDeadLetter: retryDeadLetterMock
     } as unknown as EmailOutboxService;
 
-    controller = new EmailDeliveriesController(mockService, mockPrincipal);
+    controller = new EmailDeliveriesController(mockService, mockAuth, mockPrincipal);
   });
 
   it('lists email outbox deliveries for active merchant tenant', async () => {
-    const res = await controller.list('DEAD_LETTER', 10, 0);
+    const res = await controller.list(mockReq, 'DEAD_LETTER', 10, 0);
     expect(res.items).toHaveLength(1);
     expect(res.items[0]?.status).toBe('DEAD_LETTER');
     expect(listDeliveriesMock).toHaveBeenCalledWith('merchant-1', {
@@ -60,17 +66,17 @@ describe('EmailDeliveriesController', () => {
   });
 
   it('resets a dead-letter delivery to QUEUED state on manual retry', async () => {
-    const res = await controller.retry('del-1');
+    const res = await controller.retry(mockReq, 'del-1');
     expect(res.status).toBe('QUEUED');
     expect(res.attempts).toBe(0);
     expect(retryDeadLetterMock).toHaveBeenCalledWith('merchant-1', 'del-1');
   });
 
   it('throws 404 ProblemException when delivery record is not found', async () => {
-    await expect(controller.retry('not-found')).rejects.toThrow(ProblemException);
+    await expect(controller.retry(mockReq, 'not-found')).rejects.toThrow(ProblemException);
   });
 
   it('throws 400 ProblemException when delivery is not in retryable status', async () => {
-    await expect(controller.retry('del-already-sent')).rejects.toThrow(ProblemException);
+    await expect(controller.retry(mockReq, 'del-already-sent')).rejects.toThrow(ProblemException);
   });
 });

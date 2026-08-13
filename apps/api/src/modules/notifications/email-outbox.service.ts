@@ -4,7 +4,8 @@ import { Repository } from 'typeorm';
 
 import { EncryptionService } from '../gateway-accounts/encryption.service.js';
 import { EmailDeliveryEntity } from './entities/email-delivery.entity.js';
-import type { EmailGateway } from './smtp-email.gateway.js';
+import type { EmailGateway } from './brevo-email.gateway.js';
+import { EMAIL_GATEWAY } from './email-gateway.token.js';
 
 export function maskEmail(email: string): string {
   const parts = email.split('@');
@@ -56,11 +57,24 @@ export class EmailOutboxService {
   private readonly logger = new Logger(EmailOutboxService.name);
 
   constructor(
-    private readonly repository: Repository<EmailDeliveryEntity>,
+    private readonly repositoryOrDb:
+      | Repository<EmailDeliveryEntity>
+      | { getDataSource(): { getRepository(entity: unknown): Repository<EmailDeliveryEntity> } }
+      | (() => Repository<EmailDeliveryEntity>),
     private readonly encryptionService: EncryptionService,
-    @Inject('EMAIL_GATEWAY')
+    @Inject(EMAIL_GATEWAY)
     private readonly gateway: EmailGateway
   ) {}
+
+  private get repository(): Repository<EmailDeliveryEntity> {
+    if (typeof this.repositoryOrDb === 'function') {
+      return this.repositoryOrDb();
+    }
+    if ('getDataSource' in this.repositoryOrDb) {
+      return this.repositoryOrDb.getDataSource().getRepository(EmailDeliveryEntity);
+    }
+    return this.repositoryOrDb;
+  }
 
   async enqueue(input: EnqueueEmailInput): Promise<EmailDeliveryEntity> {
     const existing = await this.repository.findOne({
@@ -112,6 +126,16 @@ export class EmailOutboxService {
       });
       if (dupe) return dupe;
       throw new Error('FAILED_TO_ENQUEUE_EMAIL');
+    }
+  }
+
+  async assertCooldown(merchantId: string, kind: string, cooldownMs: number): Promise<void> {
+    const latest = await this.repository.findOne({
+      where: { merchantId, kind },
+      order: { createdAt: 'DESC' }
+    });
+    if (latest && latest.createdAt.getTime() + cooldownMs > Date.now()) {
+      throw new Error('EMAIL_COOLDOWN');
     }
   }
 
@@ -245,7 +269,8 @@ export class EmailOutboxService {
         const sendResult = await this.gateway.sendEmail({
           to: recipient,
           subject,
-          html: bodyHtml
+          html: bodyHtml,
+          ...(typeof payload.text === 'string' ? { text: payload.text } : {})
         });
 
         await this.repository.update(item.id, {
