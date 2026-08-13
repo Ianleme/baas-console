@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 
+import { DatabaseService } from '../../database/database.service.js';
 import { EmailDeliveryEntity } from '../notifications/entities/email-delivery.entity.js';
 import { AuditEventEntity } from './entities/audit-event.entity.js';
 
@@ -30,7 +31,11 @@ export function calculateYearsCutoffDate(now: Date, years: number): Date {
 export class AuditRetentionService {
   private readonly logger = new Logger(AuditRetentionService.name);
 
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(private readonly database: DatabaseService) {}
+
+  private get dataSource(): DataSource {
+    return this.database.getDataSource();
+  }
 
   async purgeOutbox(now = new Date()): Promise<{ purged: number; cutoff: string }> {
     const cutoff = now.toISOString();

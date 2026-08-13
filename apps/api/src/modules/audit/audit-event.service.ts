@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 
+import { DatabaseService } from '../../database/database.service.js';
 import { AuditEventEntity } from './entities/audit-event.entity.js';
 
 const ALLOWED_ACTIONS = new Set([
@@ -28,7 +29,11 @@ export interface AuditEventInput {
 
 @Injectable()
 export class AuditEventService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(private readonly database: DatabaseService) {}
+
+  private get dataSource(): DataSource {
+    return this.database.getDataSource();
+  }
 
   async record(input: AuditEventInput): Promise<void> {
     if (!ALLOWED_ACTIONS.has(input.action)) throw new Error('AUDIT_ACTION_NOT_ALLOWED');
