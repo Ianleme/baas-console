@@ -90,10 +90,24 @@ export class TransactionsController {
       let browser;
       try {
         const { chromium } = await import('playwright');
-        browser = await chromium.launch({
-          headless: true,
-          args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
+        try {
+          browser = await chromium.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+          });
+        } catch (launchErr) {
+          const errMsg = launchErr instanceof Error ? launchErr.message : String(launchErr);
+          if (errMsg.includes("Executable doesn't exist") || errMsg.includes('playwright install')) {
+            const { execSync } = await import('node:child_process');
+            execSync('npx playwright install chromium', { stdio: 'inherit' });
+            browser = await chromium.launch({
+              headless: true,
+              args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
+          } else {
+            throw launchErr;
+          }
+        }
         const page = await browser.newPage();
         await page.setContent(html, { waitUntil: 'networkidle' });
         const pdfBuffer = await page.pdf({
