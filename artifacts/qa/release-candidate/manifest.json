@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "release": "pending",
+  "verdict": "PENDING_EXTERNAL_EVIDENCE",
+  "generatedAt": null,
+  "artifacts": [],
+  "externalGates": ["sandbox", "VPS", "domain/TLS", "SSH", "UAT"],
+  "notes": "Template only. No APPROVED, live, deploy, rollback, or UAT evidence is claimed."
+}

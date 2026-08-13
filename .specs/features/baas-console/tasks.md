@@ -95,7 +95,11 @@ Coverage thresholds are non-negotiable: backend global 90% lines/statements/func
 | T046 | Complete | `28c2896` |
 | T047 | Complete | `80a2762` |
 | T048 | Complete | `f377330` |
-| T049-T053 | Pending | — |
+| T049 | Complete locally; external VPS/domain/SSH/TLS/backup/rollback validation pending | `pending` |
+| T050 | Complete | `pending` |
+| T051 | Complete locally; external sandbox/VPS/UAT evidence pending; not APPROVED | `pending` |
+| T052 | Complete | `pending` |
+| T053 | Complete locally; measured VPS evidence pending | `pending` |
 
 ## Execution Plan
 
