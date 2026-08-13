@@ -138,11 +138,11 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Requirement:** CONSOLE-04, CONSOLE-05, CONSOLE-06, CONSOLE-07
 **Tools:** MCP: filesystem; Skill: `frontend-design`
 **Done when:**
-- [ ] Página mostra saldo, disponibilidade quando disponível, horário UTC e estado/origem de sincronização.
-- [ ] Snapshot stale mantém valores e mostra aviso textual explícito.
-- [ ] Ausência de snapshot é um estado vazio, nunca saldo zero confirmado.
-- [ ] Falhas são exibidas em português sem conteúdo bruto de erro.
-- [ ] Testes cobrem atual, stale, vazio, erro, carregamento e acessibilidade básica; mínimo 6 novas asserções comportamentais passam.
+- [x] Página mostra saldo, disponibilidade quando disponível, horário UTC e estado/origem de sincronização.
+- [x] Snapshot stale mantém valores e mostra aviso textual explícito.
+- [x] Ausência de snapshot é um estado vazio, nunca saldo zero confirmado.
+- [x] Falhas são exibidas em português sem conteúdo bruto de erro.
+- [x] Testes cobrem atual, stale, vazio, erro, carregamento e acessibilidade básica; mínimo 6 novas asserções comportamentais passam.
 **Tests:** frontend unit/component
 **Gate:** Quick web
 **Commit:** `feat(wallet): add wallet console page`
@@ -156,10 +156,10 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Requirement:** CONSOLE-08, CONSOLE-09, CONSOLE-10
 **Tools:** MCP: filesystem; Skill: `frontend-design`
 **Done when:**
-- [ ] Página exibe negócio, titular/e-mail e estado de conexão retornados pelo perfil.
-- [ ] Não possui salvar, editar, senha ou qualquer controle persistente.
-- [ ] Indisponibilidade não-401 usa estado em português e não mostra dados fictícios.
-- [ ] Testes cobrem conteúdo, ausência de mutações, carregamento e indisponibilidade; mínimo 4 novas asserções comportamentais passam.
+- [x] Página exibe negócio, titular/e-mail e estado de conexão retornados pelo perfil.
+- [x] Não possui salvar, editar, senha ou qualquer controle persistente.
+- [x] Indisponibilidade não-401 usa estado em português e não mostra dados fictícios.
+- [x] Testes cobrem conteúdo, ausência de mutações, carregamento e indisponibilidade; mínimo 4 novas asserções comportamentais passam.
 **Tests:** frontend unit/component
 **Gate:** Quick web
 **Commit:** `feat(settings): add read-only profile page`
