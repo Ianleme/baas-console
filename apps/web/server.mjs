@@ -21,6 +21,7 @@ const hopByHopHeaders = new Set([
   'transfer-encoding',
   'upgrade'
 ]);
+const proxyOnlyHeaders = new Set(['origin', 'referer']);
 const contentTypes = new Map([
   ['.css', 'text/css; charset=utf-8'],
   ['.html', 'text/html; charset=utf-8'],
@@ -43,7 +44,11 @@ function proxyApiRequest(request, response) {
     {
       method: request.method,
       headers: {
-        ...withoutHopByHopHeaders(request.headers),
+        ...Object.fromEntries(
+          Object.entries(withoutHopByHopHeaders(request.headers)).filter(
+            ([name]) => !proxyOnlyHeaders.has(name.toLowerCase())
+          )
+        ),
         host: target.host
       }
     },
