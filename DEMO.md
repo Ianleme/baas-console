@@ -1,7 +1,7 @@
-# Evaluator demo
+# Demonstração do avaliador
 
-1. Copy `.env.example` to `.env` and run `docker compose up --build -d`.
-2. Open `http://localhost:4173/demo.html`.
-3. Explore the fixed, server-enforced read-only tenant. No public password is documented or required.
+1. Copie `.env.example` para `.env` e execute `docker compose up --build -d`.
+2. Abra `http://localhost:4173/demo.html`.
+3. Explore o tenant somente leitura fixo e imposto pelo servidor. Nenhuma senha pública é documentada ou necessária.
 
-The three-minute tour covers dashboard, links, transactions and wallet. The 10–15 minute tour adds the local API `/docs`, Mailpit and static smoke checks. Gateway sandbox, production domain, VPS deployment and UAT remain external prerequisites and are not represented as completed evidence.
+O tour de três minutos cobre dashboard, links, transações e carteira. O tour de 10–15 minutos acrescenta a API local `/docs`, Mailpit e verificações smoke estáticas. Os fluxos reais de checkout Pix/cartão, taxas, saque, webhook e conciliação exigem credenciais/configuração do gateway. Sandbox do gateway, domínio de produção, deploy em VPS e UAT continuam pré-requisitos externos e não são apresentados como evidência concluída.

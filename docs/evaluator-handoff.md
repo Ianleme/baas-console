@@ -1,5 +1,5 @@
-# Private handoff checklist
+# Checklist de handoff privado
 
-Provide privately, never in Git: sandbox credentials and approved test identities; production domain/TLS details; VPS host, pinned SSH host key, restricted deploy account/key; registry access; SMTP settings; backup/restore owner and window; evaluator UAT contacts.
+Forneça privadamente, nunca no Git: credenciais do sandbox e identidades de teste aprovadas; detalhes do domínio/TLS de produção; host da VPS, pinned SSH host key, conta/chave de deploy restrita; acesso ao registry; configurações SMTP; responsável e janela de backup/restore; contatos de UAT do avaliador.
 
-After provisioning, run the documented deploy preflight and retain sanitized command output. Live evidence must be hashed and stored in CI retention, not committed with secrets.
+Depois do provisionamento, execute o preflight de deploy documentado e retenha a saída sanitizada dos comandos. Evidências live devem receber hash e ser armazenadas na retenção de CI, não commitadas com segredos. O fornecimento desses itens e a validação de sandbox, VPS e UAT continuam pendentes externamente.

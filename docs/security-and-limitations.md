@@ -1,5 +1,7 @@
-# Security and limitations
+# Segurança e limitações
 
-Secrets belong in ignored environment files or the deployment secret store. Card data, gateway passwords and webhook secrets are never valid documentation fixtures. Production images are immutable digests, containers are non-root, and operational endpoints are private.
+Segredos devem ficar em arquivos de ambiente ignorados ou no secret store do deploy. Dados de cartão, senhas do gateway e segredos de webhook nunca são fixtures válidos de documentação. As imagens de produção usam immutable digests, os containers não executam como root e os endpoints operacionais são privados.
 
-This repository does not prove live gateway behavior, public TLS, SSH host identity, backup restoration, SMTP delivery, VPS capacity, or UAT. Those are explicit external gates. No production approval or measured capacity is claimed locally.
+O Bearer token do gateway é armazenado com segurança no backend; a senha do gateway nunca é exposta no frontend. O isolamento por conta impede que um token veja dados de outra conta. Webhooks autenticáveis validam `X-Lera-Box-Signature` quando houver secret, registram payloads protegidos, aplicam idempotência e não aceitam atualizações de status vindas do frontend. Valores monetários enviados ou recebidos são centavos.
+
+Este repositório não prova comportamento live do gateway, TLS público, identidade do host SSH, restauração de backup, entrega SMTP, capacidade da VPS ou UAT. Esses são gates externos explícitos. Nenhuma aprovação de produção ou capacidade medida é declarada localmente; evidências de sandbox/VPS/UAT/live permanecem pendentes.
