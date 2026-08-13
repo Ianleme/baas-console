@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 39,
+  "title": "BaaS operational overview",
+  "editable": false,
+  "panels": [
+    {"type":"timeseries","title":"HTTP requests","targets":[{"expr":"sum by (method, route, status) (http_requests_total)"}]},
+    {"type":"timeseries","title":"Gateway requests","targets":[{"expr":"sum by (method, route, status) (gateway_requests_total)"}]},
+    {"type":"timeseries","title":"Webhook processing","targets":[{"expr":"sum by (method, route, status) (webhook_events_total)"}]},
+    {"type":"timeseries","title":"Reconciliation","targets":[{"expr":"sum by (method, route, status) (reconciliation_total)"}]},
+    {"type":"timeseries","title":"Email and PDF","targets":[{"expr":"sum by (method, route, status) (email_delivery_total)"},{"expr":"sum by (method, route, status) (pdf_render_total)"}]}
+  ]
+}
