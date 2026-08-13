@@ -181,10 +181,10 @@
 ## Handoff
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
-- **Phase / Task**: Execute / Batch 6 (Phase 6, T041 Concluído!)
-- **Completed**: T001-T041; T041 validada (AuditRetentionService implementado com expurgo atômico de registros outbox 30d, eventos operacionais 90d, registros financeiros 5 anos e testes unitários 100% verdes)
+- **Phase / Task**: Execute / Phase 7-8 local artifacts complete
+- **Completed**: T001-T053 possuem implementação ou artefatos locais registrados; T043/T045 ainda requerem expansão de cobertura de segurança/demo; T049/T051/T053 aguardam validação externa.
 - **In-progress** (file:line): none
-- **Next step**: Executar T042 (Implementar status operacionais e inspeção DLQ do outbox na UI)
-- **Blockers**: none
-- **Uncommitted files**: progress bookkeeping only
+- **Next step**: Obter VPS/domínio/SSH/TLS, permissões GitHub/GHCR e credenciais autorizadas do sandbox para executar T049, T051 e T053; depois finalizar a validação TLC independente.
+- **Blockers**: VPS/domínio/SSH/TLS/backup; permissões GitHub/GHCR; sandbox Lera Box; participantes de UAT; medições de hardware/VPS. `verify:quick` também está afetado por alterações locais não relacionadas ainda não reconciliadas.
+- **Uncommitted files**: mudanças locais de UI/API e artefatos de specs ainda não reconciliados.
 - **Branch**: main

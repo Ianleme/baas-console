@@ -88,18 +88,28 @@ Coverage thresholds are non-negotiable: backend global 90% lines/statements/func
 | T029 | Complete | `49edfab` |
 | T030 | Complete | `8e80308` |
 | T031 | Complete | `92049f3` |
-| T032-T042 | Pending | — |
-| T043 | Complete | `7b7f12c`, remediation `pending` |
+| T032 | Complete local implementation; gate histórico não reconciliado | `51acc8d` |
+| T033 | Complete local implementation; gate histórico não reconciliado | `bd010a4` |
+| T034 | Complete local implementation; gate histórico não reconciliado | `c3181e8` |
+| T035 | Complete local implementation; gate histórico não reconciliado | `b49e4ee` |
+| T036 | Complete local implementation; gate histórico não reconciliado | `87ace1b` |
+| T037 | Complete local implementation; gate histórico não reconciliado | `e669d1b` |
+| T038 | Complete local implementation; gate histórico não reconciliado | `e06fe07` |
+| T039 | Complete local implementation; gate histórico não reconciliado | `f85d499` |
+| T040 | Complete local implementation; gate histórico não reconciliado | `f85d499` |
+| T041 | Complete local implementation; gate histórico não reconciliado | `f85d499` |
+| T042 | Complete local implementation; gate histórico não reconciliado | `f35db04`, `4b567eb` |
+| T043 | Complete locally; integração/Gherkin/E2E de demo pendentes | `7b7f12c` |
 | T044 | Complete | `9b55800` |
-| T045 | Complete | `pending` |
+| T045 | Complete local baseline; matriz completa de abuso/scan pendente | `a2b388b` |
 | T046 | Complete | `28c2896` |
 | T047 | Complete | `80a2762` |
 | T048 | Complete | `f377330` |
-| T049 | Complete locally; external VPS/domain/SSH/TLS/backup/rollback validation pending | `pending` |
-| T050 | Complete | `pending` |
-| T051 | Complete locally; external sandbox/VPS/UAT evidence pending; not APPROVED | `pending` |
-| T052 | Complete | `pending` |
-| T053 | Complete locally; measured VPS evidence pending | `pending` |
+| T049 | Complete local artifacts; validação de VPS/domínio/SSH/TLS/backup/rollback pendente | `a1c92c9` |
+| T050 | Complete | `4b1c96b`, traduzido por `13a10f8` |
+| T051 | Complete local artifacts; evidência de sandbox/VPS/UAT pendente; não APPROVED | `e94a09a` |
+| T052 | Complete | `928c662` |
+| T053 | Complete local artifacts; medições reais de VPS pendentes | `635d2a9` |
 
 ## Execution Plan
 
