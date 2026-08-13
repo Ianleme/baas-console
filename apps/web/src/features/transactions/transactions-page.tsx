@@ -123,7 +123,8 @@ export function TransactionsPage({ api }: { api: TransactionStatementApi }) {
         if (!res.ok) throw new Error('Download failed');
         blob = await res.blob();
       }
-      const url = window.URL.createObjectURL(blob);
+      const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
@@ -132,8 +133,9 @@ export function TransactionsPage({ api }: { api: TransactionStatementApi }) {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch {
-      window.open(`/api/v1/transactions/${encodeURIComponent(id)}/receipt?format=pdf`, '_blank');
+    } catch (err) {
+      console.error('PDF download error:', err);
+      alert('Não foi possível gerar o comprovante em PDF no momento.');
     } finally {
       setDownloadingId(null);
     }

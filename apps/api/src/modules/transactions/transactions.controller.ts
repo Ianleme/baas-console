@@ -87,9 +87,13 @@ export class TransactionsController {
     });
 
     if (format === 'pdf' || format === 'download') {
+      let browser;
       try {
         const { chromium } = await import('playwright');
-        const browser = await chromium.launch({ headless: true });
+        browser = await chromium.launch({
+          headless: true,
+          args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
         const page = await browser.newPage();
         await page.setContent(html, { waitUntil: 'networkidle' });
         const pdfBuffer = await page.pdf({
@@ -99,17 +103,24 @@ export class TransactionsController {
         });
         await browser.close();
 
+        const buffer = Buffer.from(pdfBuffer);
         res.setHeader('content-type', 'application/pdf');
+        res.setHeader('content-length', buffer.length.toString());
         res.setHeader(
           'content-disposition',
           `attachment; filename="comprovante-${tx.externalReference}.pdf"`
         );
-        res.send(pdfBuffer);
+        res.end(buffer);
         return;
-      } catch {
-        res.setHeader('content-type', 'text/html; charset=utf-8');
-        res.send(html);
-        return;
+      } catch (err) {
+        if (browser) {
+          await browser.close().catch(() => undefined);
+        }
+        throw new ProblemException(
+          'RECEIPT_PDF_FAILED',
+          500,
+          `Failed to render PDF receipt: ${err instanceof Error ? err.message : String(err)}`
+        );
       }
     }
 
