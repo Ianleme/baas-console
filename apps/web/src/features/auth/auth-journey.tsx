@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/button.js';
 import { Card } from '../../components/ui/card.js';
 import { Input } from '../../components/ui/input.js';
 import '../../styles/tokens.css';
+import './auth.css';
 
 type Screen = 'login' | 'register' | 'awaiting' | 'connect' | 'active';
 type PersonType = 'PF' | 'PJ';
