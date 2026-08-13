@@ -211,6 +211,12 @@ describe('Dashboard', () => {
     expect(screen.getByText('Gateway Lera Box').closest('div')).toHaveClass('border-b');
     expect(screen.getByText('Ver integrações').closest('a')).toHaveClass('mt-auto');
   });
+  test('keeps recent transactions dense with six columns and a compact header', async () => {
+    await ready();
+    expect(screen.getByText('Transações recentes').closest('[data-recent-card]')).toHaveClass('rounded-2xl');
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
+    expect(screen.getByRole('table', { name: 'Transações recentes' })).toHaveClass('text-sm');
+  });
   test('has no axe violations in populated state', async () => {
     const { container } = render(<Dashboard api={api()} />);
     await screen.findByText('PED-1048');

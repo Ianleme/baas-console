@@ -94,5 +94,5 @@ Executar com `tlc-spec-driven`, um componente por tarefa, teste e commit atômic
 | T3 | Composição | ✅ Done |
 | T4 | Gráfico | ✅ Done |
 | T5 | Operação | ✅ Done |
-| T6 | Tabela | OK |
+| T6 | Tabela | ✅ Done |
 | T7 | Integração responsiva | OK |

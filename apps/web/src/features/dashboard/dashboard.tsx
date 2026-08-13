@@ -181,6 +181,9 @@ function MovementChartCard({ children }: { children: ReactNode }) {
 function OperationCard({ children }: { children: ReactNode }) {
   return <Card className={`${cardClass} xl:col-span-3`} aria-labelledby="operation-title">{children}</Card>;
 }
+function RecentTransactionsCard({ children }: { children: ReactNode }) {
+  return <Card data-recent-card className={`${cardClass} recent`}>{children}</Card>;
+}
 
 export function Dashboard({ api }: { api: DashboardApi }) {
   const [data, setData] = useState<DashboardData>();
@@ -511,7 +514,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
         </OperationCard>
       </div>
 
-      <Card className={`${cardClass} recent`}>
+      <RecentTransactionsCard>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-5 pb-2">
           <h2 className="text-[0.95rem] font-bold text-slate-900">Transações recentes</h2>
           <a
@@ -577,7 +580,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
             </Table>
           )}
         </CardContent>
-      </Card>
+      </RecentTransactionsCard>
     </div>
   );
 }
