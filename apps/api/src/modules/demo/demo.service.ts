@@ -8,6 +8,7 @@ import {
   demoEnabled,
   demoSecret
 } from './demo.constants.js';
+import { ProblemException } from '../../platform/errors/problem.exception.js';
 
 export interface DemoPrincipal {
   demo: true;
@@ -18,12 +19,28 @@ export interface DemoPrincipal {
 
 @Injectable()
 export class DemoService {
-  issueSession(now = Date.now()): {
+  private readonly attempts = new Map<string, { count: number; resetAt: number }>();
+
+  private consumeRateLimit(key: string, now: number): void {
+    const current = this.attempts.get(key);
+    const window =
+      !current || current.resetAt <= now ? { count: 0, resetAt: now + 60_000 } : current;
+    window.count += 1;
+    this.attempts.set(key, window);
+    if (window.count > 5)
+      throw new ProblemException('RATE_LIMITED', 429, 'Demo rate limit exceeded.');
+  }
+
+  issueSession(
+    now = Date.now(),
+    rateLimitKey?: string
+  ): {
     accessToken: string;
     expiresAt: string;
     principal: DemoPrincipal;
   } {
-    if (!demoEnabled()) throw new Error('DEMO_DISABLED');
+    if (!demoEnabled()) throw new ProblemException('DEMO_DISABLED', 404, 'DEMO_DISABLED');
+    if (rateLimitKey) this.consumeRateLimit(rateLimitKey, now);
     const payload: DemoPrincipal = {
       demo: true,
       userId: DEMO_USER_ID,

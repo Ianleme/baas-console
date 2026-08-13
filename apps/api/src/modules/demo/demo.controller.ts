@@ -1,4 +1,4 @@
-import { Controller, HttpCode, Post } from '@nestjs/common';
+import { Controller, Get, HttpCode, Ip, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { DemoService } from './demo.service.js';
@@ -11,7 +11,16 @@ export class DemoController {
   @Post('session')
   @HttpCode(200)
   @ApiOperation({ summary: 'Issue a short-lived read-only demo session' })
-  session(): ReturnType<DemoService['issueSession']> {
-    return this.demo.issueSession();
+  session(@Ip() ip: string): ReturnType<DemoService['issueSession']> {
+    return this.demo.issueSession(Date.now(), ip);
+  }
+
+  @Get('view')
+  view(): { merchant: { displayName: string }; balanceCents: string; mode: 'READ_ONLY' } {
+    return {
+      merchant: { displayName: 'Demo Aurora Store' },
+      balanceCents: '125000',
+      mode: 'READ_ONLY'
+    };
   }
 }
