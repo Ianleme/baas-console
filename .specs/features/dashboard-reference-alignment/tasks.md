@@ -93,6 +93,6 @@ Executar com `tlc-spec-driven`, um componente por tarefa, teste e commit atômic
 | T2 | Rail de KPIs | ✅ Done |
 | T3 | Composição | ✅ Done |
 | T4 | Gráfico | ✅ Done |
-| T5 | Operação | OK |
+| T5 | Operação | ✅ Done |
 | T6 | Tabela | OK |
 | T7 | Integração responsiva | OK |

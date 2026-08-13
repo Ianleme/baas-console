@@ -178,6 +178,9 @@ function ReceiptCompositionCard({ children }: { children: ReactNode }) {
 function MovementChartCard({ children }: { children: ReactNode }) {
   return <Card className={`${cardClass} xl:col-span-6`} aria-labelledby="movement-title">{children}</Card>;
 }
+function OperationCard({ children }: { children: ReactNode }) {
+  return <Card className={`${cardClass} xl:col-span-3`} aria-labelledby="operation-title">{children}</Card>;
+}
 
 export function Dashboard({ api }: { api: DashboardApi }) {
   const [data, setData] = useState<DashboardData>();
@@ -465,7 +468,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
           </CardContent>
         </MovementChartCard>
 
-        <Card className={`${cardClass} xl:col-span-3`} aria-labelledby="operation-title">
+        <OperationCard>
           <CardHeader className="space-y-0 p-5 pb-3">
             <h2 id="operation-title" className="text-[0.95rem] font-bold text-slate-900">
               Operação
@@ -473,39 +476,39 @@ export function Dashboard({ api }: { api: DashboardApi }) {
           </CardHeader>
           <CardContent className="flex h-full flex-col p-5 pt-0">
             <dl className="space-y-4 flex-1">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
                 <dt className="text-sm text-slate-500">Gateway Lera Box</dt>
                 <dd className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0f8a5f]">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#0f8a5f]" aria-hidden="true" />
                   Conectado
                 </dd>
               </div>
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
                 <dt className="text-sm text-slate-500">Webhooks</dt>
                 <dd className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0f8a5f]">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#0f8a5f]" aria-hidden="true" />
                   {webhooksActive ? 'Ativos' : 'Inativos'}
                 </dd>
               </div>
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
                 <dt className="text-sm text-slate-500">Último evento</dt>
                 <dd className="text-sm font-semibold text-slate-800">
                   {lastOperation ? relativeTime(lastOperation.occurredAt) : '—'}
                 </dd>
               </div>
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
                 <dt className="text-sm text-slate-500">Eventos pendentes</dt>
                 <dd className="text-sm font-semibold text-slate-800">{pendingEvents}</dd>
               </div>
             </dl>
             <a
-              className="mt-6 inline-flex items-center gap-0.5 text-sm font-semibold text-[#006b57] hover:underline"
+              className="mt-auto inline-flex items-center gap-0.5 pt-6 text-sm font-semibold text-[#006b57] hover:underline"
               href="#/webhooks"
             >
               Ver integrações <ChevronRight className="h-4 w-4" />
             </a>
           </CardContent>
-        </Card>
+        </OperationCard>
       </div>
 
       <Card className={`${cardClass} recent`}>

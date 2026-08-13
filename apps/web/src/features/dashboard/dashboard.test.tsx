@@ -206,6 +206,11 @@ describe('Dashboard', () => {
     expect(screen.getByText('Entradas e saídas por período')).toBeVisible();
     expect(screen.getAllByTestId('movement-marker').length).toBeGreaterThan(0);
   });
+  test('separates operation rows and keeps integrations at the footer', async () => {
+    await ready();
+    expect(screen.getByText('Gateway Lera Box').closest('div')).toHaveClass('border-b');
+    expect(screen.getByText('Ver integrações').closest('a')).toHaveClass('mt-auto');
+  });
   test('has no axe violations in populated state', async () => {
     const { container } = render(<Dashboard api={api()} />);
     await screen.findByText('PED-1048');
