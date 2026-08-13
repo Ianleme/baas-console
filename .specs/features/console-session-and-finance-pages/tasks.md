@@ -76,7 +76,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Gate:** API full
 **Commit:** `feat(auth): persist owner full name`
 
-### T2: Expor perfil da sessão autenticada
+### T2: Expor perfil da sessão autenticada ✅
 
 **What:** Criar módulo/controlador de perfil atual que retorna somente identidade permitida do proprietário, negócio e conexão do gateway a partir do token verificado.
 **Where:** novo `apps/api/src/modules/session-profile/`, composição da aplicação, OpenAPI gerado e testes de integração novos.
@@ -85,11 +85,11 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Requirement:** CONSOLE-01, CONSOLE-02, CONSOLE-03, CONSOLE-08, CONSOLE-10, CONSOLE-19
 **Tools:** MCP: filesystem; Skill: NONE
 **Done when:**
-- [ ] `GET /api/v1/session/profile` deriva usuário/merchant apenas do Bearer token.
-- [ ] Retorna somente campos allowlisted e usa e-mail para legado sem `fullName`.
-- [ ] Token ausente/inválido recebe 401 e tenant cruzado não pode ser solicitado pelo cliente.
-- [ ] Schema OpenAPI é regenerado pelo script, nunca editado manualmente.
-- [ ] Testes de integração cobrem caminho autenticado, 401, isolamento de dois tenants e fallback legado; mínimo 5 novas asserções comportamentais passam.
+- [x] `GET /api/v1/session/profile` deriva usuário/merchant apenas do Bearer token.
+- [x] Retorna somente campos allowlisted e usa e-mail para legado sem `fullName`.
+- [x] Token ausente/inválido recebe 401 e tenant cruzado não pode ser solicitado pelo cliente.
+- [x] Schema OpenAPI é regenerado pelo script, nunca editado manualmente.
+- [x] Testes de integração cobrem caminho autenticado, 401, isolamento de dois tenants e fallback legado; mínimo 5 novas asserções comportamentais passam.
 **Tests:** integration
 **Gate:** API full + Contract build
 **Commit:** `feat(profile): expose current session identity`

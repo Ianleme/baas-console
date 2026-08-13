@@ -137,6 +137,22 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/checkout-links/{id}/send-email': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['CheckoutLinkController_sendEmail'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/gateway-account/connect': {
     parameters: {
       query?: never;
@@ -148,6 +164,40 @@ export type paths = {
     put?: never;
     /** Verify and connect the current merchant gateway account */
     post: operations['GatewayAccountController_connect'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/notifications/email-deliveries': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List outbox email deliveries for merchant */
+    get: operations['EmailDeliveriesController_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/notifications/email-deliveries/{id}/retry': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Retry a failed or dead-letter outbox email delivery */
+    post: operations['EmailDeliveriesController_retry'];
     delete?: never;
     options?: never;
     head?: never;
@@ -267,6 +317,73 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/session/profile': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Return the current authenticated session profile */
+    get: operations['SessionProfileController_getProfile'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/transactions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['TransactionsController_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/transactions/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get transaction detail by ID */
+    get: operations['TransactionsController_getDetail'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/transactions/{id}/receipt': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get transaction receipt HTML or printable document */
+    get: operations['TransactionsController_getReceipt'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/wallet': {
     parameters: {
       query?: never;
@@ -348,6 +465,22 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/withdrawals': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['WithdrawalsController_list'];
+    put?: never;
+    post: operations['WithdrawalsController_request'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/health/live': {
     parameters: {
       query?: never;
@@ -389,10 +522,12 @@ export type components = {
     ConfigureWebhookDto: Record<string, never>;
     ConnectGatewayDto: Record<string, never>;
     CreateCheckoutLinkDto: Record<string, never>;
+    CreateWithdrawalDto: Record<string, never>;
     ExchangeDto: Record<string, never>;
     LoginDto: Record<string, never>;
     PixDto: Record<string, never>;
     RegisterOwnerDto: Record<string, never>;
+    SendCheckoutLinkEmailDto: Record<string, never>;
   };
   responses: never;
   parameters: never;
@@ -501,9 +636,7 @@ export interface operations {
   CheckoutLinkController_list: {
     parameters: {
       query?: never;
-      header: {
-        authorization: string;
-      };
+      header?: never;
       path?: never;
       cookie?: never;
     };
@@ -579,6 +712,30 @@ export interface operations {
       };
     };
   };
+  CheckoutLinkController_sendEmail: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SendCheckoutLinkEmailDto'];
+      };
+    };
+    responses: {
+      /** @description Checkout link delivery enqueued */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   GatewayAccountController_connect: {
     parameters: {
       query?: never;
@@ -594,6 +751,46 @@ export interface operations {
     responses: {
       /** @description Gateway profile verified and credentials encrypted */
       200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  EmailDeliveriesController_list: {
+    parameters: {
+      query: {
+        limit: number;
+        offset: number;
+        status: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  EmailDeliveriesController_retry: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      201: {
         headers: {
           [name: string]: unknown;
         };
@@ -746,6 +943,80 @@ export interface operations {
       };
     };
   };
+  SessionProfileController_getProfile: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Allowlisted current merchant and owner profile */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  TransactionsController_list: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Consolidated transaction statement for tenant */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  TransactionsController_getDetail: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  TransactionsController_getReceipt: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   WalletController_current: {
     parameters: {
       query?: never;
@@ -785,9 +1056,7 @@ export interface operations {
   WebhookConfigurationController_list: {
     parameters: {
       query?: never;
-      header: {
-        authorization: string;
-      };
+      header?: never;
       path?: never;
       cookie?: never;
     };
@@ -860,6 +1129,46 @@ export interface operations {
     responses: {
       /** @description Tenant-owned callback removed */
       204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  WithdrawalsController_list: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List merchant withdrawals */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  WithdrawalsController_request: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateWithdrawalDto'];
+      };
+    };
+    responses: {
+      /** @description Request a new payout withdrawal */
+      201: {
         headers: {
           [name: string]: unknown;
         };

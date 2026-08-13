@@ -12,6 +12,7 @@ import { platformLoggerProvider } from './platform/logging/platform-logger.js';
 import { RequestContextMiddleware } from './platform/request-context/request-context.middleware.js';
 
 import { WithdrawalsModule } from './modules/withdrawals/withdrawals.module.js';
+import { SessionProfileModule } from './modules/session-profile/session-profile.module.js';
 
 @Module({
   imports: [
@@ -20,7 +21,8 @@ import { WithdrawalsModule } from './modules/withdrawals/withdrawals.module.js';
     WebhooksModule,
     WalletModule,
     TransactionsModule,
-    WithdrawalsModule
+    WithdrawalsModule,
+    SessionProfileModule
   ],
   controllers: [HealthController],
   providers: [HealthProbe, platformLoggerProvider]
