@@ -38,13 +38,21 @@ async function waitForMysql() {
 
 function runJest(port) {
   return new Promise((resolve, reject) => {
+    const forwardedArgs = process.argv.slice(2);
+    if (forwardedArgs.length > 0 && !forwardedArgs[0].startsWith('-'))
+      forwardedArgs.unshift('--runTestsByPath');
     const command =
       process.platform === 'win32'
         ? [
             process.env.ComSpec ?? 'cmd.exe',
-            ['/d', '/s', '/c', 'npm run test:integration:jest --workspace @baas/api']
+            [
+              '/d',
+              '/s',
+              '/c',
+              `npm run test:integration:jest --workspace @baas/api -- ${forwardedArgs.join(' ')}`
+            ]
           ]
-        : ['npm', ['run', 'test:integration:jest', '--workspace', '@baas/api']];
+        : ['npm', ['run', 'test:integration:jest', '--workspace', '@baas/api', '--', ...forwardedArgs]];
     const [executable, args] = command;
     const child = spawn(executable, args, {
       env: {

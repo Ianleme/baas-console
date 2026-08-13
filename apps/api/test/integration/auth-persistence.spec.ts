@@ -8,6 +8,7 @@ import {
   UserEntity
 } from '../../src/modules/auth/entities/index.js';
 import { CreateAuthPersistence1723500000000 } from '../../src/migrations/1723500000000-CreateAuthPersistence.js';
+import { AddUserFullName1723506000000 } from '../../src/migrations/1723506000000-AddUserFullName.js';
 
 interface ColumnMetadata {
   COLUMN_NAME: string;
@@ -27,7 +28,7 @@ function createDataSource(): DataSource {
     database: databaseName,
     charset: 'utf8mb4',
     entities: [MerchantEntity, UserEntity, AuthSessionEntity, GatewayAccountEntity],
-    migrations: [CreateAuthPersistence1723500000000],
+    migrations: [CreateAuthPersistence1723500000000, AddUserFullName1723506000000],
     migrationsRun: false,
     synchronize: false
   });
@@ -52,11 +53,17 @@ describe('authentication persistence on MySQL 8.4', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.query('SET FOREIGN_KEY_CHECKS = 0');
-    for (const table of ['auth_sessions', 'gateway_accounts', 'users', 'merchants']) {
-      await dataSource.query(`TRUNCATE TABLE \`${table}\``);
+    const queryRunner = dataSource.createQueryRunner();
+    await queryRunner.connect();
+    try {
+      await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
+      for (const table of ['auth_sessions', 'gateway_accounts', 'users', 'merchants']) {
+        await queryRunner.query(`TRUNCATE TABLE \`${table}\``);
+      }
+      await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
+    } finally {
+      await queryRunner.release();
     }
-    await dataSource.query('SET FOREIGN_KEY_CHECKS = 1');
   });
 
   async function insertMerchant(id = randomUUID()): Promise<string> {
@@ -127,6 +134,23 @@ describe('authentication persistence on MySQL 8.4', () => {
       [merchantId]
     );
     expect(rows).toEqual([{ email: 'Owner@Example.Test', email_normalized: 'owner@example.test' }]);
+  });
+
+  test('persists owner full name and keeps legacy names nullable', async () => {
+    const merchantId = await insertMerchant();
+    await dataSource.query(
+      'INSERT INTO users (id, merchant_id, email, full_name, email_normalized, password_hash, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [randomUUID(), merchantId, 'owner@example.test', 'Owner Aurora', 'owner@example.test', 'argon2id-hash', 'ACTIVE']
+    );
+    const legacyMerchantId = await insertMerchant();
+    await insertUser(legacyMerchantId, 'legacy@example.test');
+    const rows = await dataSource.query<{ email: string; full_name: string | null }[]>(
+      'SELECT email, full_name FROM users ORDER BY email'
+    );
+    expect(rows).toEqual([
+      { email: 'legacy@example.test', full_name: null },
+      { email: 'owner@example.test', full_name: 'Owner Aurora' }
+    ]);
   });
 
   test('enforces one owner user per merchant', async () => {
