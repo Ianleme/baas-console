@@ -172,6 +172,10 @@ function KpiRail({ children }: { children: ReactNode }) {
   return <section className="kpis grid grid-cols-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-none sm:grid-cols-2 xl:grid-cols-[30%_1fr_1fr_1fr]" aria-label="Resumo financeiro">{children}</section>;
 }
 
+function ReceiptCompositionCard({ children }: { children: ReactNode }) {
+  return <Card className={`${cardClass} xl:col-span-3`} aria-labelledby="composition-title">{children}</Card>;
+}
+
 export function Dashboard({ api }: { api: DashboardApi }) {
   const [data, setData] = useState<DashboardData>();
   const [failed, setFailed] = useState(false);
@@ -327,7 +331,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
       </KpiRail>
 
       <div className="dashboard__grid grid grid-cols-1 gap-4 xl:grid-cols-13">
-        <Card className={`${cardClass} xl:col-span-3`} aria-labelledby="composition-title">
+        <ReceiptCompositionCard>
           <CardHeader className="space-y-0 p-5 pb-3">
             <h2 id="composition-title" className="text-[0.95rem] font-bold text-slate-900">
               Composição dos recebimentos
@@ -335,6 +339,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
             <p className="sr-only">
               Pix representa {pixPercent}% e cartão {cardPercent}% do valor recebido.
             </p>
+            <p className="text-xs text-slate-500">Distribuição por método de pagamento</p>
           </CardHeader>
           <CardContent className="space-y-5 p-5 pt-0">
             <div
@@ -357,7 +362,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
               )}
             </div>
             <div className="space-y-4">
-              <div className="flex items-start gap-3">
+              <div data-receipt-row className="flex items-start gap-3">
                 <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#e7f6ef] text-[#006b57]">
                   <QrCode className="h-3.5 w-3.5" />
                 </span>
@@ -371,7 +376,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
                   <p className="mt-0.5 text-xs text-slate-400">{pixPercent}% do volume</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
+              <div data-receipt-row className="flex items-start gap-3">
                 <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#f3f8e4] text-[#6a7f2f]">
                   <CreditCard className="h-3.5 w-3.5" />
                 </span>
@@ -387,7 +392,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </ReceiptCompositionCard>
 
         <Card className={`${cardClass} xl:col-span-6`} aria-labelledby="movement-title">
           <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 p-5 pb-2">

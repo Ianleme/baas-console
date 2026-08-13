@@ -195,6 +195,12 @@ describe('Dashboard', () => {
     expect(screen.getByText('Saldo disponível').closest('[data-kpi]')).toHaveClass('bg-[#005746]');
     expect(screen.getByText('Taxa de aprovação').closest('[data-kpi]')).toHaveClass('xl:border-l');
   });
+  test('shows a visible composition subtitle and segmented receipt rows', async () => {
+    await ready();
+    expect(screen.getByText('Distribuição por método de pagamento')).toBeVisible();
+    expect(screen.getAllByText('Pix').find((node) => node.closest('[data-receipt-row]'))).toBeTruthy();
+    expect(screen.getAllByText('Cartão').find((node) => node.closest('[data-receipt-row]'))).toBeTruthy();
+  });
   test('has no axe violations in populated state', async () => {
     const { container } = render(<Dashboard api={api()} />);
     await screen.findByText('PED-1048');

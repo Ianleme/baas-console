@@ -91,7 +91,7 @@ Executar com `tlc-spec-driven`, um componente por tarefa, teste e commit atômic
 | --- | --- | --- |
 | T1 | Header + filtros coesos | ✅ Done |
 | T2 | Rail de KPIs | ✅ Done |
-| T3 | Composição | OK |
+| T3 | Composição | ✅ Done |
 | T4 | Gráfico | OK |
 | T5 | Operação | OK |
 | T6 | Tabela | OK |
