@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
-import { Building2, CheckCircle2, Mail, UserRound } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { ArrowRight, Building2, CheckCircle2, KeyRound, Mail, UserRound } from 'lucide-react';
 
+import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card.js';
 
@@ -12,6 +13,7 @@ export interface CurrentProfile {
 
 export interface CurrentProfileApi {
   load(): Promise<CurrentProfile>;
+  connect(input: { document: string; password: string }): Promise<'ACTIVE' | 'PROFILE_MISMATCH'>;
 }
 
 function gatewayStatus(status: CurrentProfile['gatewayConnectionStatus']) {
@@ -28,6 +30,11 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
   const [profile, setProfile] = useState<CurrentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   useEffect(() => {
     void api
@@ -52,6 +59,50 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
   }
 
   const gateway = gatewayStatus(profile.gatewayConnectionStatus);
+  const canConnect = profile.gatewayConnectionStatus !== 'ACTIVE';
+
+  function onConnect(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const document = String(data.get('document') ?? '').trim();
+    const password = String(data.get('password') ?? '');
+    const errors: Record<string, string> = {};
+    if (!document) errors.document = 'Informe o CPF ou CNPJ usado na Lera Box.';
+    if (!password) errors.password = 'Informe a senha temporária da Lera Box.';
+    setFieldErrors(errors);
+    setConnectionMessage(null);
+    setConnectionError(null);
+    if (Object.keys(errors).length > 0) return;
+
+    // Clear the password field before handing it to the client; it must not remain in the UI.
+    const passwordInput = form.elements.namedItem('password');
+    if (passwordInput instanceof HTMLInputElement) passwordInput.value = '';
+    setConnecting(true);
+    void api
+      .connect({ document, password })
+      .then((result) => {
+        if (result === 'PROFILE_MISMATCH') {
+          setConnectionError(
+            'As credenciais não pertencem a este perfil. Verifique o documento e tente novamente.'
+          );
+          return;
+        }
+        setProfile((current) =>
+          current ? { ...current, gatewayConnectionStatus: 'ACTIVE' } : current
+        );
+        setFormOpen(false);
+        setConnectionMessage(
+          'Gateway conectado. Webhooks e pagamentos estão liberados para esta conta.'
+        );
+      })
+      .catch(() => {
+        setConnectionError(
+          'Não foi possível conectar agora. Verifique os dados e tente novamente.'
+        );
+      })
+      .finally(() => setConnecting(false));
+  }
   return (
     <div className="space-y-5">
       <header className="space-y-1">
@@ -112,8 +163,122 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Badge className={gateway.className}>{gateway.label}</Badge>
-          <p className="mt-3 text-sm text-slate-500">Estado informado pelo perfil atual.</p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <Badge className={gateway.className}>{gateway.label}</Badge>
+              {canConnect ? (
+                <>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+                    A conta ainda não está conectada à Lera Box. Conecte-a com as credenciais
+                    temporárias recebidas por e-mail para liberar webhooks e pagamentos.
+                  </p>
+                  {!formOpen && (
+                    <Button className="mt-4" type="button" onClick={() => setFormOpen(true)}>
+                      Conectar gateway <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <p className="mt-3 text-sm text-slate-600">
+                  Sua conexão está ativa. Webhooks e pagamentos podem ser usados por esta conta.
+                </p>
+              )}
+            </div>
+          </div>
+          {connectionMessage && (
+            <p
+              role="status"
+              className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm font-medium text-emerald-800"
+            >
+              {connectionMessage}
+            </p>
+          )}
+          {connectionError && (
+            <p
+              role="alert"
+              className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-800"
+            >
+              {connectionError}
+            </p>
+          )}
+          {formOpen && canConnect && (
+            <form
+              aria-label="Conectar gateway"
+              onSubmit={onConnect}
+              className="mt-5 max-w-xl border-t border-slate-100 pt-5"
+            >
+              <p className="mb-4 text-sm text-slate-600">
+                Use somente os dados da Lera Box. A senha é usada uma única vez e descartada após o
+                envio.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="gateway-document"
+                    className="mb-1.5 block text-sm font-semibold text-slate-800"
+                  >
+                    CPF ou CNPJ
+                  </label>
+                  <input
+                    id="gateway-document"
+                    name="document"
+                    autoComplete="off"
+                    aria-invalid={Boolean(fieldErrors.document)}
+                    aria-describedby={fieldErrors.document ? 'gateway-document-error' : undefined}
+                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
+                  />
+                  {fieldErrors.document && (
+                    <p id="gateway-document-error" className="mt-1.5 text-sm text-red-700">
+                      {fieldErrors.document}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label
+                    htmlFor="gateway-password"
+                    className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-slate-800"
+                  >
+                    <KeyRound className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
+                    Senha temporária
+                  </label>
+                  <input
+                    id="gateway-password"
+                    name="password"
+                    type="password"
+                    autoComplete="new-password"
+                    aria-invalid={Boolean(fieldErrors.password)}
+                    aria-describedby={fieldErrors.password ? 'gateway-password-error' : undefined}
+                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
+                  />
+                  {fieldErrors.password && (
+                    <p id="gateway-password-error" className="mt-1.5 text-sm text-red-700">
+                      {fieldErrors.password}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setFormOpen(false);
+                    setFieldErrors({});
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={connecting}>
+                  {connecting ? 'Conectando…' : 'Conectar gateway'}
+                </Button>
+              </div>
+              {connecting && (
+                <p role="status" className="mt-3 text-sm text-slate-500">
+                  Validando sua conexão com a Lera Box…
+                </p>
+              )}
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

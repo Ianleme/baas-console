@@ -131,12 +131,19 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
       return dashboard.wallet;
     }
   };
-  if (hash === '#/') return <AppShell {...shellProps} content={<Dashboard api={clients.dashboard} />} />;
+  if (hash === '#/')
+    return <AppShell {...shellProps} content={<Dashboard api={clients.dashboard} />} />;
   if (hash === '#/carteira')
     return <AppShell {...shellProps} content={<WalletPage api={walletApi} />} />;
   if (hash === '#/configuracoes')
-    return <AppShell {...shellProps} content={<SettingsPage api={clients.profile} />} />;
-  if (hash === '#/links') return <AppShell {...shellProps} content={<PaymentLinks api={clients.links} />} />;
+    return (
+      <AppShell
+        {...shellProps}
+        content={<SettingsPage api={{ ...clients.profile, connect: clients.auth.connect }} />}
+      />
+    );
+  if (hash === '#/links')
+    return <AppShell {...shellProps} content={<PaymentLinks api={clients.links} />} />;
   if (hash === '#/transactions')
     return <AppShell {...shellProps} content={<TransactionsPage api={clients.transactions} />} />;
   if (hash === '#/saques' || hash === '#/withdrawals')
@@ -144,6 +151,8 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
   if (hash === '#/webhooks')
     return <AppShell {...shellProps} content={<WebhookManagement api={clients.webhooks} />} />;
   if (hash === '#/reconciliation')
-    return <AppShell {...shellProps} content={<ReconciliationPage api={clients.reconciliation} />} />;
+    return (
+      <AppShell {...shellProps} content={<ReconciliationPage api={clients.reconciliation} />} />
+    );
   return <AppShell {...shellProps} />;
 }
