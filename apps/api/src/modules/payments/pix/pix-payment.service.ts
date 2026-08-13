@@ -5,6 +5,7 @@ import type {
   GatewayPixResult,
   LeraBoxPixClient
 } from '../../../integrations/lera-box/payments/lera-box-pix.client.js';
+import type { EmailOutboxService } from '../../notifications/email-outbox.service.js';
 
 export interface PixAttempt {
   id: string;
@@ -38,6 +39,7 @@ export interface PixStartInput {
   amountCents: string;
   description: string;
   payerDocument: string;
+  payerEmail?: string;
   accessToken: string;
 }
 export class PixPaymentError extends Error {
@@ -50,6 +52,7 @@ export class PixPaymentService {
   constructor(
     private readonly gateway: Pick<LeraBoxPixClient, 'create'>,
     private readonly store: PixAttemptStore,
+    private readonly outbox?: EmailOutboxService,
     private readonly id: () => string = randomUUID
   ) {}
   async start(input: PixStartInput): Promise<{ httpStatus: 201 | 202; attempt: PixAttempt }> {
@@ -77,12 +80,23 @@ export class PixPaymentService {
         })
       };
     }
-    return { httpStatus: 201, attempt: await this.apply(attempt.id, result) };
+    return {
+      httpStatus: 201,
+      attempt: await this.apply(attempt.id, result, input.payerEmail)
+    };
   }
-  async applyLateOutcome(attemptId: string, result: GatewayPixResult): Promise<PixAttempt> {
-    return this.apply(attemptId, result);
+  async applyLateOutcome(
+    attemptId: string,
+    result: GatewayPixResult,
+    payerEmail?: string
+  ): Promise<PixAttempt> {
+    return this.apply(attemptId, result, payerEmail);
   }
-  private async apply(attemptId: string, result: GatewayPixResult): Promise<PixAttempt> {
+  private async apply(
+    attemptId: string,
+    result: GatewayPixResult,
+    payerEmail?: string
+  ): Promise<PixAttempt> {
     const next = await this.store.transition(
       attemptId,
       ['PROCESSING', 'PENDING', 'RECONCILIATION_PENDING', 'DENIED', 'EXPIRED', 'APPROVED'],
@@ -95,7 +109,25 @@ export class PixPaymentService {
         failureCode: result.denialReason
       }
     );
-    if (result.status === 'APPROVED') await this.store.markLinkPaid(next.checkoutLinkId);
+    if (result.status === 'APPROVED') {
+      await this.store.markLinkPaid(next.checkoutLinkId);
+      if (this.outbox) {
+        await this.outbox.enqueue({
+          merchantId: next.merchantId,
+          kind: 'PAYMENT_RECEIPT',
+          idempotencyKey: `receipt:pix:${next.id}`,
+          recipient: payerEmail ?? 'comprovante@baas.local',
+          payload: {
+            attemptId: next.id,
+            checkoutLinkId: next.checkoutLinkId,
+            gatewayPaymentId: next.gatewayPaymentId,
+            txid: next.txid,
+            method: 'PIX',
+            text: `Comprovante de pagamento Pix aprovado (Ref: ${next.externalReference})`
+          }
+        });
+      }
+    }
     return next;
   }
 }

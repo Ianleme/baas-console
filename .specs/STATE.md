@@ -181,10 +181,10 @@
 ## Handoff
 
 - **Feature**: BaaS Console / `.specs/features/baas-console/`
-- **Phase / Task**: Execute / Batch 6 (Phase 6, T037 Concluído!)
-- **Completed**: T001-T037; T037 validada (Outbox de e-mail SMTP durável com leilão de leases, criptografia AES-256-GCM, retenção de 30 dias, 5 tentativas com backoff 1m/5m/15m/60m e DEAD_LETTER)
+- **Phase / Task**: Execute / Batch 6 (Phase 6, T038 Concluído!)
+- **Completed**: T001-T038; T038 validada (Ação de envio de e-mail de link de checkout com id de entrega enfileirado, validação DTO, isolamento por tenant, idempotência e modal no frontend web com testes unitários/componente)
 - **In-progress** (file:line): none
-- **Next step**: Executar T038 (Implementar ação de envio de e-mail com link de checkout na API e Web)
+- **Next step**: Executar T039 (Implementar comprovante de pagamento por e-mail no checkout finalizado)
 - **Blockers**: none
 - **Uncommitted files**: progress bookkeeping only
 - **Branch**: main

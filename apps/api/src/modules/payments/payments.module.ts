@@ -14,6 +14,7 @@ import { EncryptionService } from '../gateway-accounts/encryption.service.js';
 import { CheckoutSessionService } from '../public-checkout/checkout-session.service.js';
 import { TypeOrmCheckoutSessionStore } from '../public-checkout/typeorm-checkout-session.store.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
+import { EmailOutboxService } from '../notifications/email-outbox.service.js';
 import { CardPaymentService } from './card/card-payment.service.js';
 import { PaymentsController, CheckoutQuoteSigner } from './payments.controller.js';
 import { PixPaymentService } from './pix/pix-payment.service.js';
@@ -66,18 +67,22 @@ export const GATEWAY_CARD = Symbol('GATEWAY_CARD');
     },
     {
       provide: PixPaymentService,
-      inject: [GATEWAY_PIX, TypeOrmPixAttemptStore],
-      useFactory: (gateway: LeraBoxPixClient, store: TypeOrmPixAttemptStore) =>
-        new PixPaymentService(gateway, store)
+      inject: [GATEWAY_PIX, TypeOrmPixAttemptStore, EmailOutboxService],
+      useFactory: (
+        gateway: LeraBoxPixClient,
+        store: TypeOrmPixAttemptStore,
+        outbox: EmailOutboxService
+      ) => new PixPaymentService(gateway, store, outbox)
     },
     {
       provide: CardPaymentService,
-      inject: [GATEWAY_FEES, GATEWAY_CARD, TypeOrmCardAttemptStore],
+      inject: [GATEWAY_FEES, GATEWAY_CARD, TypeOrmCardAttemptStore, EmailOutboxService],
       useFactory: (
         fees: LeraBoxFeesClient,
         gateway: LeraBoxCardClient,
-        store: TypeOrmCardAttemptStore
-      ) => new CardPaymentService(fees, gateway, store)
+        store: TypeOrmCardAttemptStore,
+        outbox: EmailOutboxService
+      ) => new CardPaymentService(fees, gateway, store, outbox)
     },
     {
       provide: CheckoutQuoteSigner,

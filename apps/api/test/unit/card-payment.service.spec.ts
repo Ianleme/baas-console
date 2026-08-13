@@ -1,5 +1,6 @@
 import { LeraBoxTimeoutError } from '../../src/integrations/lera-box/auth/lera-box-identity.client.js';
 import type { GatewayCardResult } from '../../src/integrations/lera-box/payments/lera-box-card.client.js';
+import type { EmailOutboxService } from '../../src/modules/notifications/email-outbox.service.js';
 import {
   CardPaymentService,
   type CardAttempt,
@@ -257,4 +258,28 @@ describe('CardPaymentService', () => {
       expect(gateway.create).not.toHaveBeenCalled();
     }
   );
+  test('queues payment receipt e-mail when Card payment is approved', async () => {
+    const store = new MemoryCardStore();
+    const fees = { list: jest.fn().mockResolvedValue([fee]) };
+    const gateway = { create: jest.fn().mockResolvedValue(approved) };
+    const mockOutbox = { enqueue: jest.fn().mockResolvedValue({ id: 'del-card' }) };
+    const service = new CardPaymentService(
+      fees,
+      gateway,
+      store,
+      mockOutbox as unknown as EmailOutboxService,
+      () => 'id',
+      () => new Date('2026-08-12T00:00:00Z')
+    );
+    const input = await confirmInput(service);
+    await service.confirm({ ...input, payerEmail: 'comprador@loja.com' });
+    expect(mockOutbox.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        merchantId: 'merchant',
+        kind: 'PAYMENT_RECEIPT',
+        idempotencyKey: 'receipt:card:id-2',
+        recipient: 'comprador@loja.com'
+      })
+    );
+  });
 });

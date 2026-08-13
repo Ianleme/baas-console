@@ -9,6 +9,7 @@ import type {
   GatewayCardResult,
   LeraBoxCardClient
 } from '../../../integrations/lera-box/payments/lera-box-card.client.js';
+import type { EmailOutboxService } from '../../notifications/email-outbox.service.js';
 
 export interface CardQuote {
   quoteId: string;
@@ -52,6 +53,7 @@ export interface CardConfirmInput {
   checkoutLinkId: string;
   accessToken: string;
   description: string;
+  payerEmail?: string;
   quote: CardQuote;
   card: {
     number: string;
@@ -72,6 +74,7 @@ export class CardPaymentService {
     private readonly fees: { list(brand?: CardBrand): Promise<GatewayFee[]> },
     private readonly gateway: Pick<LeraBoxCardClient, 'create'>,
     private readonly store: CardAttemptStore,
+    private readonly outbox?: EmailOutboxService,
     private readonly id: () => string = randomUUID,
     private readonly now: () => Date = () => new Date()
   ) {}
@@ -143,7 +146,27 @@ export class CardPaymentService {
       gatewayPaymentId: result.gatewayPaymentId,
       failureCode: result.denialReason
     });
-    if (result.status === 'APPROVED') await this.store.markLinkPaid(next.checkoutLinkId);
+    if (result.status === 'APPROVED') {
+      await this.store.markLinkPaid(next.checkoutLinkId);
+      if (this.outbox) {
+        await this.outbox.enqueue({
+          merchantId: next.merchantId,
+          kind: 'PAYMENT_RECEIPT',
+          idempotencyKey: `receipt:card:${next.id}`,
+          recipient: input.payerEmail ?? 'comprovante@baas.local',
+          payload: {
+            attemptId: next.id,
+            checkoutLinkId: next.checkoutLinkId,
+            gatewayPaymentId: next.gatewayPaymentId,
+            cardBrand: next.cardBrand,
+            cardLast4: next.cardLast4,
+            amountCents: input.quote.grossAmountCents,
+            method: 'CARD',
+            text: `Comprovante de pagamento Cartão (${next.cardBrand} **** ${next.cardLast4}) aprovado (Ref: ${next.externalReference})`
+          }
+        });
+      }
+    }
     return { httpStatus: 201, attempt: next };
   }
   private async currentFee(brand: CardBrand, installments: number): Promise<GatewayFee> {

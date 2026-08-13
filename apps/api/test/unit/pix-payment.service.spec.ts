@@ -1,5 +1,6 @@
 import { LeraBoxTimeoutError } from '../../src/integrations/lera-box/auth/lera-box-identity.client.js';
 import type { GatewayPixResult } from '../../src/integrations/lera-box/payments/lera-box-pix.client.js';
+import type { EmailOutboxService } from '../../src/modules/notifications/email-outbox.service.js';
 import {
   PixPaymentService,
   isValidDocument,
@@ -197,6 +198,26 @@ describe('PixPaymentService', () => {
     await expect(service.start({ ...input, description: ' ' })).rejects.toMatchObject({
       code: 'DESCRIPTION_INVALID'
     });
+  });
+  test('queues payment receipt e-mail when Pix payment is approved', async () => {
+    const store = new MemoryPixStore();
+    const gateway = { create: jest.fn().mockResolvedValue(approved) };
+    const mockOutbox = { enqueue: jest.fn().mockResolvedValue({ id: 'delivery-1' }) };
+    const service = new PixPaymentService(
+      gateway,
+      store,
+      mockOutbox as unknown as EmailOutboxService,
+      () => 'id'
+    );
+    await service.start({ ...input, payerEmail: 'comprador@loja.com' });
+    expect(mockOutbox.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        merchantId: 'merchant-a',
+        kind: 'PAYMENT_RECEIPT',
+        idempotencyKey: 'receipt:pix:id',
+        recipient: 'comprador@loja.com'
+      })
+    );
   });
   test('validates known CPF and CNPJ check digits', () => {
     expect(isValidDocument('52998224725')).toBe(true);
