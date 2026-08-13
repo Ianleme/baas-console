@@ -94,7 +94,7 @@ Coverage thresholds are non-negotiable: backend global 90% lines/statements/func
 | T045 | Complete | `pending` |
 | T046 | Complete | `28c2896` |
 | T047 | Complete | `80a2762` |
-| T048 | Complete | pending |
+| T048 | Complete | `f377330` |
 | T049-T053 | Pending | — |
 
 ## Execution Plan
