@@ -20,11 +20,11 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - uses: github/codeql-action/init@2119cf9a2c3f4d5e6a7b8c9d0e1f2a3b4c5d6e7f
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript
-      - uses: github/codeql-action/analyze@2119cf9a2c3f4d5e6a7b8c9d0e1f2a3b4c5d6e7f
+      - uses: github/codeql-action/analyze@v3
 
   dependency-review:
     if: github.event_name == 'pull_request'
@@ -33,13 +33,13 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - uses: actions/dependency-review-action@da24556b548a50705dd671f47852072ea4c25d3b
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
 
   secrets:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - uses: gitleaks/gitleaks-action@ff98106e4c7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a
+      - uses: actions/checkout@v4
+      - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
