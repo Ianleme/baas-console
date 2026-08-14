@@ -127,6 +127,8 @@ describe('PaymentLinks', () => {
     const summary = screen.getByRole('region', { name: 'Resumo dos links' });
     expect(within(summary).getByText('Links ativos').nextSibling).toHaveTextContent('1');
     expect(within(summary).getByText('Pagamentos concluídos').nextSibling).toHaveTextContent('1');
+    expect(within(summary).getByText('100%')).toBeVisible();
+    expect(within(summary).getByText(/Pagos ÷ links finalizados/iu)).toBeVisible();
   });
   test('searches by description', async () => {
     const api = await renderReady();
@@ -389,11 +391,19 @@ describe('PaymentLinks', () => {
 
     expect(screen.getByText('Página 1 de 3')).toBeVisible();
     expect(screen.getByText('Exibindo 1–10 de 21 links')).toBeVisible();
+    expect(screen.getByRole('button', { name: /Anterior/iu })).toBeDisabled();
     await userEvent.click(screen.getByRole('button', { name: /Próxima/iu }));
 
     await waitFor(() => {
       expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 10, offset: 10 }));
       expect(screen.getByText('Página 2 de 3')).toBeVisible();
+    });
+    await userEvent.click(screen.getByRole('button', { name: /Próxima/iu }));
+    await waitFor(() => {
+      expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 10, offset: 20 }));
+      expect(screen.getByText('Página 3 de 3')).toBeVisible();
+      expect(screen.getByText('Exibindo 21–21 de 21 links')).toBeVisible();
+      expect(screen.getByRole('button', { name: /Próxima/iu })).toBeDisabled();
     });
   });
   test('has no automated axe violations in the populated state', async () => {

@@ -18,6 +18,18 @@ test('generates schema paths from the real Nest OpenAPI document', async () => {
   assert.match(source, /['"]\/health\/ready['"]/u);
 });
 
+test('publishes typed payment-link pagination parameters and response envelope', async () => {
+  const document = await loadOpenApiDocument();
+  const operation = JSON.stringify(document.paths['/api/v1/checkout-links']?.get);
+  for (const field of ['search', 'status', 'method', 'from', 'to', 'limit', 'offset']) {
+    assert.match(operation, new RegExp(`"name":"${field}"`, 'u'));
+  }
+  assert.match(operation, /ListCheckoutLinksResponseDto/u);
+  const responseSchema = JSON.stringify(document.components?.schemas?.ListCheckoutLinksResponseDto);
+  for (const field of ['items', 'total', 'summary'])
+    assert.match(responseSchema, new RegExp(field, 'u'));
+});
+
 test('loads the OpenAPI document without incidental runtime secrets', async () => {
   const names = [
     'AUTH_TOKEN_SECRET',

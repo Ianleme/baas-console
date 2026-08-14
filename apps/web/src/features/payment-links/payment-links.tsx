@@ -206,8 +206,9 @@ export function PaymentLinks({
   }, [activeStatusFilter, api, dateFilter, debouncedQuery, methodFilter, page, reloadKey]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const finalizedCount = Math.max(0, summary.totalCount - summary.activeCount);
   const conversionRate =
-    summary.totalCount === 0 ? 0 : Math.round((summary.paidCount / summary.totalCount) * 1000) / 10;
+    finalizedCount === 0 ? 0 : Math.round((summary.paidCount / finalizedCount) * 1000) / 10;
 
   async function submit(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
     event.preventDefault();
@@ -448,6 +449,9 @@ export function PaymentLinks({
                   {conversionRate}%
                 </strong>
               </div>
+              <span className="mt-1 block text-xs text-slate-400">
+                Pagos ÷ links finalizados (ativos excluídos)
+              </span>
             </div>
             <div className="donut-chart h-12 w-12" aria-hidden="true">
               <svg viewBox="0 0 36 36" className="h-full w-full">

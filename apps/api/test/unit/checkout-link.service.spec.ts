@@ -253,6 +253,17 @@ describe('CheckoutLinkService', () => {
       total: 0
     });
   });
+  test('expires every overdue active link before producing list totals and summary', async () => {
+    const { service } = setup();
+    const created = await service.create('merchant-a', input);
+    created.link.expiresAt = new Date(now.getTime() - 1);
+
+    await expect(service.list('merchant-a', { limit: 10, offset: 0 })).resolves.toMatchObject({
+      total: 1,
+      items: [{ status: 'EXPIRED' }],
+      summary: { totalCount: 1, activeCount: 0 }
+    });
+  });
   test('hides cross-tenant details as not found', async () => {
     const { service } = setup();
     const created = await service.create('merchant-a', input);

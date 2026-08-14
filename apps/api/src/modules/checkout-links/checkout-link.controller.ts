@@ -5,6 +5,7 @@ import {
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiProperty,
   ApiPropertyOptional,
   ApiTags
 } from '@nestjs/swagger';
@@ -89,6 +90,40 @@ class ListCheckoutLinksDto {
   offset = 0;
 }
 
+class CheckoutLinkFeeResponseDto {
+  @ApiProperty() id!: string;
+  @ApiProperty({ enum: ['VISA', 'MASTERCARD', 'ELO'] }) brand!: string;
+  @ApiProperty() installments!: number;
+  @ApiProperty() feeBps!: number;
+}
+
+class CheckoutLinkResponseDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() publicReference!: string;
+  @ApiProperty() description!: string;
+  @ApiProperty() amountCents!: string;
+  @ApiProperty({ enum: ['PIX', 'CARD', 'PIX_CARD'] }) allowedMethods!: string;
+  @ApiProperty() maxInstallments!: number;
+  @ApiProperty({ type: [CheckoutLinkFeeResponseDto] }) feeSnapshot!: CheckoutLinkFeeResponseDto[];
+  @ApiProperty({ enum: ['ACTIVE', 'PAID', 'EXPIRED', 'CANCELLED'] }) status!: string;
+  @ApiProperty({ format: 'date-time' }) expiresAt!: string;
+  @ApiProperty({ format: 'date-time' }) createdAt!: string;
+}
+
+class CheckoutLinkListSummaryResponseDto {
+  @ApiProperty() totalCount!: number;
+  @ApiProperty() activeCount!: number;
+  @ApiProperty() paidCount!: number;
+  @ApiProperty() paidAmountCents!: string;
+}
+
+class ListCheckoutLinksResponseDto {
+  @ApiProperty({ type: [CheckoutLinkResponseDto] }) items!: CheckoutLinkResponseDto[];
+  @ApiProperty() total!: number;
+  @ApiProperty({ type: CheckoutLinkListSummaryResponseDto })
+  summary!: CheckoutLinkListSummaryResponseDto;
+}
+
 @ApiTags('checkout-links')
 @ApiBearerAuth()
 @Controller('api/v1/checkout-links')
@@ -104,7 +139,10 @@ export class CheckoutLinkController {
 
   @Get()
   @ApiOperation({ summary: 'List checkout links for the authenticated merchant' })
-  @ApiOkResponse({ description: 'Tenant-scoped checkout links' })
+  @ApiOkResponse({
+    description: 'Tenant-scoped checkout links',
+    type: ListCheckoutLinksResponseDto
+  })
   async list(@Req() request: Request, @Query() query: ListCheckoutLinksDto) {
     try {
       const result = await this.links.list(this.merchant(request), {

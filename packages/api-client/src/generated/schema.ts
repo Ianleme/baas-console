@@ -602,11 +602,45 @@ export type components = {
   schemas: {
     CardConfirmDto: Record<string, never>;
     CardQuoteDto: Record<string, never>;
+    CheckoutLinkFeeResponseDto: {
+      /** @enum {string} */
+      brand: 'VISA' | 'MASTERCARD' | 'ELO';
+      feeBps: number;
+      id: string;
+      installments: number;
+    };
+    CheckoutLinkListSummaryResponseDto: {
+      activeCount: number;
+      paidAmountCents: string;
+      paidCount: number;
+      totalCount: number;
+    };
+    CheckoutLinkResponseDto: {
+      /** @enum {string} */
+      allowedMethods: 'PIX' | 'CARD' | 'PIX_CARD';
+      amountCents: string;
+      /** Format: date-time */
+      createdAt: string;
+      description: string;
+      /** Format: date-time */
+      expiresAt: string;
+      feeSnapshot: components['schemas']['CheckoutLinkFeeResponseDto'][];
+      id: string;
+      maxInstallments: number;
+      publicReference: string;
+      /** @enum {string} */
+      status: 'ACTIVE' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+    };
     ConfigureWebhookDto: Record<string, never>;
     ConnectGatewayDto: Record<string, never>;
     CreateCheckoutLinkDto: Record<string, never>;
     CreateWithdrawalDto: Record<string, never>;
     ExchangeDto: Record<string, never>;
+    ListCheckoutLinksResponseDto: {
+      items: components['schemas']['CheckoutLinkResponseDto'][];
+      summary: components['schemas']['CheckoutLinkListSummaryResponseDto'];
+      total: number;
+    };
     LoginDto: Record<string, never>;
     PixDto: Record<string, never>;
     RegisterGatewayDto: Record<string, never>;
@@ -739,7 +773,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ListCheckoutLinksResponseDto'];
+        };
       };
     };
   };

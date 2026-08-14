@@ -160,7 +160,8 @@ describe('checkout and payments HTTP runtime', () => {
 
     expect(filtered.body).toMatchObject({
       total: 1,
-      items: [{ publicReference: 'runtime-page-b', allowedMethods: 'CARD' }]
+      items: [{ publicReference: 'runtime-page-b', allowedMethods: 'CARD' }],
+      summary: { totalCount: 1, activeCount: 1, paidCount: 0, paidAmountCents: '0' }
     });
   });
 
