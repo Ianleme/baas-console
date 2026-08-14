@@ -62,6 +62,21 @@ describe('TransactionsController receipt endpoints', () => {
     expect(send).toHaveBeenCalledWith(expect.stringContaining('REF-100'));
   });
 
+  it('generates and streams PDF receipt with application/pdf content-type header', async () => {
+    const setHeader = jest.fn();
+    const end = jest.fn();
+    const mockRes = { setHeader, end } as unknown as Response;
+
+    await controller.getReceiptPdf('tx-1', mockRes);
+
+    expect(setHeader).toHaveBeenCalledWith('content-type', 'application/pdf');
+    expect(setHeader).toHaveBeenCalledWith(
+      'content-disposition',
+      'attachment; filename="comprovante-REF-100.pdf"'
+    );
+    expect(end).toHaveBeenCalledWith(expect.any(Buffer));
+  });
+
   it('throws 404 when receipt for non-existing transaction is requested', async () => {
     const setHeader = jest.fn();
     const send = jest.fn();

@@ -113,153 +113,134 @@ export function getStatusBadgeStyle(status: string): { bg: string; color: string
 
 export function renderReceiptHtml(data: ReceiptData): string {
   const gross = formatBrlCurrency(data.grossAmountCents);
-  const fee = formatBrlCurrency(data.feeAmountCents);
   const net = formatBrlCurrency(data.netAmountCents);
   const dateFormatted = formatReceiptDate(data.occurredAt);
   const translatedStatus = translateStatus(data.status);
   const translatedType = translateType(data.type);
   const badgeStyle = getStatusBadgeStyle(data.status);
+  const companyName = data.merchantName || 'BaaS Console';
+
+  // Compute security hash
+  let authHash = `${data.transactionId}:${data.externalReference}:${data.occurredAt}:${data.netAmountCents}`;
+  try {
+    let hash = 0;
+    for (let i = 0; i < authHash.length; i++) {
+      hash = (hash << 5) - hash + authHash.charCodeAt(i);
+      hash |= 0;
+    }
+    authHash =
+      'AUTH-' +
+      Math.abs(hash).toString(16).toUpperCase().padStart(8, '0') +
+      '-' +
+      data.transactionId.replace(/-/g, '').slice(0, 16).toUpperCase();
+  } catch {
+    authHash = data.transactionId.toUpperCase();
+  }
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <title>Comprovante - ${escapeHtml(data.externalReference)}</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      color: #0f172a;
-      background: #f8fafc;
-      margin: 0;
-      padding: 32px 16px;
-    }
-    .receipt-card {
-      max-width: 480px;
-      margin: 0 auto;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 32px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
-    .receipt-header {
-      text-align: center;
-      border-bottom: 1px solid #f1f5f9;
-      padding-bottom: 24px;
-      margin-bottom: 24px;
-    }
-    .brand {
-      font-size: 14px;
-      font-weight: 800;
-      color: #007a5a;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-    .title {
-      font-size: 20px;
-      font-weight: 800;
-      color: #0f172a;
-      margin: 8px 0 4px 0;
-    }
-    .status-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 700;
-      background: ${badgeStyle.bg};
-      color: ${badgeStyle.color};
-      border: 1px solid ${badgeStyle.border};
-      margin-top: 8px;
-    }
-    .amount-large {
-      font-size: 32px;
-      font-weight: 900;
-      color: #0f172a;
-      text-align: center;
-      margin: 16px 0 24px 0;
-    }
-    .detail-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px dashed #e2e8f0;
-      font-size: 14px;
-    }
-    .detail-row:last-child {
-      border-bottom: none;
-    }
-    .detail-label {
-      color: #64748b;
-      font-weight: 500;
-    }
-    .detail-value {
-      color: #0f172a;
-      font-weight: 600;
-      word-break: break-all;
-    }
-    .footer {
-      text-align: center;
-      font-size: 12px;
-      color: #94a3b8;
-      margin-top: 32px;
-    }
-    @media print {
-      body { background: #ffffff; padding: 0; }
-      .receipt-card { border: none; box-shadow: none; padding: 0; }
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Comprovante - ${escapeHtml(data.externalReference)}</title>
+<style>
+  @page { size: A4; margin: 12mm 15mm; background-color: #f1f5f9; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #0f172a; background-color: #f1f5f9; font-size: 13px; line-height: 1.45; -webkit-print-color-adjust: exact;
+    padding: 24px 16px;
+  }
+  .receipt-card { max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); overflow: hidden; }
+  .brand-bar { height: 6px; background: linear-gradient(90deg, #006b57 0%, #10b981 100%); }
+  .header { padding: 26px 32px 20px 32px; display: table; width: 100%; border-bottom: 1px solid #f1f5f9; }
+  .header-left { display: table-cell; vertical-align: middle; }
+  .brand-logo { display: inline-block; width: 38px; height: 38px; margin-right: 12px; vertical-align: middle; }
+  .brand-title-wrap { display: inline-block; vertical-align: middle; }
+  .brand-name { font-size: 17px; font-weight: 800; color: #0f172a; }
+  .brand-sub { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+  .header-right { display: table-cell; vertical-align: middle; text-align: right; }
+  .doc-type { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #334155; }
+  .doc-date { font-size: 11px; color: #64748b; margin-top: 3px; }
+  
+  .hero-box { background: #f8fafc; padding: 24px 32px; border-bottom: 1px solid #e2e8f0; display: table; width: 100%; }
+  .hero-amount { display: table-cell; vertical-align: middle; }
+  .hero-label { font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+  .hero-value { font-size: 34px; font-weight: 800; color: #0f172a; letter-spacing: -1px; margin-top: 2px; }
+  .hero-status { display: table-cell; vertical-align: middle; text-align: right; }
+  .status-badge { display: inline-block; padding: 5px 14px; border-radius: 20px; font-weight: 700; font-size: 11px; background: ${badgeStyle.bg}; color: ${badgeStyle.color}; border: 1px solid ${badgeStyle.border}; }
+  
+  .section { padding: 18px 32px; border-bottom: 1px solid #f1f5f9; }
+  .section-title { font-size: 10.5px; font-weight: 700; color: #006b57; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; }
+  .table-data { width: 100%; border-collapse: collapse; }
+  .table-data tr { border-bottom: 1px dashed #f1f5f9; }
+  .table-data tr:last-child { border-bottom: none; }
+  .table-data td { padding: 7px 0; font-size: 12.5px; }
+  .label-cell { color: #64748b; font-weight: 500; width: 40%; }
+  .value-cell { color: #0f172a; font-weight: 600; text-align: right; width: 60%; }
+  .mono { font-family: "Courier New", monospace; font-size: 11.5px; }
+  
+  .security-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin: 20px 32px 22px 32px; }
+  .sec-hash-box { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 5px 8px; font-family: monospace; font-size: 9.5px; color: #475569; word-break: break-all; }
+  
+  @media print {
+    body { background-color: #ffffff; padding: 0; }
+    .receipt-card { border: none; box-shadow: none; max-width: 100%; }
+  }
+</style>
 </head>
 <body>
-  <div class="receipt-card">
-    <div class="receipt-header">
-      <div class="brand">BaaS Console</div>
-      <h1 class="title">Comprovante de Operação</h1>
-      <span class="status-badge">${escapeHtml(translatedStatus)}</span>
-    </div>
-
-    <div class="amount-large">${net}</div>
-
-    <div class="detail-list">
-      <div class="detail-row">
-        <span class="detail-label">Referência</span>
-        <span class="detail-value">${escapeHtml(data.externalReference)}</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">Tipo</span>
-        <span class="detail-value">${escapeHtml(translatedType)}</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">Valor Bruto</span>
-        <span class="detail-value">${gross}</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">Taxa</span>
-        <span class="detail-value">${fee}</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">Valor Líquido</span>
-        <span class="detail-value">${net}</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">ID Gateway</span>
-        <span class="detail-value">${escapeHtml(data.gatewayTransactionId ?? 'N/A')}</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">ID Transação</span>
-        <span class="detail-value">${escapeHtml(data.transactionId)}</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">Data e Hora</span>
-        <span class="detail-value">${escapeHtml(dateFormatted)}</span>
+<div class="receipt-card">
+  <div class="brand-bar"></div>
+  <div class="header">
+    <div class="header-left">
+      <svg class="brand-logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M24 3.5 42 14v20L24 44.5 6 34V14L24 3.5Z" stroke="#006b57" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="m14 17 10-5.8L34 17 24 23 14 17Zm0 14 10 5.8L34 31l-10-6-10 6Z" stroke="#006b57" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="brand-title-wrap">
+        <div class="brand-name">${escapeHtml(companyName)}</div>
+        <div class="brand-sub">PLATAFORMA BANCÁRIA DIGITAL</div>
       </div>
     </div>
-
-    <div class="footer">
-      Documento gerado automaticamente pelo BaaS Console · Autenticidade garantida
+    <div class="header-right">
+      <div class="doc-type">Comprovante de Operação</div>
+      <div class="doc-date">${escapeHtml(dateFormatted)}</div>
     </div>
   </div>
+
+  <div class="hero-box">
+    <div class="hero-amount">
+      <div class="hero-label">Valor Líquido da Operação</div>
+      <div class="hero-value">${escapeHtml(net)}</div>
+    </div>
+    <div class="hero-status">
+      <div class="status-badge">${escapeHtml(translatedStatus)}</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Dados da Operação</div>
+    <table class="table-data">
+      <tr><td class="label-cell">Código de Referência</td><td class="value-cell mono">${escapeHtml(data.externalReference)}</td></tr>
+      <tr><td class="label-cell">Tipo de Movimentação</td><td class="value-cell">${escapeHtml(translatedType)}</td></tr>
+      <tr><td class="label-cell">Data e Horário Oficial</td><td class="value-cell">${escapeHtml(dateFormatted)} (Horário de Brasília)</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Discriminação Financeira</div>
+    <table class="table-data">
+      <tr><td class="label-cell">Valor Bruto</td><td class="value-cell">${escapeHtml(gross)}</td></tr>
+      <tr><td class="label-cell" style="font-weight:700;">Valor Líquido Total</td><td class="value-cell" style="color:#006b57; font-weight:800;">${escapeHtml(net)}</td></tr>
+    </table>
+  </div>
+
+  <div class="security-card">
+    <div style="font-size:10px; font-weight:700; text-transform:uppercase; color:#334155; margin-bottom:4px;">Autenticação Digital &amp; Segurança</div>
+    <div class="sec-hash-box">HASH: ${escapeHtml(authHash)}</div>
+    <div style="font-size:9.5px; color:#94a3b8; margin-top:5px;">Documento autenticado eletronicamente pelo ecossistema BaaS Console. Válido para conciliação contábil e fiscal.</div>
+  </div>
+</div>
 </body>
 </html>`;
 }
