@@ -107,7 +107,7 @@ export class GatewayOnboardingService {
     password: string
   ): Promise<GatewayAccountRecord> {
     const record = await this.store.findByMerchant(merchantId);
-    if (record?.status !== 'AWAITING_CREDENTIALS')
+    if (record?.status !== 'AWAITING_CREDENTIALS' && record?.status !== 'ACTIVE')
       throw new GatewayOnboardingError('CONNECTION_NOT_ALLOWED');
     const session = await this.gateway.login({ document, password });
     const profile = await this.gateway.getCurrentUser(session.accessToken);

@@ -48,14 +48,19 @@ export class LeraBoxWebhooksClient {
   }
 
   async delete(accessToken: string, gatewayWebhookId: string): Promise<void> {
-    const response = await this.http.send(
-      'delete-webhook',
-      `/api/webhooks/${encodeURIComponent(gatewayWebhookId)}`,
-      { method: 'DELETE', headers: { authorization: `Bearer ${accessToken}` } },
-      200
-    );
-    const body = (await response.json()) as Record<string, unknown>;
-    if (body.deleted !== true) throw malformed('delete-webhook');
+    try {
+      const response = await this.http.send(
+        'delete-webhook',
+        `/api/webhooks/${encodeURIComponent(gatewayWebhookId)}`,
+        { method: 'DELETE', headers: { authorization: `Bearer ${accessToken}` } },
+        200
+      );
+      const body = (await response.json()) as Record<string, unknown>;
+      if (body.deleted !== true) throw malformed('delete-webhook');
+    } catch (error) {
+      if (error instanceof LeraBoxDependencyError && error.remoteStatus === 404) return;
+      throw error;
+    }
   }
 }
 
