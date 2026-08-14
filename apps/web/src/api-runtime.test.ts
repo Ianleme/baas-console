@@ -22,12 +22,33 @@ function requestBody(request: ReturnType<typeof vi.fn<typeof fetch>>, index: num
   return JSON.parse(body) as unknown;
 }
 
+const defaultPaymentLinksUrl = '/api/v1/checkout-links?limit=10&offset=0';
+
+function paymentLinksPage(items: unknown[]) {
+  return {
+    items,
+    total: items.length,
+    summary: {
+      totalCount: items.length,
+      activeCount: 0,
+      paidCount: 0,
+      paidAmountCents: '0'
+    }
+  };
+}
+
 describe('runtime API composition', () => {
   test('shares the login access token with authenticated same-origin requests', async () => {
     const request = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(response({ accessToken: 'access-token' }))
-      .mockResolvedValueOnce(response([]));
+      .mockResolvedValueOnce(
+        response({
+          items: [],
+          total: 0,
+          summary: { totalCount: 0, activeCount: 0, paidCount: 0, paidAmountCents: '0' }
+        })
+      );
     const session = createBaasMemorySession();
     const options = {
       baseUrl: '',
@@ -41,9 +62,15 @@ describe('runtime API composition', () => {
       password: 'StrongPassword123',
       remember: true
     });
-    await createPaymentLinksClient(options).list();
+    await createPaymentLinksClient(options).list({
+      search: 'pedido',
+      limit: 10,
+      offset: 20
+    });
 
-    expect(request.mock.calls[1]?.[0]).toBe('/api/v1/checkout-links');
+    expect(request.mock.calls[1]?.[0]).toBe(
+      '/api/v1/checkout-links?search=pedido&limit=10&offset=20'
+    );
     expect(request.mock.calls[1]?.[1]?.credentials).toBe('include');
     expect(new Headers(request.mock.calls[1]?.[1]?.headers).get('authorization')).toBe(
       'Bearer access-token'
@@ -165,7 +192,9 @@ describe('runtime API composition', () => {
       .fn<typeof fetch>()
       .mockResolvedValueOnce(response([], 401))
       .mockResolvedValueOnce(response({ accessToken: 'refreshed-token', csrfToken: 'csrf-2' }))
-      .mockResolvedValueOnce(response([{ id: 'link-1', feeSnapshot: [], maxInstallments: 1 }]));
+      .mockResolvedValueOnce(
+        response(paymentLinksPage([{ id: 'link-1', feeSnapshot: [], maxInstallments: 1 }]))
+      );
     const session = createBaasMemorySession();
     session.setToken('expired-token');
     const onUnauthenticated = vi.fn();
@@ -176,21 +205,9 @@ describe('runtime API composition', () => {
       onAccessToken: session.setToken,
       onUnauthenticated
     });
-    await expect(client.list()).resolves.toEqual([
-      {
-        id: 'link-1',
-        reference: undefined,
-        description: undefined,
-        amountCents: undefined,
-        methods: undefined,
-        maxInstallments: 1,
-        selectedFeeBps: null,
-        status: undefined,
-        expiresAt: undefined
-      }
-    ]);
+    await expect(client.list()).resolves.toMatchObject({ items: [{ id: 'link-1' }], total: 1 });
     expect(request.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(1);
-    expect(request.mock.calls.filter(([url]) => url === '/api/v1/checkout-links')).toHaveLength(2);
+    expect(request.mock.calls.filter(([url]) => url === defaultPaymentLinksUrl)).toHaveLength(2);
     expect(request.mock.invocationCallOrder[1] ?? 0).toBeGreaterThan(
       request.mock.invocationCallOrder[0] ?? 0
     );
@@ -242,9 +259,7 @@ describe('runtime API composition', () => {
     await expect(terminal.list()).rejects.toThrow('BAAS_REQUEST_FAILED');
     expect(session.token()).toBe('');
     expect(retryFails.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(1);
-    expect(retryFails.mock.calls.filter(([url]) => url === '/api/v1/checkout-links')).toHaveLength(
-      2
-    );
+    expect(retryFails.mock.calls.filter(([url]) => url === defaultPaymentLinksUrl)).toHaveLength(2);
     expect(onUnauthenticated).toHaveBeenCalledTimes(1);
   });
 
@@ -266,9 +281,9 @@ describe('runtime API composition', () => {
     await expect(client.list()).rejects.toThrow('BAAS_REQUEST_FAILED');
     expect(onUnauthenticated).not.toHaveBeenCalled();
     expect(request.mock.calls.map(([url]) => url)).toEqual([
-      '/api/v1/checkout-links',
+      defaultPaymentLinksUrl,
       '/api/v1/auth/refresh',
-      '/api/v1/checkout-links'
+      defaultPaymentLinksUrl
     ]);
   });
 
@@ -296,8 +311,12 @@ describe('runtime API composition', () => {
         await refreshPending;
         return response({ accessToken: 'shared-token' });
       })
-      .mockResolvedValueOnce(response([{ id: 'a', feeSnapshot: [], maxInstallments: 1 }]))
-      .mockResolvedValueOnce(response([{ id: 'b', feeSnapshot: [], maxInstallments: 1 }]));
+      .mockResolvedValueOnce(
+        response(paymentLinksPage([{ id: 'a', feeSnapshot: [], maxInstallments: 1 }]))
+      )
+      .mockResolvedValueOnce(
+        response(paymentLinksPage([{ id: 'b', feeSnapshot: [], maxInstallments: 1 }]))
+      );
     const client = createPaymentLinksClient({
       baseUrl: '',
       fetch: request,
@@ -310,8 +329,8 @@ describe('runtime API composition', () => {
     releaseRefresh();
     await expect(Promise.all([first, second])).resolves.toHaveLength(2);
     expect(request.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')).toHaveLength(1);
-    expect(request.mock.calls.filter(([url]) => url === '/api/v1/checkout-links')).toHaveLength(4);
-    expect(request.mock.calls.slice(-2).every(([url]) => url === '/api/v1/checkout-links')).toBe(
+    expect(request.mock.calls.filter(([url]) => url === defaultPaymentLinksUrl)).toHaveLength(4);
+    expect(request.mock.calls.slice(-2).every(([url]) => url === defaultPaymentLinksUrl)).toBe(
       true
     );
   });

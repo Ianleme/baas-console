@@ -719,7 +719,15 @@ export interface operations {
   };
   CheckoutLinkController_list: {
     parameters: {
-      query?: never;
+      query?: {
+        from?: string;
+        limit?: number;
+        method?: 'PIX' | 'CARD' | 'PIX_CARD';
+        offset?: number;
+        search?: string;
+        status?: 'ACTIVE' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+        to?: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;

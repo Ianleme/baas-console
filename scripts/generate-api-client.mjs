@@ -34,7 +34,8 @@ export async function loadOpenApiDocument() {
     AUTH_TOKEN_SECRET: 'openapi-generation-secret-at-least-32-bytes',
     ENCRYPTION_KEY_BASE64: Buffer.alloc(32, 1).toString('base64'),
     LERA_BOX_BASE_URL: 'https://gateway.openapi.invalid',
-    PUBLIC_API_BASE_URL: 'https://api.openapi.invalid'
+    PUBLIC_API_BASE_URL: 'https://api.openapi.invalid',
+    PUBLIC_CHECKOUT_BASE_URL: 'https://checkout.openapi.invalid'
   };
   const inserted = [];
   for (const [name, value] of Object.entries(defaults)) {

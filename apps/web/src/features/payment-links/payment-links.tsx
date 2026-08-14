@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState, type SyntheticEvent } from 'react';
+import { useEffect, useState, type SyntheticEvent } from 'react';
 import {
   Check,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   CreditCard,
   ExternalLink,
@@ -31,6 +33,7 @@ import {
   TableHeader,
   TableRow
 } from '../../components/ui/table.js';
+import { useDebouncedValue } from '../../hooks/use-debounced-value.js';
 
 export type PaymentLinkStatus = 'ACTIVE' | 'PAID' | 'EXPIRED' | 'CANCELLED';
 
@@ -50,7 +53,7 @@ export interface PaymentLinkView {
 }
 
 export interface PaymentLinksApi {
-  list: () => Promise<PaymentLinkView[]>;
+  list: (query: PaymentLinkListQuery) => Promise<PaymentLinkListData>;
   detail: (id: string) => Promise<PaymentLinkView>;
   share: (id: string) => Promise<{ publicToken: string }>;
   create: (input: Omit<PaymentLinkView, 'id' | 'status'>) => Promise<PaymentLinkView>;
@@ -60,6 +63,34 @@ export interface PaymentLinksApi {
     email: string
   ) => Promise<{ deliveryId: string; status: string; recipientMasked: string }>;
 }
+
+export interface PaymentLinkListQuery {
+  search?: string;
+  status?: PaymentLinkStatus;
+  method?: PaymentLinkView['methods'];
+  from?: string;
+  to?: string;
+  limit: number;
+  offset: number;
+}
+
+export interface PaymentLinkListData {
+  items: PaymentLinkView[];
+  total: number;
+  summary: {
+    totalCount: number;
+    activeCount: number;
+    paidCount: number;
+    paidAmountCents: string;
+  };
+}
+
+const emptySummary: PaymentLinkListData['summary'] = {
+  totalCount: 0,
+  activeCount: 0,
+  paidCount: 0,
+  paidAmountCents: '0'
+};
 
 const statusLabels: Record<PaymentLinkStatus, string> = {
   ACTIVE: 'Ativo',
@@ -85,12 +116,16 @@ export function PaymentLinks({
   onCreateModalOpenChange?: (open: boolean) => void;
 }) {
   const [links, setLinks] = useState<PaymentLinkView[]>([]);
+  const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState(emptySummary);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [query, setQuery] = useState('');
   const [statusTab, setStatusTab] = useState<'ALL' | PaymentLinkStatus>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | PaymentLinkStatus>('ALL');
   const [methodFilter, setMethodFilter] = useState<'ALL' | PaymentLinkView['methods']>('ALL');
   const [dateFilter, setDateFilter] = useState('30days');
+  const [page, setPage] = useState(1);
+  const [reloadKey, setReloadKey] = useState(0);
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<PaymentLinkView | null>(null);
   const [cancelCandidate, setCancelCandidate] = useState<PaymentLinkView | null>(null);
@@ -105,6 +140,9 @@ export function PaymentLinks({
   const [customExpiry, setCustomExpiry] = useState('');
   const [createdLink, setCreatedLink] = useState<PaymentLinkView | null>(null);
   const [creatingLink, setCreatingLink] = useState(false);
+  const debouncedQuery = useDebouncedValue(query, 350);
+  const activeStatusFilter = statusTab !== 'ALL' ? statusTab : statusFilter;
+  const pageSize = 10;
   useEffect(() => {
     if (createModalOpen !== undefined) setCreating(createModalOpen);
   }, [createModalOpen]);
@@ -131,26 +169,29 @@ export function PaymentLinks({
     }
   }
 
-  function loadLinks() {
-    setState('loading');
-    void api
-      .list()
-      .then((rows) => {
-        setLinks(rows);
-        setState('ready');
-      })
-      .catch(() => {
-        setState('error');
-      });
-  }
-
   useEffect(() => {
     let active = true;
+    setState('loading');
+    const period = listPeriod(dateFilter);
     void api
-      .list()
-      .then((rows) => {
+      .list({
+        ...(debouncedQuery.trim() ? { search: debouncedQuery.trim() } : {}),
+        ...(activeStatusFilter !== 'ALL' ? { status: activeStatusFilter } : {}),
+        ...(methodFilter !== 'ALL' ? { method: methodFilter } : {}),
+        ...period,
+        limit: pageSize,
+        offset: (page - 1) * pageSize
+      })
+      .then((result) => {
         if (active) {
-          setLinks(rows);
+          const lastPage = Math.max(1, Math.ceil(result.total / pageSize));
+          if (page > lastPage) {
+            setPage(lastPage);
+            return;
+          }
+          setLinks(result.items);
+          setTotal(result.total);
+          setSummary(result.summary);
           setState('ready');
         }
       })
@@ -162,40 +203,11 @@ export function PaymentLinks({
     return () => {
       active = false;
     };
-  }, [api]);
+  }, [activeStatusFilter, api, dateFilter, debouncedQuery, methodFilter, page, reloadKey]);
 
-  const activeStatusFilter = statusTab !== 'ALL' ? statusTab : statusFilter;
-
-  const visible = useMemo(
-    () =>
-      links.filter((link) => {
-        const text = `${link.description} ${link.reference}`.toLocaleLowerCase('pt-BR');
-        return (
-          text.includes(query.trim().toLocaleLowerCase('pt-BR')) &&
-          (activeStatusFilter === 'ALL' || link.status === activeStatusFilter) &&
-          (methodFilter === 'ALL' || link.methods === methodFilter) &&
-          isWithinPeriod(link.createdAt, dateFilter)
-        );
-      }),
-    [links, activeStatusFilter, dateFilter, methodFilter, query]
-  );
-
-  const activeCount = useMemo(
-    () => links.filter((link) => link.status === 'ACTIVE').length,
-    [links]
-  );
-  const paidCount = useMemo(() => links.filter((link) => link.status === 'PAID').length, [links]);
-  const totalReceivedCents = useMemo(
-    () =>
-      links
-        .filter((link) => link.status === 'PAID')
-        .reduce((sum, link) => sum + BigInt(link.amountCents || 0), 0n),
-    [links]
-  );
-  const conversionRate = useMemo(() => {
-    if (links.length === 0) return 0;
-    return Math.round((paidCount / links.length) * 1000) / 10;
-  }, [links, paidCount]);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const conversionRate =
+    summary.totalCount === 0 ? 0 : Math.round((summary.paidCount / summary.totalCount) * 1000) / 10;
 
   async function submit(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
     event.preventDefault();
@@ -221,7 +233,8 @@ export function PaymentLinks({
         selectedFeeBps: null,
         expiresAt
       });
-      setLinks((current) => [created, ...current]);
+      setPage(1);
+      setReloadKey((current) => current + 1);
       setCreateModal(false);
       setCreatedLink(created);
       setNotice('Link criado com sucesso. Agora você pode compartilhá-lo.');
@@ -236,8 +249,8 @@ export function PaymentLinks({
     if (!cancelCandidate) return;
     setCancelling(true);
     try {
-      const cancelled = await api.cancel(cancelCandidate.id);
-      setLinks((current) => current.map((link) => (link.id === cancelled.id ? cancelled : link)));
+      await api.cancel(cancelCandidate.id);
+      setReloadKey((current) => current + 1);
       setNotice('Link cancelado. O histórico foi preservado.');
     } catch {
       setNotice('Não foi possível cancelar o link.');
@@ -388,7 +401,7 @@ export function PaymentLinks({
             <span className="kpi-label text-xs font-semibold text-slate-500">Links ativos</span>
             <div className="kpi-value-group">
               <strong className="kpi-value text-2xl font-extrabold text-slate-900">
-                {activeCount}
+                {summary.activeCount}
               </strong>
             </div>
             <span className="kpi-subtext text-xs text-slate-400">Prontos para receber</span>
@@ -402,7 +415,7 @@ export function PaymentLinks({
             </span>
             <div className="kpi-value-group">
               <strong className="kpi-value text-2xl font-extrabold text-slate-900">
-                {paidCount}
+                {summary.paidCount}
               </strong>
             </div>
             <span className="kpi-subtext text-xs text-slate-400">No período selecionado</span>
@@ -414,7 +427,7 @@ export function PaymentLinks({
             <span className="kpi-label text-xs font-semibold text-slate-500">Valor recebido</span>
             <div className="kpi-value-group">
               <strong className="kpi-value text-2xl font-extrabold text-slate-900">
-                {money(totalReceivedCents.toString())}
+                {money(summary.paidAmountCents)}
               </strong>
             </div>
             <span className="kpi-growth-badge inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-[#d8f3dc] px-2.5 py-0.5 rounded-full w-fit">
@@ -465,6 +478,7 @@ export function PaymentLinks({
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
+              setPage(1);
             }}
             placeholder="Buscar por descrição ou referência"
           />
@@ -474,6 +488,7 @@ export function PaymentLinks({
           value={statusFilter}
           onValueChange={(value) => {
             setStatusFilter(value as typeof statusFilter);
+            setPage(1);
           }}
         >
           <SelectTrigger className="w-[170px]" aria-label="Filtrar por status">
@@ -492,6 +507,7 @@ export function PaymentLinks({
           value={methodFilter}
           onValueChange={(value) => {
             setMethodFilter(value as typeof methodFilter);
+            setPage(1);
           }}
         >
           <SelectTrigger className="w-[170px]" aria-label="Filtrar por método">
@@ -509,6 +525,7 @@ export function PaymentLinks({
           value={dateFilter}
           onValueChange={(value) => {
             setDateFilter(value);
+            setPage(1);
           }}
         >
           <SelectTrigger className="w-[170px]" aria-label="Filtrar por período">
@@ -529,7 +546,7 @@ export function PaymentLinks({
           type="button"
           aria-label="Atualizar dados"
           onClick={() => {
-            loadLinks();
+            setReloadKey((current) => current + 1);
             setNotice('Dados atualizados.');
             setTimeout(() => {
               setNotice('');
@@ -559,6 +576,7 @@ export function PaymentLinks({
             type="button"
             onClick={() => {
               setStatusTab(tab);
+              setPage(1);
             }}
           >
             {tab === 'ALL' ? 'Todos' : tabLabels[tab]}
@@ -586,12 +604,12 @@ export function PaymentLinks({
           Não foi possível carregar os links.
         </p>
       )}
-      {state === 'ready' && visible.length === 0 && (
+      {state === 'ready' && links.length === 0 && (
         <div className="empty-state-box border-2 border-dashed border-slate-200 rounded-xl p-12 text-center text-slate-500">
           <p>Nenhum link encontrado.</p>
         </div>
       )}
-      {state === 'ready' && visible.length > 0 && (
+      {state === 'ready' && links.length > 0 && (
         <>
           <div className="hidden md:block">
             <Table className="data-table">
@@ -606,7 +624,7 @@ export function PaymentLinks({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visible.map((link) => (
+                {links.map((link) => (
                   <TableRow key={link.id}>
                     <TableCell>
                       <div className="link-title-box flex flex-col">
@@ -641,7 +659,7 @@ export function PaymentLinks({
             </Table>
           </div>
           <div className="grid gap-3 md:hidden" role="region" aria-label="Links em cartões">
-            {visible.map((link) => (
+            {links.map((link) => (
               <Card key={link.id} className="overflow-hidden">
                 <CardContent className="space-y-4 p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -669,6 +687,38 @@ export function PaymentLinks({
               </Card>
             ))}
           </div>
+          <nav
+            className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4"
+            aria-label="Paginação dos links"
+          >
+            <p className="text-sm text-slate-500">
+              Exibindo {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} de {total}{' '}
+              links
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                disabled={page === 1}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+              >
+                <ChevronLeft className="h-4 w-4" /> Anterior
+              </Button>
+              <span className="min-w-24 text-center text-sm font-semibold text-slate-700">
+                Página {page} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              >
+                Próxima <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </nav>
         </>
       )}
 
@@ -1069,16 +1119,20 @@ function expirationFromPreset(
   return expiresAt.toISOString();
 }
 
-function isWithinPeriod(createdAt: string | undefined, period: string) {
-  if (period === 'all' || !createdAt) return true;
-  const created = new Date(createdAt);
-  if (Number.isNaN(created.valueOf())) return false;
+function listPeriod(period: string): Pick<PaymentLinkListQuery, 'from' | 'to'> {
+  if (period === 'all') return {};
   const now = new Date();
   if (period === 'month') {
-    return created >= new Date(now.getFullYear(), now.getMonth(), 1);
+    return {
+      from: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+      to: now.toISOString()
+    };
   }
   const days = period === '7days' ? 7 : 30;
-  return created.getTime() >= now.getTime() - days * 24 * 60 * 60 * 1000;
+  return {
+    from: new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString(),
+    to: now.toISOString()
+  };
 }
 
 function StatusBadge({ status }: { status: PaymentLinkStatus }) {

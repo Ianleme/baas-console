@@ -1,13 +1,25 @@
-import { Body, Controller, Get, Inject, Optional, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Optional, Param, Post, Query, Req } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiPropertyOptional,
   ApiTags
 } from '@nestjs/swagger';
-import { IsDateString, IsEmail, IsIn, IsInt, IsString, Length, Max, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsDateString,
+  IsEmail,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Length,
+  Max,
+  Min
+} from 'class-validator';
 import type { Request } from 'express';
 
 import { ProblemException } from '../../platform/errors/problem.exception.js';
@@ -35,6 +47,48 @@ export class SendCheckoutLinkEmailDto {
   @IsEmail() email!: string;
 }
 
+class ListCheckoutLinksDto {
+  @ApiPropertyOptional({ type: String, maxLength: 255 })
+  @IsOptional()
+  @IsString()
+  @Length(1, 255)
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  search?: string;
+
+  @ApiPropertyOptional({ enum: ['ACTIVE', 'PAID', 'EXPIRED', 'CANCELLED'] })
+  @IsOptional()
+  @IsIn(['ACTIVE', 'PAID', 'EXPIRED', 'CANCELLED'])
+  status?: 'ACTIVE' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+
+  @ApiPropertyOptional({ enum: ['PIX', 'CARD', 'PIX_CARD'] })
+  @IsOptional()
+  @IsIn(['PIX', 'CARD', 'PIX_CARD'])
+  method?: 'PIX' | 'CARD' | 'PIX_CARD';
+
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
+  @IsOptional()
+  @IsDateString()
+  from?: string;
+
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
+  @IsOptional()
+  @IsDateString()
+  to?: string;
+
+  @ApiPropertyOptional({ type: Number, minimum: 1, maximum: 100, default: 10 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit = 10;
+
+  @ApiPropertyOptional({ type: Number, minimum: 0, default: 0 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  offset = 0;
+}
+
 @ApiTags('checkout-links')
 @ApiBearerAuth()
 @Controller('api/v1/checkout-links')
@@ -51,8 +105,21 @@ export class CheckoutLinkController {
   @Get()
   @ApiOperation({ summary: 'List checkout links for the authenticated merchant' })
   @ApiOkResponse({ description: 'Tenant-scoped checkout links' })
-  async list(@Req() request: Request) {
-    return (await this.links.list(this.merchant(request))).map(publicRecord);
+  async list(@Req() request: Request, @Query() query: ListCheckoutLinksDto) {
+    try {
+      const result = await this.links.list(this.merchant(request), {
+        ...(query.search ? { search: query.search } : {}),
+        ...(query.status ? { status: query.status } : {}),
+        ...(query.method ? { method: query.method } : {}),
+        ...(query.from ? { createdFrom: new Date(query.from) } : {}),
+        ...(query.to ? { createdTo: new Date(query.to) } : {}),
+        limit: query.limit,
+        offset: query.offset
+      });
+      return { ...result, items: result.items.map(publicRecord) };
+    } catch (error) {
+      throw problem(error);
+    }
   }
 
   @Get(':id')

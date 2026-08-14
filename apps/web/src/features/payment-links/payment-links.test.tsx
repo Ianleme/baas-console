@@ -2,7 +2,13 @@ import axe from 'axe-core';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { PaymentLinks, type PaymentLinksApi, type PaymentLinkView } from './payment-links.js';
+import {
+  PaymentLinks,
+  type PaymentLinkListData,
+  type PaymentLinkListQuery,
+  type PaymentLinksApi,
+  type PaymentLinkView
+} from './payment-links.js';
 
 const active: PaymentLinkView = {
   id: 'link-1',
@@ -29,7 +35,7 @@ const paid: PaymentLinkView = {
 
 function client(overrides: Partial<PaymentLinksApi> = {}): PaymentLinksApi {
   return {
-    list: vi.fn().mockResolvedValue([active, paid]),
+    list: listRows([active, paid]),
     detail: vi
       .fn()
       .mockImplementation((id: string) => Promise.resolve(id === paid.id ? paid : active)),
@@ -45,6 +51,40 @@ function client(overrides: Partial<PaymentLinksApi> = {}): PaymentLinksApi {
     }),
     ...overrides
   };
+}
+
+function page(items: PaymentLinkView[], total = items.length): PaymentLinkListData {
+  return {
+    items,
+    total,
+    summary: {
+      totalCount: total,
+      activeCount: items.filter((link) => link.status === 'ACTIVE').length,
+      paidCount: items.filter((link) => link.status === 'PAID').length,
+      paidAmountCents: items
+        .filter((link) => link.status === 'PAID')
+        .reduce((sum, link) => sum + BigInt(link.amountCents), 0n)
+        .toString()
+    }
+  };
+}
+
+function listRows(rows: PaymentLinkView[]) {
+  return vi.fn().mockImplementation((query: PaymentLinkListQuery) => {
+    const filtered = rows.filter((link) => {
+      const text = `${link.description} ${link.reference}`.toLocaleLowerCase('pt-BR');
+      return (
+        (!query.search || text.includes(query.search.toLocaleLowerCase('pt-BR'))) &&
+        (!query.status || link.status === query.status) &&
+        (!query.method || link.methods === query.method) &&
+        (!query.from || !link.createdAt || link.createdAt >= query.from) &&
+        (!query.to || !link.createdAt || link.createdAt <= query.to)
+      );
+    });
+    return Promise.resolve(
+      page(filtered.slice(query.offset, query.offset + query.limit), filtered.length)
+    );
+  });
 }
 
 async function renderReady(api = client()) {
@@ -64,7 +104,7 @@ describe('PaymentLinks', () => {
     expect(screen.queryByText('raw')).not.toBeInTheDocument();
   });
   test('shows an explicit empty state', async () => {
-    render(<PaymentLinks api={client({ list: vi.fn().mockResolvedValue([]) })} />);
+    render(<PaymentLinks api={client({ list: vi.fn().mockResolvedValue(page([])) })} />);
     expect(await screen.findByText('Nenhum link encontrado.')).toBeVisible();
   });
   test('renders the dense financial table columns', async () => {
@@ -89,22 +129,31 @@ describe('PaymentLinks', () => {
     expect(within(summary).getByText('Pagamentos concluídos').nextSibling).toHaveTextContent('1');
   });
   test('searches by description', async () => {
-    await renderReady();
+    const api = await renderReady();
     await userEvent.type(
       screen.getByPlaceholderText('Buscar por descrição ou referência'),
       'consultoria'
     );
-    expect(screen.queryByText('Pedido #1048')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Consultoria mensal')[0]).toBeVisible();
+    expect(api.list).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(api.list).toHaveBeenLastCalledWith(expect.objectContaining({ search: 'consultoria' }));
+      expect(screen.queryByText('Pedido #1048')).not.toBeInTheDocument();
+      expect(screen.getAllByText('Consultoria mensal')[0]).toBeVisible();
+    });
   });
   test('searches by reference case-insensitively', async () => {
-    await renderReady();
+    const api = await renderReady();
     await userEvent.type(
       screen.getByPlaceholderText('Buscar por descrição ou referência'),
       'ref-2026-01048'
     );
-    expect(screen.getAllByText('Pedido #1048')[0]).toBeVisible();
-    expect(screen.queryByText('Consultoria mensal')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(api.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: 'ref-2026-01048' })
+      );
+      expect(screen.getAllByText('Pedido #1048')[0]).toBeVisible();
+      expect(screen.queryByText('Consultoria mensal')).not.toBeInTheDocument();
+    });
   });
   test('filters by status', async () => {
     const user = userEvent.setup();
@@ -314,12 +363,38 @@ describe('PaymentLinks', () => {
   test('filters the loaded links by the selected real creation period', async () => {
     const recent = { ...active, createdAt: new Date().toISOString() };
     const old = { ...paid, createdAt: '2020-01-01T00:00:00.000Z' };
-    await renderReady(client({ list: vi.fn().mockResolvedValue([recent, old]) }));
+    const list = listRows([recent, old]);
+    await renderReady(client({ list }));
     const user = userEvent.setup();
     await user.click(screen.getByRole('combobox', { name: 'Filtrar por período' }));
     await user.click(await screen.findByRole('option', { name: 'Últimos 7 dias' }));
-    expect(screen.getAllByText('Pedido #1048')[0]).toBeVisible();
-    expect(screen.queryByText('Consultoria mensal')).not.toBeInTheDocument();
+    await waitFor(() => {
+      const lastQuery = list.mock.calls.at(-1)?.[0] as PaymentLinkListQuery | undefined;
+      expect(typeof lastQuery?.from).toBe('string');
+      expect(typeof lastQuery?.to).toBe('string');
+      expect(screen.getAllByText('Pedido #1048')[0]).toBeVisible();
+      expect(screen.queryByText('Consultoria mensal')).not.toBeInTheDocument();
+    });
+  });
+  test('paginates the table server-side with ten links per page', async () => {
+    const rows = Array.from({ length: 21 }, (_, index) => ({
+      ...active,
+      id: `link-${String(index + 1)}`,
+      reference: `REF-${String(index + 1)}`,
+      description: `Pedido ${String(index + 1)}`
+    }));
+    const list = listRows(rows);
+    render(<PaymentLinks api={client({ list })} />);
+    await screen.findAllByText('Pedido 1');
+
+    expect(screen.getByText('Página 1 de 3')).toBeVisible();
+    expect(screen.getByText('Exibindo 1–10 de 21 links')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: /Próxima/iu }));
+
+    await waitFor(() => {
+      expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 10, offset: 10 }));
+      expect(screen.getByText('Página 2 de 3')).toBeVisible();
+    });
   });
   test('has no automated axe violations in the populated state', async () => {
     const { container } = render(<PaymentLinks api={client()} />);

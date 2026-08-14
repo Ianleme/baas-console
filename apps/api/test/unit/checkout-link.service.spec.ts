@@ -3,6 +3,8 @@ import {
   CheckoutLinkService,
   createSha256TokenProtector,
   isUnresolvedAttemptStatus,
+  type CheckoutLinkListQuery,
+  type CheckoutLinkListResult,
   type CheckoutLinkRecord,
   type CheckoutLinkStore
 } from '../../src/modules/checkout-links/checkout-link.service.js';
@@ -24,8 +26,49 @@ class MemoryLinkStore implements CheckoutLinkStore {
     this.links.push(link);
     return Promise.resolve();
   }
-  list(merchantId: string): Promise<CheckoutLinkRecord[]> {
-    return Promise.resolve(this.links.filter((link) => link.merchantId === merchantId));
+  list(merchantId: string, query: CheckoutLinkListQuery): Promise<CheckoutLinkListResult> {
+    const rows = this.links.filter(
+      (link) =>
+        link.merchantId === merchantId &&
+        (!query.search ||
+          `${link.description} ${link.publicReference}`
+            .toLowerCase()
+            .includes(query.search.toLowerCase())) &&
+        (!query.status || link.status === query.status) &&
+        (!query.method || link.allowedMethods === query.method) &&
+        (!query.createdFrom || link.createdAt >= query.createdFrom) &&
+        (!query.createdTo || link.createdAt <= query.createdTo)
+    );
+    const summaryRows = this.links.filter(
+      (link) =>
+        link.merchantId === merchantId && (!query.method || link.allowedMethods === query.method)
+    );
+    return Promise.resolve({
+      items: rows.slice(query.offset, query.offset + query.limit),
+      total: rows.length,
+      summary: {
+        totalCount: summaryRows.length,
+        activeCount: summaryRows.filter((link) => link.status === 'ACTIVE').length,
+        paidCount: summaryRows.filter((link) => link.status === 'PAID').length,
+        paidAmountCents: summaryRows
+          .filter((link) => link.status === 'PAID')
+          .reduce((sum, link) => sum + BigInt(link.amountCents), 0n)
+          .toString()
+      }
+    });
+  }
+  expireActiveBefore(merchantId: string, expiresAt: Date): Promise<void> {
+    for (const link of this.links) {
+      if (
+        link.merchantId === merchantId &&
+        link.status === 'ACTIVE' &&
+        link.expiresAt <= expiresAt
+      ) {
+        link.status = 'EXPIRED';
+        link.tokenClosedAt = expiresAt;
+      }
+    }
+    return Promise.resolve();
   }
   find(merchantId: string, id: string): Promise<CheckoutLinkRecord | undefined> {
     return Promise.resolve(
@@ -205,7 +248,10 @@ describe('CheckoutLinkService', () => {
   test('isolates list results by merchant', async () => {
     const { service } = setup();
     await service.create('merchant-a', input);
-    expect(await service.list('merchant-b')).toEqual([]);
+    await expect(service.list('merchant-b', { limit: 10, offset: 0 })).resolves.toMatchObject({
+      items: [],
+      total: 0
+    });
   });
   test('hides cross-tenant details as not found', async () => {
     const { service } = setup();

@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow
 } from '../../components/ui/table.js';
+import { useDebouncedValue } from '../../hooks/use-debounced-value.js';
 
 export interface TransactionItem {
   id: string;
@@ -106,6 +107,7 @@ export function TransactionsPage({ api }: { api: TransactionStatementApi }) {
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [originFilter, setOriginFilter] = useState<string>('ALL');
   const [referenceSearch, setReferenceSearch] = useState('');
+  const debouncedReferenceSearch = useDebouncedValue(referenceSearch, 350);
   const [page, setPage] = useState(1);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const limit = 10;
@@ -160,8 +162,8 @@ export function TransactionsPage({ api }: { api: TransactionStatementApi }) {
     if (originFilter !== 'ALL') {
       query.originType = originFilter as TransactionItem['originType'];
     }
-    if (referenceSearch.trim()) {
-      query.reference = referenceSearch.trim();
+    if (debouncedReferenceSearch.trim()) {
+      query.reference = debouncedReferenceSearch.trim();
     }
 
     api
@@ -182,7 +184,7 @@ export function TransactionsPage({ api }: { api: TransactionStatementApi }) {
     return () => {
       active = false;
     };
-  }, [api, statusFilter, typeFilter, originFilter, referenceSearch, page]);
+  }, [api, statusFilter, typeFilter, originFilter, debouncedReferenceSearch, page]);
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / limit)) : 1;
 

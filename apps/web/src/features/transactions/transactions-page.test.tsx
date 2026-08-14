@@ -152,7 +152,10 @@ describe('TransactionsPage', () => {
     const input = screen.getByLabelText('Buscar por referência');
     await user.type(input, '001');
 
-    expect(api.list).toHaveBeenCalledWith(expect.objectContaining({ reference: '001' }));
+    expect(api.list).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(api.list).toHaveBeenCalledWith(expect.objectContaining({ reference: '001' }));
+    });
   });
 
   it('filters by status select dropdown', async () => {

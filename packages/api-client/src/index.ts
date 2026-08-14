@@ -246,7 +246,13 @@ export function createPaymentLinksClient(options: BaasClientOptions) {
     return response.json() as Promise<unknown>;
   }
   return {
-    list: async () => mapPaymentLinks(await json('/api/v1/checkout-links')),
+    list: async (query: PaymentLinkListQuery = { limit: 10, offset: 0 }) => {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value !== undefined && value !== '') params.set(key, String(value));
+      }
+      return mapPaymentLinks(await json(`/api/v1/checkout-links?${params.toString()}`));
+    },
     detail: async (id: string) =>
       mapPaymentLink(await json(`/api/v1/checkout-links/${encodeURIComponent(id)}`)),
     share: async (id: string) => {
@@ -294,6 +300,23 @@ export interface PaymentLinkInput {
   expiresAt: string;
 }
 
+export interface PaymentLinkListQuery {
+  search?: string;
+  status?: PaymentLinkResponse['status'];
+  method?: PaymentLinkInput['methods'];
+  from?: string;
+  to?: string;
+  limit: number;
+  offset: number;
+}
+
+export interface PaymentLinkListSummary {
+  totalCount: number;
+  activeCount: number;
+  paidCount: number;
+  paidAmountCents: string;
+}
+
 interface PaymentLinkResponse {
   id: string;
   publicReference: string;
@@ -309,8 +332,25 @@ interface PaymentLinkResponse {
 }
 
 function mapPaymentLinks(value: unknown) {
-  if (!Array.isArray(value)) throw new Error('BAAS_RESPONSE_INVALID');
-  return value.map(mapPaymentLink);
+  const page = value as {
+    items?: unknown;
+    total?: unknown;
+    summary?: Partial<PaymentLinkListSummary>;
+  };
+  if (
+    !Array.isArray(page.items) ||
+    typeof page.total !== 'number' ||
+    typeof page.summary?.totalCount !== 'number' ||
+    typeof page.summary.activeCount !== 'number' ||
+    typeof page.summary.paidCount !== 'number' ||
+    typeof page.summary.paidAmountCents !== 'string'
+  )
+    throw new Error('BAAS_RESPONSE_INVALID');
+  return {
+    items: page.items.map(mapPaymentLink),
+    total: page.total,
+    summary: page.summary as PaymentLinkListSummary
+  };
 }
 
 function mapPaymentLink(value: unknown) {

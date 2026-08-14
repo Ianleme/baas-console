@@ -25,7 +25,8 @@ export interface CheckoutLinkRecord {
 
 export interface CheckoutLinkStore {
   create(link: CheckoutLinkRecord): Promise<void>;
-  list(merchantId: string): Promise<CheckoutLinkRecord[]>;
+  list(merchantId: string, query: CheckoutLinkListQuery): Promise<CheckoutLinkListResult>;
+  expireActiveBefore(merchantId: string, expiresAt: Date): Promise<void>;
   find(merchantId: string, id: string): Promise<CheckoutLinkRecord | undefined>;
   setStatus(
     merchantId: string,
@@ -41,6 +42,29 @@ export interface CheckoutLinkStore {
     publicTokenCiphertext: Buffer
   ): Promise<boolean>;
   hasUnresolvedAttempt(merchantId: string, checkoutLinkId: string): Promise<boolean>;
+}
+
+export interface CheckoutLinkListQuery {
+  search?: string;
+  status?: CheckoutLinkStatus;
+  method?: AllowedPaymentMethods;
+  createdFrom?: Date;
+  createdTo?: Date;
+  limit: number;
+  offset: number;
+}
+
+export interface CheckoutLinkListSummary {
+  totalCount: number;
+  activeCount: number;
+  paidCount: number;
+  paidAmountCents: string;
+}
+
+export interface CheckoutLinkListResult {
+  items: CheckoutLinkRecord[];
+  total: number;
+  summary: CheckoutLinkListSummary;
 }
 
 export interface CheckoutFeeProvider {
@@ -116,10 +140,10 @@ export class CheckoutLinkService {
     return { link, publicToken };
   }
 
-  async list(merchantId: string): Promise<CheckoutLinkRecord[]> {
-    const links = await this.store.list(merchantId);
-    await Promise.all(links.map((link) => this.expireIfNeeded(link)));
-    return links;
+  async list(merchantId: string, query: CheckoutLinkListQuery): Promise<CheckoutLinkListResult> {
+    const normalized = validateListQuery(query);
+    await this.store.expireActiveBefore(merchantId, this.now());
+    return this.store.list(merchantId, normalized);
   }
 
   async detail(merchantId: string, id: string): Promise<CheckoutLinkRecord> {
@@ -253,4 +277,30 @@ function validateCreate(input: CreateCheckoutLinkInput, now: Date): CreateChecko
     throw new CheckoutLinkError('EXPIRY_INVALID');
   if (input.expiresAt <= now) throw new CheckoutLinkError('EXPIRY_INVALID');
   return { ...input, publicReference, description };
+}
+
+function validateListQuery(query: CheckoutLinkListQuery): CheckoutLinkListQuery {
+  const search = query.search?.trim();
+  if (search && search.length > 255) throw new CheckoutLinkError('LIST_FILTER_INVALID');
+  if (
+    query.status !== undefined &&
+    !['ACTIVE', 'PAID', 'EXPIRED', 'CANCELLED'].includes(query.status)
+  )
+    throw new CheckoutLinkError('LIST_FILTER_INVALID');
+  if (query.method !== undefined && !['PIX', 'CARD', 'PIX_CARD'].includes(query.method))
+    throw new CheckoutLinkError('LIST_FILTER_INVALID');
+  if (!Number.isInteger(query.limit) || query.limit < 1 || query.limit > 100)
+    throw new CheckoutLinkError('LIST_FILTER_INVALID');
+  if (!Number.isInteger(query.offset) || query.offset < 0)
+    throw new CheckoutLinkError('LIST_FILTER_INVALID');
+  if (query.createdFrom && Number.isNaN(query.createdFrom.valueOf()))
+    throw new CheckoutLinkError('LIST_FILTER_INVALID');
+  if (query.createdTo && Number.isNaN(query.createdTo.valueOf()))
+    throw new CheckoutLinkError('LIST_FILTER_INVALID');
+  if (query.createdFrom && query.createdTo && query.createdFrom > query.createdTo)
+    throw new CheckoutLinkError('LIST_FILTER_INVALID');
+  const normalized = { ...query };
+  if (search) normalized.search = search;
+  else delete normalized.search;
+  return normalized;
 }

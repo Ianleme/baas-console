@@ -39,7 +39,11 @@ describe('CheckoutLinkController sendEmail', () => {
     } as unknown as AuthService;
 
     mockLinksService = {
-      list: jest.fn().mockResolvedValue([mockLink]),
+      list: jest.fn().mockResolvedValue({
+        items: [mockLink],
+        total: 1,
+        summary: { totalCount: 1, activeCount: 1, paidCount: 0, paidAmountCents: '0' }
+      }),
       detail: jest.fn().mockImplementation((merchantId: string, id: string) => {
         if (merchantId === 'merchant-1' && id === 'link-100') {
           return Promise.resolve(mockLink);
@@ -127,11 +131,11 @@ describe('CheckoutLinkController sendEmail', () => {
   });
 
   it('never exposes the public token in the authenticated list response', async () => {
-    const result = await controller.list(mockRequest);
+    const result = await controller.list(mockRequest, { limit: 10, offset: 0 });
 
-    expect(result).toHaveLength(1);
-    expect(result[0]).not.toHaveProperty('publicToken');
-    expect(result[0]).not.toHaveProperty('publicTokenCiphertext');
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).not.toHaveProperty('publicToken');
+    expect(result.items[0]).not.toHaveProperty('publicTokenCiphertext');
   });
 
   it('returns no token from detail and issues it only from tenant-scoped share', async () => {

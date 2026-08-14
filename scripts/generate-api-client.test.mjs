@@ -23,7 +23,8 @@ test('loads the OpenAPI document without incidental runtime secrets', async () =
     'AUTH_TOKEN_SECRET',
     'ENCRYPTION_KEY_BASE64',
     'LERA_BOX_BASE_URL',
-    'PUBLIC_API_BASE_URL'
+    'PUBLIC_API_BASE_URL',
+    'PUBLIC_CHECKOUT_BASE_URL'
   ];
   const previous = Object.fromEntries(names.map((name) => [name, process.env[name]]));
   for (const name of names) delete process.env[name];

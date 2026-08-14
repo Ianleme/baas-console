@@ -138,10 +138,30 @@ describe('checkout and payments HTTP runtime', () => {
       .get('/api/v1/checkout-links')
       .set('Authorization', `Bearer ${bearer}`)
       .expect(200);
-    expect(listed.body).toHaveLength(1);
+    expect(listed.body).toMatchObject({
+      total: 1,
+      items: [{ publicReference: 'runtime-1' }],
+      summary: { totalCount: 1, activeCount: 1 }
+    });
     await request(app.getHttpServer() as Server)
       .get('/api/v1/checkout-links')
       .expect(401);
+  });
+
+  test('paginates and filters checkout links inside the authenticated tenant', async () => {
+    await createLink('PIX', 'runtime-page-a');
+    await createLink('CARD', 'runtime-page-b');
+
+    const filtered = await request(app.getHttpServer() as Server)
+      .get('/api/v1/checkout-links')
+      .query({ search: 'page-b', method: 'CARD', status: 'ACTIVE', limit: 1, offset: 0 })
+      .set('Authorization', `Bearer ${bearer}`)
+      .expect(200);
+
+    expect(filtered.body).toMatchObject({
+      total: 1,
+      items: [{ publicReference: 'runtime-page-b', allowedMethods: 'CARD' }]
+    });
   });
 
   test('exchanges the fragment token once and enforces checkout cookie plus CSRF', async () => {
