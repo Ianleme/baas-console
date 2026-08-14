@@ -45,7 +45,7 @@ export interface EmailDeliveriesApi {
 const timestamp = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
   timeStyle: 'short',
-  timeZone: 'UTC'
+  timeZone: 'America/Sao_Paulo'
 });
 
 function formatDate(iso: string) {

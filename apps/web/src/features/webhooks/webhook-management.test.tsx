@@ -70,8 +70,8 @@ describe('WebhookManagement', () => {
 
   test('renders configuration and last-event timestamps', async () => {
     await renderReady();
-    expect(screen.getByText('12/08/2026, 14:00')).toBeVisible();
-    expect(screen.getByText('12/08/2026, 14:10')).toBeVisible();
+    expect(screen.getByText('12/08/2026, 11:00')).toBeVisible();
+    expect(screen.getByText('12/08/2026, 11:10')).toBeVisible();
   });
 
   test('never renders a secret returned accidentally by the API', async () => {

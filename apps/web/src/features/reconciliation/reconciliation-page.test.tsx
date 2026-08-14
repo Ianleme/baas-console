@@ -77,8 +77,8 @@ describe('ReconciliationPage', () => {
   });
   test('shows deterministic timestamps', async () => {
     await ready();
-    expect(screen.getByText('Atualizado em 12/08/2026, 16:00')).toBeVisible();
-    expect(screen.getByText('Atualizado em 12/08/2026, 16:10')).toBeVisible();
+    expect(screen.getByText('Atualizado em 12/08/2026, 13:00')).toBeVisible();
+    expect(screen.getByText('Atualizado em 12/08/2026, 13:10')).toBeVisible();
   });
   test('manual action sends only operation identity through the fixed API contract', async () => {
     const api = await ready();

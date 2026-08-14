@@ -27,7 +27,7 @@ describe('WalletPage', () => {
     );
     expect(await screen.findByText('R$ 123,45')).toBeVisible();
     expect(screen.getByText('R$ 100,00')).toBeVisible();
-    expect(screen.getByText(/13\/08\/2026, 12:30 UTC/)).toBeVisible();
+    expect(screen.getByText(/13\/08\/2026, 09:30/)).toBeVisible();
     expect(screen.getByText('Lera Box')).toBeVisible();
     expect(screen.getByText('Atual')).toBeVisible();
     expect(container.querySelector('[data-wallet-summary]')).toHaveClass(

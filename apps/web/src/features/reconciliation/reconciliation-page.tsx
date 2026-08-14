@@ -172,6 +172,6 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat('pt-BR', {
     dateStyle: 'short',
     timeStyle: 'short',
-    timeZone: 'UTC'
+    timeZone: 'America/Sao_Paulo'
   }).format(new Date(value));
 }

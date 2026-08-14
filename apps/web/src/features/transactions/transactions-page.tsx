@@ -69,7 +69,7 @@ const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: '
 const timestamp = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
   timeStyle: 'short',
-  timeZone: 'UTC'
+  timeZone: 'America/Sao_Paulo'
 });
 
 function money(cents: string) {
@@ -119,9 +119,12 @@ export function TransactionsPage({ api }: { api: TransactionStatementApi }) {
       if (api.downloadReceiptPdf) {
         blob = await api.downloadReceiptPdf(id);
       } else {
-        const res = await fetch(`/api/v1/transactions/${encodeURIComponent(id)}/receipt?format=pdf`, {
-          credentials: 'include'
-        });
+        const res = await fetch(
+          `/api/v1/transactions/${encodeURIComponent(id)}/receipt?format=pdf`,
+          {
+            credentials: 'include'
+          }
+        );
         if (!res.ok) throw new Error('Download failed');
         blob = await res.blob();
       }

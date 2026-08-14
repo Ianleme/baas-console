@@ -208,10 +208,46 @@ export function CardCheckout({
       </div>
       <div
         role="note"
-        className="card-warning rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"
+        className="card-warning rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 space-y-2"
       >
-        <strong className="font-bold">Use somente cartões de teste.</strong> Nunca informe dados de
-        um cartão real.
+        <p>
+          <strong className="font-bold">Use somente cartões de teste.</strong> Nunca informe dados
+          de um cartão real.
+        </p>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <button
+            type="button"
+            tabIndex={-1}
+            className="rounded border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-900 shadow-sm hover:bg-amber-100 transition"
+            onClick={() => {
+              const num = formatCardNumber('5555555555554444');
+              setCardNumber(num);
+              setCardHolder('CLIENTE SANDBOX');
+              setExpiryMonth('12');
+              setExpiryYear('2028');
+              setCvv('123');
+              changeSelection('MASTERCARD', installments);
+            }}
+          >
+            💳 Mastercard Teste
+          </button>
+          <button
+            type="button"
+            tabIndex={-1}
+            className="rounded border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-900 shadow-sm hover:bg-amber-100 transition"
+            onClick={() => {
+              const num = formatCardNumber('4000000000000002');
+              setCardNumber(num);
+              setCardHolder('CLIENTE SANDBOX');
+              setExpiryMonth('12');
+              setExpiryYear('2028');
+              setCvv('123');
+              changeSelection('VISA', installments);
+            }}
+          >
+            💳 Visa Teste
+          </button>
+        </div>
       </div>
       <form
         onSubmit={(event) => {
@@ -220,9 +256,23 @@ export function CardCheckout({
         autoComplete="on"
         className="checkout-form space-y-4"
       >
-        <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
-          Número do cartão
+        <div className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
+          <div className="flex justify-between items-center">
+            <label htmlFor="card-number">Número do cartão</label>
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded tracking-wide ${
+                brand === 'VISA'
+                  ? 'bg-blue-100 text-blue-800'
+                  : brand === 'MASTERCARD'
+                    ? 'bg-orange-100 text-orange-800'
+                    : 'bg-slate-200 text-slate-800'
+              }`}
+            >
+              {brand}
+            </span>
+          </div>
           <Input
+            id="card-number"
             name="cardNumber"
             inputMode="numeric"
             autoComplete="cc-number"
@@ -239,7 +289,7 @@ export function CardCheckout({
               if (detected && detected !== brand) changeSelection(detected, installments);
             }}
           />
-        </label>
+        </div>
         <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
           Nome impresso
           <Input
@@ -424,13 +474,13 @@ function money(cents: string) {
 }
 function installmentLabel(amountCents: string, installments: number) {
   const installmentCents = Math.ceil(Number(BigInt(amountCents)) / installments);
-  return `${installments}x de ${money(String(installmentCents))}`;
+  return `${String(installments)}x de ${money(String(installmentCents))}`;
 }
 function detectCardBrand(value: string): CardQuoteView['brand'] | null {
   const number = value.replace(/\D/gu, '');
   if (/^(?:4011|4312|4389|4514|4573|5041|5067|509|6277|6362|6363|650|6516|6550)/u.test(number))
     return 'ELO';
-  if (/^4/u.test(number)) return 'VISA';
+  if (number.startsWith('4')) return 'VISA';
   const prefix2 = Number(number.slice(0, 2));
   const prefix4 = Number(number.slice(0, 4));
   if ((prefix2 >= 51 && prefix2 <= 55) || (prefix4 >= 2221 && prefix4 <= 2720)) return 'MASTERCARD';

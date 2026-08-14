@@ -57,7 +57,7 @@ const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: '
 const timestamp = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
   timeStyle: 'short',
-  timeZone: 'UTC'
+  timeZone: 'America/Sao_Paulo'
 });
 
 function money(cents: string) {
@@ -163,7 +163,15 @@ function SummaryRail({ balanceCents, items }: { balanceCents: string; items: Wit
   );
 }
 
-export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
+export function WithdrawalsPage({
+  api,
+  requestModalOpen,
+  onRequestModalOpenChange
+}: {
+  api: WithdrawalsApi;
+  requestModalOpen?: boolean;
+  onRequestModalOpenChange?: (open: boolean) => void;
+}) {
   const [items, setItems] = useState<WithdrawalItem[]>([]);
   const [balanceCents, setBalanceCents] = useState<string>('0');
   const [loading, setLoading] = useState(true);
@@ -178,13 +186,20 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState(false);
+  useEffect(() => {
+    if (requestModalOpen !== undefined) setOpenModal(requestModalOpen);
+  }, [requestModalOpen]);
+  const setRequestModal = (open: boolean) => {
+    setOpenModal(open);
+    onRequestModalOpenChange?.(open);
+  };
 
   const loadData = () => {
     setLoading(true);
     setFailed(false);
     Promise.all([api.list(), api.getBalance()])
       .then(([listRes, balanceRes]) => {
-        setItems(listRes);
+        setItems(Array.isArray(listRes) ? listRes : []);
         setBalanceCents(balanceRes.balanceCents);
         setLoading(false);
       })
@@ -236,7 +251,7 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
 
       await api.request(payload);
       setSubmitting(false);
-      setOpenModal(false);
+      setRequestModal(false);
       setSuccessNotice(true);
       setAmountBrl('');
       setPixKey('');
@@ -274,7 +289,7 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
       {/* Header with New Withdrawal Button */}
       <WithdrawalsHeader
         onRequest={() => {
-          setOpenModal(true);
+          setRequestModal(true);
           setModalError(null);
         }}
       />
@@ -475,7 +490,7 @@ export function WithdrawalsPage({ api }: { api: WithdrawalsApi }) {
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setOpenModal(false);
+                  setRequestModal(false);
                 }}
                 disabled={submitting}
               >

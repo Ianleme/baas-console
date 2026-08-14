@@ -17,7 +17,7 @@ const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: '
 const timestamp = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
   timeStyle: 'short',
-  timeZone: 'UTC'
+  timeZone: 'America/Sao_Paulo'
 });
 
 function money(cents: string) {
@@ -26,7 +26,7 @@ function money(cents: string) {
 
 function formatTimestamp(value: string | null) {
   if (!value || Number.isNaN(new Date(value).getTime())) return 'Não informado';
-  return `${timestamp.format(new Date(value))} UTC`;
+  return timestamp.format(new Date(value));
 }
 
 function connectionLabel(source: string | null | undefined) {

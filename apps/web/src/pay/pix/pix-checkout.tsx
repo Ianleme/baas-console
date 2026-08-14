@@ -152,56 +152,58 @@ export function PixCheckout({
       <strong className="pix-value text-3xl font-extrabold text-slate-900 block">
         {money(attempt.amountCents)}
       </strong>
-      {(attempt.status === 'PENDING' || attempt.status === 'RECONCILIATION_PENDING') && (
-        <div className="space-y-4">
-          {attempt.qrCodeBase64 && (
-            <figure className="pix-qr flex flex-col items-center gap-2 rounded-xl border border-slate-200 p-4 bg-slate-50">
-              <img
-                src={pixQrSource(attempt.qrCodeBase64)}
-                alt="QR Code Pix para pagamento sandbox"
-                className="h-44 w-44 rounded-lg shadow-sm"
-              />
-              <figcaption className="text-xs text-slate-500 font-medium">
-                Escaneie o QR Code ou copie o código Pix abaixo.
-              </figcaption>
-            </figure>
-          )}
-          {attempt.emv && (
-            <div className="pix-copy flex flex-col gap-2">
-              <label htmlFor="pix-emv" className="text-xs font-semibold text-slate-700">
-                Código Pix copia e cola
-              </label>
-              <textarea
-                id="pix-emv"
-                readOnly
-                value={attempt.emv}
-                className="h-20 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs font-mono text-slate-800 outline-none"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => void copy()}
-              >
-                Copiar código Pix
-              </Button>
-            </div>
-          )}
-          {attempt.txid && (
-            <p className="text-xs text-slate-500">
-              Identificador Pix:{' '}
-              <span className="font-mono text-slate-800 font-semibold">{attempt.txid}</span>
-            </p>
-          )}
-          <p
-            className="pix-timer text-xs font-semibold text-amber-800 bg-amber-50 p-2 rounded-md"
-            role="timer"
-            aria-live="off"
-          >
-            Tempo restante: {clock(remaining)}
+      <div className="space-y-4">
+        {attempt.qrCodeBase64 && (
+          <figure className="pix-qr flex flex-col items-center gap-2 rounded-xl border border-slate-200 p-4 bg-slate-50">
+            <img
+              src={pixQrSource(attempt.qrCodeBase64)}
+              alt="QR Code Pix para pagamento sandbox"
+              className="h-44 w-44 rounded-lg shadow-sm"
+            />
+            <figcaption className="text-xs text-slate-500 font-medium">
+              Escaneie o QR Code ou copie o código Pix abaixo.
+            </figcaption>
+          </figure>
+        )}
+        {attempt.emv && (
+          <div className="pix-copy flex flex-col gap-2">
+            <label htmlFor="pix-emv" className="text-xs font-semibold text-slate-700">
+              Código Pix copia e cola
+            </label>
+            <textarea
+              id="pix-emv"
+              readOnly
+              value={attempt.emv}
+              className="h-20 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs font-mono text-slate-800 outline-none"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className={`w-full font-semibold transition-all ${
+                copied
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                  : ''
+              }`}
+              onClick={() => void copy()}
+            >
+              {copied ? '✓ Código Pix copiado!' : 'Copiar código Pix'}
+            </Button>
+          </div>
+        )}
+        {attempt.txid && (
+          <p className="text-xs text-slate-500">
+            Identificador Pix:{' '}
+            <span className="font-mono text-slate-800 font-semibold">{attempt.txid}</span>
           </p>
-        </div>
-      )}
+        )}
+        <p
+          className="pix-timer text-xs font-semibold text-amber-800 bg-amber-50 p-2 rounded-md"
+          role="timer"
+          aria-live="off"
+        >
+          Tempo restante: {clock(remaining)}
+        </p>
+      </div>
       <div
         role="status"
         aria-live="polite"
