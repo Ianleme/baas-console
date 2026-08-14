@@ -32,15 +32,20 @@ async function obtainQuote() {
   fireEvent.click(screen.getByRole('button', { name: 'Revisar pagamento' }));
   await screen.findByRole('complementary', { name: 'Resumo do pagamento' });
 }
-function fillCard() {
+async function choose(label: string, option: string | RegExp) {
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('combobox', { name: label }));
+  await user.click(await screen.findByRole('option', { name: option }));
+}
+async function fillCard() {
   fireEvent.change(screen.getByLabelText('Número do cartão'), {
     target: { value: '4111111111111111' }
   });
   fireEvent.change(screen.getByLabelText('Nome impresso'), {
     target: { value: 'CLIENTE SANDBOX' }
   });
-  fireEvent.change(screen.getByLabelText('Mês'), { target: { value: '12' } });
-  fireEvent.change(screen.getByLabelText('Ano'), { target: { value: '2030' } });
+  await choose('Mês', '12');
+  await choose('Ano', '2030');
   fireEvent.change(screen.getByLabelText('CVV'), { target: { value: '123' } });
 }
 describe('CardCheckout', () => {
@@ -52,23 +57,23 @@ describe('CardCheckout', () => {
     view();
     expect(screen.getByRole('status')).toHaveTextContent('Preencha os dados de teste');
   });
-  test('offers all gateway installments through 21', () => {
+  test('offers all gateway installments through 21 in a Radix select', async () => {
     view();
-    expect(screen.getByLabelText('Parcelas').querySelectorAll('option')).toHaveLength(21);
-    expect(screen.getByRole('option', { name: /3x de R.*106,67/ })).toBeVisible();
+    await userEvent.click(screen.getByRole('combobox', { name: 'Parcelas' }));
+    expect(await screen.findByRole('option', { name: /3x de R.*106,67/ })).toBeVisible();
+    expect(screen.getAllByRole('option')).toHaveLength(21);
   });
   test('detects a supported card brand from the test PAN before quoting', () => {
     view();
     fireEvent.change(screen.getByLabelText('Número do cartão'), {
       target: { value: '5555555555554444' }
     });
-    expect(screen.getByLabelText('Bandeira')).toHaveValue('MASTERCARD');
+    expect(screen.getByRole('combobox', { name: 'Bandeira' })).toHaveTextContent('Mastercard');
+    expect(screen.getByLabelText('Número do cartão')).toHaveValue('5555 5555 5555 4444');
   });
   test.each([
     ['Número do cartão', 'cc-number'],
     ['Nome impresso', 'cc-name'],
-    ['Mês', 'cc-exp-month'],
-    ['Ano', 'cc-exp-year'],
     ['CVV', 'cc-csc']
   ])('uses browser autocomplete for %s', (label, autocomplete) => {
     view();
@@ -83,6 +88,15 @@ describe('CardCheckout', () => {
     const input = screen.getByLabelText('Número do cartão');
     fireEvent.paste(input, { clipboardData: { getData: () => '4111111111111111' } });
     expect(input).not.toHaveAttribute('readonly');
+  });
+  test('normalizes holder and CVV visually without accepting unrelated characters', () => {
+    view();
+    fireEvent.change(screen.getByLabelText('Nome impresso'), {
+      target: { value: 'José  da silva 123' }
+    });
+    fireEvent.change(screen.getByLabelText('CVV'), { target: { value: '12a34x' } });
+    expect(screen.getByLabelText('Nome impresso')).toHaveValue('JOSÉ DA SILVA ');
+    expect(screen.getByLabelText('CVV')).toHaveValue('1234');
   });
   test('requests a quote without card values', async () => {
     const client = api();
@@ -107,17 +121,17 @@ describe('CardCheckout', () => {
     expect(screen.queryByText('R$ 309,79')).not.toBeInTheDocument();
     expect(screen.queryByText(/Líquido ao lojista|Taxa:/)).not.toBeInTheDocument();
   });
-  test('changing installments invalidates the previous quote', async () => {
+  test('changing installments in the Radix select invalidates the previous quote', async () => {
     view();
     await obtainQuote();
-    fireEvent.change(screen.getByLabelText('Parcelas'), { target: { value: '4' } });
+    await choose('Parcelas', /^4x de/);
     expect(screen.queryByLabelText('Resumo do pagamento')).not.toBeInTheDocument();
   });
   test('confirms transient fields exactly once', async () => {
     const client = api();
     view(client);
     await obtainQuote();
-    fillCard();
+    await fillCard();
     fireEvent.click(screen.getByRole('button', { name: /Pagar R.*320,00/ }));
     await waitFor(() => {
       expect(client.confirm).toHaveBeenCalledTimes(1);
@@ -138,7 +152,7 @@ describe('CardCheckout', () => {
   ] as const)('shows honest %s outcome', async (status, label) => {
     view(api(status));
     await obtainQuote();
-    fillCard();
+    await fillCard();
     fireEvent.click(screen.getByRole('button', { name: /Pagar R.*320,00/ }));
     await waitFor(() => expect(screen.getByRole('heading', { name: label })).toBeVisible());
   });
@@ -147,7 +161,7 @@ describe('CardCheckout', () => {
     client.confirm.mockRejectedValue(new CardCheckoutError('FEE_CHANGED'));
     view(client);
     await obtainQuote();
-    fillCard();
+    await fillCard();
     fireEvent.click(screen.getByRole('button', { name: /Pagar R.*320,00/ }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('A taxa mudou'));
     expect(screen.queryByLabelText('Resumo do pagamento')).not.toBeInTheDocument();
@@ -160,7 +174,7 @@ describe('CardCheckout', () => {
     client.confirm.mockRejectedValue(new CardCheckoutError('CARD_COOLDOWN'));
     view(client);
     await obtainQuote();
-    fillCard();
+    await fillCard();
     fireEvent.click(screen.getByRole('button', { name: /Pagar R.*320,00/ }));
     await waitFor(() => expect(screen.getByText(/15 minutos/)).toBeVisible());
     expect(client.confirm).toHaveBeenCalledTimes(1);
@@ -171,7 +185,7 @@ describe('CardCheckout', () => {
     client.confirm.mockRejectedValue(new Error('network'));
     view(client);
     await obtainQuote();
-    fillCard();
+    await fillCard();
     fireEvent.click(screen.getByRole('button', { name: /Pagar R.*320,00/ }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Não foi possível'));
     expect(document.body.textContent).not.toContain('4111111111111111');
@@ -187,7 +201,7 @@ describe('CardCheckout', () => {
     const client = api('APPROVED');
     view(client);
     await obtainQuote();
-    fillCard();
+    await fillCard();
     await userEvent.click(screen.getByRole('button', { name: /Pagar R.*320,00/ }));
     expect(await screen.findByRole('heading', { name: 'Cartão aprovado' })).toHaveFocus();
     expect(screen.queryByLabelText('Número do cartão')).not.toBeInTheDocument();
@@ -206,7 +220,7 @@ describe('CardCheckout', () => {
       />
     );
     await obtainQuote();
-    fillCard();
+    await fillCard();
     await userEvent.click(screen.getByRole('button', { name: /Pagar R.*320,00/ }));
     await userEvent.click(await screen.findByRole('button', { name: 'Escolher outro método' }));
     expect(onChooseMethod).toHaveBeenCalledTimes(1);

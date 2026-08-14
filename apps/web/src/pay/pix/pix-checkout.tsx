@@ -157,7 +157,7 @@ export function PixCheckout({
           {attempt.qrCodeBase64 && (
             <figure className="pix-qr flex flex-col items-center gap-2 rounded-xl border border-slate-200 p-4 bg-slate-50">
               <img
-                src={`data:image/png;base64,${attempt.qrCodeBase64}`}
+                src={pixQrSource(attempt.qrCodeBase64)}
                 alt="QR Code Pix para pagamento sandbox"
                 className="h-44 w-44 rounded-lg shadow-sm"
               />
@@ -249,4 +249,7 @@ function money(cents: string) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
     Number(BigInt(cents)) / 100
   );
+}
+function pixQrSource(value: string) {
+  return value.startsWith('data:image/') ? value : `data:image/png;base64,${value}`;
 }

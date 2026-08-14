@@ -28,8 +28,16 @@ describe('PixCheckout', () => {
   });
   test('provides textual QR alternative', () => {
     render(<PixCheckout initial={pending} api={api()} />);
-    expect(screen.getByRole('img', { name: 'QR Code Pix para pagamento sandbox' })).toBeVisible();
+    expect(screen.getByRole('img', { name: 'QR Code Pix para pagamento sandbox' })).toHaveAttribute(
+      'src',
+      'data:image/png;base64,cWItZml4dHVyZQ=='
+    );
     expect(screen.getByText(/Escaneie o QR Code ou copie/)).toBeVisible();
+  });
+  test('does not duplicate a data URI prefix returned by the gateway', () => {
+    const dataUri = 'data:image/png;base64,cWItZml4dHVyZQ==';
+    render(<PixCheckout initial={{ ...pending, qrCodeBase64: dataUri }} api={api()} />);
+    expect(screen.getByRole('img', { name: /QR Code Pix/ })).toHaveAttribute('src', dataUri);
   });
   test('renders EMV as read-only text', () => {
     render(<PixCheckout initial={pending} api={api()} />);

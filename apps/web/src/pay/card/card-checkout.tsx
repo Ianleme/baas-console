@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '../../components/ui/select.js';
 
 export interface CardQuoteView {
   quoteId: string;
@@ -46,6 +53,11 @@ export function CardCheckout({
 }) {
   const [brand, setBrand] = useState<CardQuoteView['brand']>('VISA');
   const [installments, setInstallments] = useState(1);
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardHolder, setCardHolder] = useState('');
+  const [expiryMonth, setExpiryMonth] = useState('');
+  const [expiryYear, setExpiryYear] = useState('');
+  const [cvv, setCvv] = useState('');
   const [quote, setQuote] = useState<CardQuoteView | null>(null);
   const [state, setState] = useState<
     'editing' | 'quoting' | 'confirming' | CardOutcome | 'fee-changed' | 'error'
@@ -78,17 +90,15 @@ export function CardCheckout({
       await refreshQuote();
       return;
     }
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
     setState('confirming');
     try {
       const result = await api.confirm({
         quoteId: quote.quoteId,
-        cardNumber: field(form, 'cardNumber'),
-        cardHolder: field(form, 'cardHolder'),
-        expiryMonth: Number(field(form, 'expiryMonth')),
-        expiryYear: Number(field(form, 'expiryYear')),
-        cvv: field(form, 'cvv')
+        cardNumber: digits(cardNumber),
+        cardHolder: cardHolder.trim(),
+        expiryMonth: Number(expiryMonth),
+        expiryYear: Number(expiryYear),
+        cvv
       });
       setState(result.status);
     } catch (error) {
@@ -216,62 +226,127 @@ export function CardCheckout({
             name="cardNumber"
             inputMode="numeric"
             autoComplete="cc-number"
+            placeholder="0000 0000 0000 0000"
+            value={cardNumber}
+            minLength={15}
+            maxLength={23}
+            pattern="[0-9 ]{15,23}"
             required
             onChange={(event) => {
-              const detected = detectCardBrand(event.target.value);
+              const formatted = formatCardNumber(event.target.value);
+              setCardNumber(formatted);
+              const detected = detectCardBrand(formatted);
               if (detected && detected !== brand) changeSelection(detected, installments);
             }}
           />
         </label>
         <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
           Nome impresso
-          <Input name="cardHolder" autoComplete="cc-name" required />
+          <Input
+            name="cardHolder"
+            autoComplete="cc-name"
+            placeholder="NOME COMO NO CARTÃO"
+            value={cardHolder}
+            minLength={2}
+            maxLength={80}
+            required
+            onChange={(event) => {
+              setCardHolder(formatCardHolder(event.target.value));
+            }}
+          />
         </label>
         <div className="card-row grid grid-cols-3 gap-3">
-          <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
-            Mês
-            <Input name="expiryMonth" inputMode="numeric" autoComplete="cc-exp-month" required />
-          </label>
-          <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
-            Ano
-            <Input name="expiryYear" inputMode="numeric" autoComplete="cc-exp-year" required />
-          </label>
+          <div className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
+            <span id="expiry-month-label">Mês</span>
+            <Select value={expiryMonth} onValueChange={setExpiryMonth} name="expiryMonth">
+              <SelectTrigger aria-labelledby="expiry-month-label" aria-required="true">
+                <SelectValue placeholder="MM" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 12 }, (_, index) => {
+                  const month = String(index + 1).padStart(2, '0');
+                  return (
+                    <SelectItem key={month} value={month}>
+                      {month}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
+            <span id="expiry-year-label">Ano</span>
+            <Select value={expiryYear} onValueChange={setExpiryYear} name="expiryYear">
+              <SelectTrigger aria-labelledby="expiry-year-label" aria-required="true">
+                <SelectValue placeholder="AAAA" />
+              </SelectTrigger>
+              <SelectContent>
+                {expiryYears().map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
             CVV
-            <Input name="cvv" type="password" inputMode="numeric" autoComplete="cc-csc" required />
+            <Input
+              name="cvv"
+              type="password"
+              inputMode="numeric"
+              autoComplete="cc-csc"
+              placeholder="•••"
+              value={cvv}
+              minLength={3}
+              maxLength={4}
+              pattern="[0-9]{3,4}"
+              required
+              onChange={(event) => {
+                setCvv(digits(event.target.value).slice(0, 4));
+              }}
+            />
           </label>
         </div>
         <div className="card-row grid grid-cols-2 gap-3">
-          <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
-            Bandeira
-            <select
+          <div className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
+            <span id="card-brand-label">Bandeira</span>
+            <Select
               value={brand}
-              onChange={(event) => {
-                changeSelection(event.target.value as CardQuoteView['brand'], installments);
+              onValueChange={(value) => {
+                changeSelection(value as CardQuoteView['brand'], installments);
               }}
-              className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
             >
-              <option>VISA</option>
-              <option>MASTERCARD</option>
-              <option>ELO</option>
-            </select>
-          </label>
-          <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
-            Parcelas
-            <select
-              value={installments}
-              onChange={(event) => {
-                changeSelection(brand, Number(event.target.value));
+              <SelectTrigger aria-labelledby="card-brand-label">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="VISA">Visa</SelectItem>
+                <SelectItem value="MASTERCARD">Mastercard</SelectItem>
+                <SelectItem value="ELO">Elo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
+            <span id="installments-label">Parcelas</span>
+            <Select
+              value={String(installments)}
+              onValueChange={(value) => {
+                changeSelection(brand, Number(value));
               }}
-              className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
             >
-              {Array.from({ length: maxInstallments }, (_, index) => (
-                <option key={index + 1} value={index + 1}>
-                  {installmentLabel(amountCents, index + 1)}
-                </option>
-              ))}
-            </select>
-          </label>
+              <SelectTrigger aria-labelledby="installments-label">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: maxInstallments }, (_, index) => (
+                  <SelectItem key={index + 1} value={String(index + 1)}>
+                    {installmentLabel(amountCents, index + 1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         {quote && (
           <aside
@@ -321,9 +396,26 @@ export function CardCheckout({
     </section>
   );
 }
-function field(form: FormData, name: string) {
-  const value = form.get(name);
-  return typeof value === 'string' ? value : '';
+function digits(value: string) {
+  return value.replace(/\D/gu, '');
+}
+function formatCardNumber(value: string) {
+  return (
+    digits(value)
+      .slice(0, 19)
+      .match(/.{1,4}/gu) ?? []
+  ).join(' ');
+}
+function formatCardHolder(value: string) {
+  return value
+    .toLocaleUpperCase('pt-BR')
+    .replace(/[^\p{L}\s'-]/gu, '')
+    .replace(/\s{2,}/gu, ' ')
+    .slice(0, 80);
+}
+function expiryYears() {
+  const currentYear = new Date().getFullYear();
+  return Array.from({ length: 21 }, (_, index) => String(currentYear + index));
 }
 function money(cents: string) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
