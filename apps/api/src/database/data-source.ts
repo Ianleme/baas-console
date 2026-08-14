@@ -30,6 +30,7 @@ function requiredEnvironment(name: string): string {
 }
 
 export function createApplicationDataSource(): DataSource {
+  const ssl = process.env.DATABASE_SSL === 'true';
   return new DataSource({
     type: 'mysql',
     host: requiredEnvironment('DATABASE_HOST'),
@@ -38,6 +39,7 @@ export function createApplicationDataSource(): DataSource {
     password: requiredEnvironment('DATABASE_PASSWORD'),
     database: requiredEnvironment('DATABASE_NAME'),
     charset: 'utf8mb4',
+    ssl: ssl ? { rejectUnauthorized: false } : false,
     entities: [
       MerchantEntity,
       UserEntity,
@@ -64,7 +66,7 @@ export function createApplicationDataSource(): DataSource {
       CreateCheckoutSessions1723505000000,
       AddUserFullName1723506000000
     ],
-    migrationsRun: false,
+    migrationsRun: process.env.RUN_MIGRATIONS === 'true',
     migrationsTableName: 'migrations',
     synchronize: false
   });
