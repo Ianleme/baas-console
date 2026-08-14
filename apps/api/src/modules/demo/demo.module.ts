@@ -10,4 +10,5 @@ import { DemoService } from './demo.service.js';
   providers: [DemoService, { provide: APP_GUARD, useClass: DemoReadOnlyGuard }],
   exports: [DemoService]
 })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class DemoModule {}

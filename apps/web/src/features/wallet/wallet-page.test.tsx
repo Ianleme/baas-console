@@ -8,20 +8,23 @@ describe('WalletPage', () => {
     const deferred = createDeferred<Awaited<ReturnType<WalletApi['load']>>>();
     render(<WalletPage api={{ load: () => deferred.promise }} />);
     expect(screen.getByRole('status')).toHaveTextContent('Carregando carteira');
-    await act(async () => deferred.resolve({ balanceCents: '0', capturedAt: null, stale: false }));
+    await act(() => {
+      deferred.resolve({ balanceCents: '0', capturedAt: null, stale: false });
+    });
   });
 
   test('shows balance, availability, UTC capture, source and current state', async () => {
     const { container } = render(
       <WalletPage
         api={{
-          load: async () => ({
-            balanceCents: '12345',
-            availableCents: '10000',
-            capturedAt: '2026-08-13T12:30:00Z',
-            stale: false,
-            source: 'Lera Box'
-          })
+          load: () =>
+            Promise.resolve({
+              balanceCents: '12345',
+              availableCents: '10000',
+              capturedAt: '2026-08-13T12:30:00Z',
+              stale: false,
+              source: 'Lera Box'
+            })
         }}
       />
     );
@@ -48,12 +51,13 @@ describe('WalletPage', () => {
     const { container } = render(
       <WalletPage
         api={{
-          load: async () => ({
-            balanceCents: '9900',
-            capturedAt: '2026-08-12T10:00:00Z',
-            stale: true,
-            source: 'cache'
-          })
+          load: () =>
+            Promise.resolve({
+              balanceCents: '9900',
+              capturedAt: '2026-08-12T10:00:00Z',
+              stale: true,
+              source: 'cache'
+            })
         }}
       />
     );
@@ -68,7 +72,7 @@ describe('WalletPage', () => {
   test('uses an explicit empty state when there is no snapshot, never confirmed zero', async () => {
     const { container } = render(
       <WalletPage
-        api={{ load: async () => ({ balanceCents: '0', capturedAt: null, stale: false }) }}
+        api={{ load: () => Promise.resolve({ balanceCents: '0', capturedAt: null, stale: false }) }}
       />
     );
     expect(await screen.findByText('Ainda não há saldo sincronizado')).toBeVisible();
@@ -86,9 +90,7 @@ describe('WalletPage', () => {
     render(
       <WalletPage
         api={{
-          load: async () => {
-            throw new Error('secret payload');
-          }
+          load: () => Promise.reject(new Error('secret payload'))
         }}
       />
     );

@@ -127,7 +127,7 @@ export function CheckoutSession({
       <div className="checkout-methods">
         {checkout.methods !== 'CARD' && !pixSelected && (
           <button
-            className={pixSelected ? 'is-selected' : ''}
+            className=""
             type="button"
             onClick={() => {
               setPixSelected(true);

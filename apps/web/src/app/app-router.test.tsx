@@ -5,10 +5,19 @@ import { vi } from 'vitest';
 import { createBaasMemorySession } from '@baas/api-client';
 import { AppRouter } from './app-router.js';
 
+function getUrl(input: unknown): string {
+  return typeof input === 'string'
+    ? input
+    : input instanceof URL
+      ? input.toString()
+      : (input as Request).url;
+}
+
 describe('AppRouter', () => {
   beforeEach(() => {
     vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
-      if (String(input).includes('/session/profile')) {
+      const url = getUrl(input);
+      if (url.includes('/session/profile')) {
         return Promise.resolve(
           new Response(
             JSON.stringify({
@@ -20,13 +29,13 @@ describe('AppRouter', () => {
           )
         );
       }
-      if (String(input).includes('/auth/refresh'))
+      if (url.includes('/auth/refresh'))
         return Promise.resolve(new Response('{}', { status: 401 }));
       if (
-        String(input).includes('/checkout-links') ||
-        String(input).includes('/transactions') ||
-        String(input).includes('/withdrawals') ||
-        String(input).includes('/webhooks')
+        url.includes('/checkout-links') ||
+        url.includes('/transactions') ||
+        url.includes('/withdrawals') ||
+        url.includes('/webhooks')
       ) {
         return Promise.resolve(
           new Response(JSON.stringify({ items: [], total: 0 }), {
@@ -92,7 +101,9 @@ describe('AppRouter', () => {
     const session = createBaasMemorySession();
     session.setToken('expired-token');
     render(<AppRouter session={session} />);
-    await waitFor(() => expect(session.token()).toBe(''));
+    await waitFor(() => {
+      expect(session.token()).toBe('');
+    });
     expect(localStorage.getItem('baas_access_token')).toBeNull();
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument()
@@ -105,17 +116,19 @@ describe('AppRouter', () => {
     session.setToken('logout-token');
     render(<AppRouter session={session} />);
     expect((await screen.findAllByText('Owner Aurora')).length).toBeGreaterThan(0);
-    await act(async () => {
+    await act(() => {
       screen.getByRole('button', { name: 'Sair' }).click();
     });
-    await waitFor(() => expect(session.token()).toBe(''));
+    await waitFor(() => {
+      expect(session.token()).toBe('');
+    });
     expect(globalThis.fetch).toHaveBeenCalledWith(
       '/api/v1/auth/logout',
       expect.objectContaining({ method: 'POST' })
     );
-    await waitFor(() =>
-      expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument()
-    );
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument();
+    });
     expect(screen.getByRole('form', { name: 'Entrar' })).toBeVisible();
     expect(screen.queryAllByText('Owner Aurora')).toHaveLength(0);
   });
@@ -124,7 +137,7 @@ describe('AppRouter', () => {
     vi.restoreAllMocks();
     const calls: string[] = [];
     vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
-      const url = String(input);
+      const url = getUrl(input);
       calls.push(url);
       if (url.includes('/session/profile')) {
         return Promise.resolve(
@@ -148,10 +161,12 @@ describe('AppRouter', () => {
     session.setToken('old-token');
     render(<AppRouter session={session} />);
     expect((await screen.findAllByText('Owner Aurora')).length).toBeGreaterThan(0);
-    await act(async () => {
+    await act(() => {
       screen.getByRole('button', { name: 'Sair' }).click();
     });
-    await waitFor(() => expect(session.token()).toBe(''));
+    await waitFor(() => {
+      expect(session.token()).toBe('');
+    });
     expect(calls).toContain('/api/v1/auth/logout');
     expect(await screen.findByRole('form', { name: 'Entrar' })).toBeVisible();
     expect(screen.queryAllByText('Owner Aurora')).toHaveLength(0);

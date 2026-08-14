@@ -426,7 +426,7 @@ export function createReconciliationClient(options: BaasClientOptions) {
   };
 }
 
-type DashboardTransaction = {
+interface DashboardTransaction {
   id: string;
   originType: 'PAYMENT' | 'WITHDRAWAL';
   externalReference: string;
@@ -434,8 +434,8 @@ type DashboardTransaction = {
   grossAmountCents: string;
   netAmountCents: string;
   occurredAt: string;
-};
-export type DashboardLoadOptions = {
+}
+export interface DashboardLoadOptions {
   period?: { from?: string; to?: string };
   from?: string;
   to?: string;
@@ -443,7 +443,7 @@ export type DashboardLoadOptions = {
   type?: 'CREDIT' | 'DEBIT';
   originType?: DashboardTransaction['originType'];
   reference?: string;
-};
+}
 
 const saoPauloDay = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/Sao_Paulo',
@@ -474,7 +474,7 @@ export function createDashboardClient(options: BaasClientOptions) {
         .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
         .join('&');
       const transactionPath = (offset: number) =>
-        `/api/v1/transactions?limit=100&offset=${offset}${filterQuery ? `&${filterQuery}` : ''}`;
+        `/api/v1/transactions?limit=100&offset=${String(offset)}${filterQuery ? `&${filterQuery}` : ''}`;
 
       const [walletResponse, transactionsResponse, webhooksResponse] = await Promise.all([
         request('/api/v1/wallet'),
@@ -515,7 +515,7 @@ export function createDashboardClient(options: BaasClientOptions) {
         .filter((item) => item.externalReference.startsWith('PIX-'))
         .reduce((total, item) => total + BigInt(item.netAmountCents), 0n);
       const cardReceivedCents = receivedCents - pixReceivedCents;
-      const webhooks = (await webhooksResponse.json()) as Array<{ status?: string }>;
+      const webhooks = (await webhooksResponse.json()) as { status?: string }[];
       const movementByDay = new Map<string, { inCents: bigint; outCents: bigint }>();
       for (const item of approvedPayments.concat(
         dashboardItems.filter(
@@ -586,7 +586,6 @@ export function createTransactionsClient(options: BaasClientOptions) {
   const request = createAuthenticatedTransport(options);
   return {
     async list(query?: Record<string, unknown>): Promise<unknown> {
-      const accessToken = options.accessToken?.();
       const params = new URLSearchParams();
       if (query) {
         for (const [key, val] of Object.entries(query)) {
@@ -619,7 +618,6 @@ export function createWithdrawalsClient(options: BaasClientOptions) {
   const request = createAuthenticatedTransport(options);
   return {
     async list(): Promise<unknown> {
-      const accessToken = options.accessToken?.();
       const response = await request('/api/v1/withdrawals');
       if (!response.ok) throw new Error('WITHDRAWALS_UNAVAILABLE');
       return (await response.json()) as unknown;
@@ -649,7 +647,6 @@ export function createWithdrawalsClient(options: BaasClientOptions) {
       return (await response.json()) as unknown;
     },
     async getBalance(): Promise<{ balanceCents: string }> {
-      const accessToken = options.accessToken?.();
       const response = await request('/api/v1/wallet');
       if (!response.ok) throw new Error('WALLET_UNAVAILABLE');
       const data = (await response.json()) as { balanceCents?: string };
@@ -767,7 +764,6 @@ export function createNotificationsClient(options: BaasClientOptions) {
   const request = createAuthenticatedTransport(options);
   return {
     async listDeliveries(query?: Record<string, unknown>): Promise<unknown> {
-      const accessToken = options.accessToken?.();
       const params = new URLSearchParams();
       if (query) {
         for (const [key, val] of Object.entries(query)) {
@@ -782,7 +778,6 @@ export function createNotificationsClient(options: BaasClientOptions) {
       return (await response.json()) as unknown;
     },
     async retryDelivery(id: string): Promise<unknown> {
-      const accessToken = options.accessToken?.();
       const response = await request(
         `/api/v1/notifications/email-deliveries/${encodeURIComponent(id)}/retry`,
         {

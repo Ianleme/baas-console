@@ -30,7 +30,8 @@ function formatTimestamp(value: string | null) {
 }
 
 function connectionLabel(source: string | null | undefined) {
-  return source?.trim() || 'Fonte não informada';
+  const trimmed = source?.trim();
+  return trimmed ?? 'Fonte não informada';
 }
 
 function WalletHeader({ empty = false }: { empty?: boolean }) {
@@ -161,8 +162,12 @@ export function WalletPage({ api }: { api: WalletApi }) {
     void api
       .load()
       .then(setSnapshot)
-      .catch(() => setFailed(true))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        setFailed(true);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [api]);
 
   if (loading) {
@@ -181,7 +186,7 @@ export function WalletPage({ api }: { api: WalletApi }) {
     );
   }
 
-  if (!snapshot || snapshot.capturedAt === null) return <EmptyWallet />;
+  if (!snapshot?.capturedAt) return <EmptyWallet />;
 
   return (
     <div className="space-y-5">

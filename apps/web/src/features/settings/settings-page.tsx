@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type InputHTMLAttributes } from 'react';
+import { useEffect, useState, type SyntheticEvent, type InputHTMLAttributes } from 'react';
 import { ArrowRight, Building2, CheckCircle2, KeyRound, Mail, UserRound } from 'lucide-react';
 
 import { Button } from '../../components/ui/button.js';
@@ -56,8 +56,12 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
     void api
       .load()
       .then(setProfile)
-      .catch(() => setFailed(true))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        setFailed(true);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [api]);
 
   if (loading)
@@ -83,12 +87,14 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
     profile.gatewayConnectionStatus ?? ''
   );
 
-  function onConnect(event: FormEvent<HTMLFormElement>) {
+  function onConnect(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
-    const document = String(data.get('document') ?? '').trim();
-    const password = String(data.get('password') ?? '');
+    const documentVal = data.get('document');
+    const passwordVal = data.get('password');
+    const document = (typeof documentVal === 'string' ? documentVal : '').trim();
+    const password = typeof passwordVal === 'string' ? passwordVal : '';
     const errors: Record<string, string> = {};
     if (!document) errors.document = 'Informe o CPF ou CNPJ usado na Lera Box.';
     if (!password) errors.password = 'Informe a senha temporária da Lera Box.';
@@ -123,15 +129,20 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
           'Não foi possível conectar agora. Verifique os dados e tente novamente.'
         );
       })
-      .finally(() => setConnecting(false));
+      .finally(() => {
+        setConnecting(false);
+      });
   }
 
-  function onRegisterGateway(event: FormEvent<HTMLFormElement>) {
+  function onRegisterGateway(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!api.registerGateway) return;
     const data = new FormData(event.currentTarget);
     const input = Object.fromEntries(
-      Array.from(data.entries(), ([key, value]) => [key, String(value).trim()])
+      Array.from(data.entries(), ([key, value]) => [
+        key,
+        typeof value === 'string' ? value.trim() : ''
+      ])
     );
     setConnectionError(null);
     setConnectionMessage(null);
@@ -163,7 +174,9 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
           'Não foi possível cadastrar na Lera Box. Revise os dados e tente novamente.'
         );
       })
-      .finally(() => setRegistering(false));
+      .finally(() => {
+        setRegistering(false);
+      });
   }
   return (
     <div className="space-y-5">
@@ -235,7 +248,13 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
                     temporárias recebidas por e-mail para liberar webhooks e pagamentos.
                   </p>
                   {!formOpen && (
-                    <Button className="mt-4" type="button" onClick={() => setFormOpen(true)}>
+                    <Button
+                      className="mt-4"
+                      type="button"
+                      onClick={() => {
+                        setFormOpen(true);
+                      }}
+                    >
                       Conectar gateway <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   )}
@@ -250,7 +269,9 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
                     <Button
                       className="mt-4"
                       type="button"
-                      onClick={() => setRegistrationOpen(true)}
+                      onClick={() => {
+                        setRegistrationOpen(true);
+                      }}
                     >
                       Cadastrar na Lera Box <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </Button>
@@ -273,7 +294,9 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
                       className="mt-4"
                       type="button"
                       variant="outline"
-                      onClick={() => setFormOpen(true)}
+                      onClick={() => {
+                        setFormOpen(true);
+                      }}
                     >
                       Reconectar / Atualizar credenciais{' '}
                       <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -344,7 +367,13 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
                 <GatewayField name="state" label="UF" maxLength={2} />
               </div>
               <div className="mt-5 flex gap-2 sm:justify-end">
-                <Button type="button" variant="ghost" onClick={() => setRegistrationOpen(false)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setRegistrationOpen(false);
+                  }}
+                >
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={registering}>

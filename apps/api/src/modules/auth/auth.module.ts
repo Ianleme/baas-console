@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { DatabaseService } from '../../database/database.service.js';
 import { DatabaseModule } from '../../database/database.module.js';
 import { LeraBoxIdentityClient } from '../../integrations/lera-box/auth/lera-box-identity.client.js';
 import { GatewayAccountController } from '../gateway-accounts/gateway-account.controller.js';

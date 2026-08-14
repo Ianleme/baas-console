@@ -221,7 +221,9 @@ describe('runtime API composition', () => {
   test('refresh failure clears session and notifies once without another refresh', async () => {
     const session = createBaasMemorySession();
     session.setToken('token');
-    const onUnauthenticated = vi.fn(() => session.clear());
+    const onUnauthenticated = vi.fn(() => {
+      session.clear();
+    });
     const refreshFails = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(response({}, 401))
@@ -243,7 +245,9 @@ describe('runtime API composition', () => {
   test('retry 401 clears session and notifies once without a second refresh', async () => {
     const session = createBaasMemorySession();
     session.setToken('token');
-    const onUnauthenticated = vi.fn(() => session.clear());
+    const onUnauthenticated = vi.fn(() => {
+      session.clear();
+    });
     const retryFails = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(response({}, 401))

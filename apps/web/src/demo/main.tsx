@@ -5,10 +5,10 @@ async function loadDemo(): Promise<{
   balanceCents: string;
   mode: string;
 }> {
-  const sessionResponse = await fetch('/api/v1/demo/session', { method: 'POST' });
+  const sessionResponse = await window.fetch('/api/v1/demo/session', { method: 'POST' });
   if (!sessionResponse.ok) throw new Error('DEMO_UNAVAILABLE');
   const session = (await sessionResponse.json()) as { accessToken: string };
-  const viewResponse = await fetch('/api/v1/demo/view', {
+  const viewResponse = await window.fetch('/api/v1/demo/view', {
     headers: { Authorization: `Bearer ${session.accessToken}` }
   });
   if (!viewResponse.ok) throw new Error('DEMO_VIEW_UNAVAILABLE');

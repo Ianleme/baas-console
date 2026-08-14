@@ -158,11 +158,6 @@ function buildMovementPath(
     .join(' ');
 }
 
-function buildAreaPath(linePath: string, width: number, height: number) {
-  if (!linePath) return '';
-  return `${linePath} L${String(width - 4)},${String(height - 10)} L4,${String(height - 10)} Z`;
-}
-
 function periodDays(period: (typeof periods)[number]) {
   if (period === 'Hoje') return 1;
   if (period === '7 dias') return 7;
@@ -224,7 +219,9 @@ function PeriodFilters({
           key={item}
           type="button"
           aria-pressed={period === item}
-          onClick={() => onChange(item)}
+          onClick={() => {
+            onChange(item);
+          }}
           className={`h-9 rounded-lg border px-4 text-sm font-medium transition-colors ${
             period === item
               ? 'border-brand-control-border bg-brand-control-active text-brand-primary-dark'
@@ -358,9 +355,7 @@ export function Dashboard({
   const chartHeight = 168;
   const inValues = movement.map((point) => Number(point.inCents));
   const outValues = movement.map((point) => Number(point.outCents));
-  const inPath = buildMovementPath(inValues, chartWidth, chartHeight, movementMax);
   const outPath = buildMovementPath(outValues, chartWidth, chartHeight, movementMax);
-  const inArea = buildAreaPath(inPath, chartWidth, chartHeight);
   const yTicks = [1, 0.75, 0.5, 0.25, 0].map((ratio) => ({
     ratio,
     label: currency.format((movementMax * ratio) / 100)
@@ -403,12 +398,16 @@ export function Dashboard({
                   title="Atualizar saldo"
                   disabled={refreshingWallet}
                   onClick={() => {
+                    if (!api.refreshWallet) return;
                     setRefreshingWallet(true);
-                    void api.refreshWallet!()
-                      .then((wallet) =>
-                        setData((current) => (current ? { ...current, wallet } : current))
-                      )
-                      .finally(() => setRefreshingWallet(false));
+                    void api
+                      .refreshWallet()
+                      .then((wallet) => {
+                        setData((current) => (current ? { ...current, wallet } : current));
+                      })
+                      .finally(() => {
+                        setRefreshingWallet(false);
+                      });
                   }}
                 >
                   <RefreshCw

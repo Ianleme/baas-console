@@ -70,7 +70,7 @@ export class DemoService {
         Buffer.from(encoded, 'base64url').toString('utf8')
       ) as DemoPrincipal;
       if (
-        principal.demo !== true ||
+        !principal.demo ||
         principal.userId !== DEMO_USER_ID ||
         principal.merchantId !== DEMO_TENANT_ID ||
         !Number.isSafeInteger(principal.exp) ||

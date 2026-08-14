@@ -9,4 +9,5 @@ import { SessionProfileService } from './session-profile.service.js';
   controllers: [SessionProfileController],
   providers: [SessionProfileService]
 })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class SessionProfileModule {}

@@ -1,6 +1,6 @@
 import {
   LeraBoxDependencyError,
-  LeraBoxIdentityClient
+  type LeraBoxIdentityClient
 } from '../../../integrations/lera-box/auth/lera-box-identity.client.js';
 
 export interface WithdrawalTransferResult {

@@ -9,4 +9,5 @@ import { ObservabilityController } from './observability.controller.js';
   providers: [MetricsService, DependencyHealthService],
   exports: [MetricsService, DependencyHealthService]
 })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class ObservabilityModule {}

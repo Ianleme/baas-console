@@ -1,5 +1,5 @@
 import { createAuthJourneyClient } from '@baas/api-client';
-import { useEffect, useRef, useState, type InputHTMLAttributes, type SyntheticEvent } from 'react';
+import { useRef, useState, type InputHTMLAttributes, type SyntheticEvent } from 'react';
 
 import { BrandMark } from '../../components/brand-mark.js';
 import { SandboxNotice } from '../../components/sandbox-notice.js';

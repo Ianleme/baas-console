@@ -17,4 +17,5 @@ import { SecurityService } from './security.service.js';
   ],
   exports: [SecurityService]
 })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class SecurityModule {}

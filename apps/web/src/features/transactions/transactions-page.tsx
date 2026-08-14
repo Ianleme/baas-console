@@ -119,7 +119,7 @@ export function TransactionsPage({ api }: { api: TransactionStatementApi }) {
       if (api.downloadReceiptPdf) {
         blob = await api.downloadReceiptPdf(id);
       } else {
-        const res = await fetch(
+        const res = await window.fetch(
           `/api/v1/transactions/${encodeURIComponent(id)}/receipt?format=pdf`,
           {
             credentials: 'include'

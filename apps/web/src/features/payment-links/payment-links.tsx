@@ -273,14 +273,16 @@ export function PaymentLinks({
       const detailed = await resolvePublicLink(link);
       if (!detailed.publicToken) throw new Error('PUBLIC_TOKEN_UNAVAILABLE');
       const url = checkoutUrl(detailed.publicToken);
-      if (globalThis.navigator.clipboard?.writeText) {
+      if (typeof navigator?.clipboard?.writeText === 'function') {
         await globalThis.navigator.clipboard.writeText(url);
       } else {
         copyWithFallback(url);
       }
       setCopiedId(link.id);
       setNotice('Link copiado para a área de transferência!');
-      setTimeout(() => setCopiedId(null), 2000);
+      setTimeout(() => {
+        setCopiedId(null);
+      }, 2000);
     } catch {
       setNotice('Não foi possível copiar o link.');
     }
@@ -345,7 +347,9 @@ export function PaymentLinks({
               variant="outline"
               size="sm"
               className="action-btn text-[#007a5a]"
-              onClick={() => setEmailTargetLink(link)}
+              onClick={() => {
+                setEmailTargetLink(link);
+              }}
             >
               <Mail className="h-3.5 w-3.5" /> Enviar por e-mail
             </Button>
@@ -353,7 +357,9 @@ export function PaymentLinks({
               variant="destructive"
               size="sm"
               className="action-btn action-btn--danger"
-              onClick={() => setCancelCandidate(link)}
+              onClick={() => {
+                setCancelCandidate(link);
+              }}
             >
               Cancelar link
             </Button>
@@ -705,7 +711,9 @@ export function PaymentLinks({
                 size="sm"
                 type="button"
                 disabled={page === 1}
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                onClick={() => {
+                  setPage((current) => Math.max(1, current - 1));
+                }}
               >
                 <ChevronLeft className="h-4 w-4" /> Anterior
               </Button>
@@ -717,7 +725,9 @@ export function PaymentLinks({
                 size="sm"
                 type="button"
                 disabled={page >= totalPages}
-                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                onClick={() => {
+                  setPage((current) => Math.min(totalPages, current + 1));
+                }}
               >
                 Próxima <ChevronRight className="h-4 w-4" />
               </Button>
@@ -794,7 +804,9 @@ export function PaymentLinks({
                 Máximo de parcelas
                 <Select
                   value={String(formInstallments)}
-                  onValueChange={(value) => setFormInstallments(Number(value))}
+                  onValueChange={(value) => {
+                    setFormInstallments(Number(value));
+                  }}
                 >
                   <SelectTrigger aria-label="Máximo de parcelas">
                     <SelectValue />
@@ -828,7 +840,9 @@ export function PaymentLinks({
                     type="button"
                     variant={expiryPreset === value ? 'default' : 'outline'}
                     aria-pressed={expiryPreset === value}
-                    onClick={() => setExpiryPreset(value)}
+                    onClick={() => {
+                      setExpiryPreset(value);
+                    }}
                   >
                     {label}
                   </Button>
@@ -842,7 +856,9 @@ export function PaymentLinks({
                     type="datetime-local"
                     required
                     value={customExpiry}
-                    onChange={(event) => setCustomExpiry(event.target.value)}
+                    onChange={(event) => {
+                      setCustomExpiry(event.target.value);
+                    }}
                   />
                 </label>
               )}
@@ -1079,7 +1095,8 @@ function copyWithFallback(value: string) {
   textarea.style.opacity = '0';
   document.body.appendChild(textarea);
   textarea.select();
-  const copied = document.execCommand('copy');
+  const doc = document as unknown as { execCommand?: (cmd: string) => boolean };
+  const copied = Boolean(doc.execCommand?.('copy'));
   textarea.remove();
   if (!copied) throw new Error('CLIPBOARD_COPY_FAILED');
 }

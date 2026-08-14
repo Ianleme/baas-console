@@ -95,8 +95,7 @@ class MemoryLinkStore implements CheckoutLinkStore {
     publicTokenCiphertext: Buffer
   ): Promise<boolean> {
     const link = this.links.find((item) => item.merchantId === merchantId && item.id === id);
-    if (!link || link.status !== 'ACTIVE' || link.tokenClosedAt === null)
-      return Promise.resolve(false);
+    if (link?.status !== 'ACTIVE' || link.tokenClosedAt === null) return Promise.resolve(false);
     link.publicTokenHash = publicTokenHash;
     link.publicTokenCiphertext = publicTokenCiphertext;
     link.tokenClosedAt = null;

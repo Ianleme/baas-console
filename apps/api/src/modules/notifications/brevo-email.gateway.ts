@@ -13,7 +13,9 @@ export interface EmailGateway {
   sendEmail(message: EmailMessage): Promise<SendEmailResult>;
 }
 
-type BrevoResponse = { messageId?: unknown };
+interface BrevoResponse {
+  messageId?: unknown;
+}
 
 export class BrevoEmailGateway implements EmailGateway {
   private readonly apiKey: string | undefined;
@@ -53,7 +55,7 @@ export class BrevoEmailGateway implements EmailGateway {
     }
 
     if (response.status !== 201) {
-      throw this.providerError(`BREVO_HTTP_${response.status}`);
+      throw this.providerError('BREVO_HTTP_' + String(response.status));
     }
 
     let result: BrevoResponse;

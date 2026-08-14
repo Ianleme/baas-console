@@ -88,12 +88,12 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
     void clients.profile
       .load()
       .then((value) => {
-        if (!value || !value.merchant || !value.owner) {
+        if (!value) {
           setProfile(null);
           setProfileState('unavailable');
           return;
         }
-        setProfile(value as CurrentProfile);
+        setProfile(value);
         setProfileState('ready');
       })
       .catch(() => {
@@ -119,7 +119,7 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
     activePath: hash,
     onLogout: async () => {
       try {
-        await clients.auth.logout?.();
+        if (clients.auth.logout) await clients.auth.logout();
       } finally {
         endSession();
       }
@@ -143,8 +143,15 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
           <SettingsPage
             api={{
               ...clients.profile,
-              connect: clients.auth.connect,
-              registerGateway: clients.auth.registerGateway!
+              connect: (input) => clients.auth.connect(input),
+              ...(clients.auth.registerGateway
+                ? {
+                    registerGateway: (input: Record<string, string>) =>
+                      clients.auth.registerGateway
+                        ? clients.auth.registerGateway(input)
+                        : Promise.resolve()
+                  }
+                : {})
             }}
           />
         }

@@ -75,10 +75,8 @@ test.describe('dashboard reference layout', () => {
         };
       })
     );
-    expect(boxes).toHaveLength(3);
-    const composition = boxes[0]!;
-    const movement = boxes[1]!;
-    const operation = boxes[2]!;
+    const [composition, movement, operation] = boxes;
+    if (!composition || !movement || !operation) throw new Error('Missing box bounds');
     const kpiBox = await kpis.boundingBox();
     expect(boxes.map((box) => box.label)).toEqual([
       'composition-title',
@@ -119,10 +117,8 @@ test.describe('dashboard reference layout', () => {
         };
       })
     );
-    expect(boxes).toHaveLength(3);
-    const composition = boxes[0]!;
-    const movement = boxes[1]!;
-    const operation = boxes[2]!;
+    const [composition, movement, operation] = boxes;
+    if (!composition || !movement || !operation) throw new Error('Missing box bounds');
     expect(composition.y).toBeLessThan(movement.y);
     expect(movement.y).toBeLessThan(operation.y);
     expect(boxes.every((box) => box.width <= 390 && box.x >= 0)).toBe(true);

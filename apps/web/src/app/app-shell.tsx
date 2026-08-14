@@ -54,65 +54,6 @@ const navSections = [
   }
 ] as const;
 
-function useUserProfile() {
-  if (typeof window === 'undefined') {
-    return {
-      merchantName: 'Seu negócio',
-      userName: 'Conta do lojista',
-      initials: 'CL',
-      verified: false,
-      statusText: 'Aguardando conexão'
-    };
-  }
-  try {
-    const raw = localStorage.getItem('baas_user_profile');
-    if (raw) {
-      const data = JSON.parse(raw) as {
-        userName?: string;
-        tradingName?: string;
-        email?: string;
-        status?: string;
-      };
-      const rawName =
-        typeof data.userName === 'string' && data.userName.length > 0
-          ? data.userName
-          : typeof data.email === 'string'
-            ? data.email.split('@')[0]
-            : undefined;
-      const userName = rawName ?? 'Conta do lojista';
-      const merchantName =
-        typeof data.tradingName === 'string' && data.tradingName.length > 0
-          ? data.tradingName
-          : userName;
-      const initials =
-        userName
-          .split(' ')
-          .filter((part): part is string => part.length > 0)
-          .map((part) => part[0])
-          .slice(0, 2)
-          .join('')
-          .toUpperCase() || 'CL';
-      const verified = data.status === 'ACTIVE';
-      return {
-        merchantName,
-        userName,
-        initials,
-        verified,
-        statusText: verified ? 'Conta verificada' : 'Aguardando conexão'
-      };
-    }
-  } catch {
-    // fallback
-  }
-  return {
-    merchantName: 'Seu negócio',
-    userName: 'Conta do lojista',
-    initials: 'CL',
-    verified: false,
-    statusText: 'Aguardando conexão'
-  };
-}
-
 export function AppShell({
   content,
   activePath,
@@ -271,7 +212,9 @@ export function AppShell({
             onClick={() => {
               if (!onLogout || logoutPending) return;
               setLogoutPending(true);
-              void Promise.resolve(onLogout()).finally(() => setLogoutPending(false));
+              void Promise.resolve(onLogout()).finally(() => {
+                setLogoutPending(false);
+              });
             }}
           >
             <LogOut className="h-3.5 w-3.5" />

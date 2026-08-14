@@ -9,10 +9,10 @@ const profile: CurrentProfile = {
 };
 
 describe('SettingsPage', () => {
-  const connect = async () => 'ACTIVE' as const;
+  const connect = () => Promise.resolve('ACTIVE' as const);
 
   test('shows the allowlisted business, owner and gateway state', async () => {
-    render(<SettingsPage api={{ load: async () => profile, connect }} />);
+    render(<SettingsPage api={{ load: () => Promise.resolve(profile), connect }} />);
     expect(await screen.findByText('Acme Store')).toBeVisible();
     expect(screen.getByText('Acme LTDA')).toBeVisible();
     expect(screen.getByText('Joana Silva')).toBeVisible();
@@ -21,7 +21,7 @@ describe('SettingsPage', () => {
   });
 
   test('is read-only and offers no mutation controls', async () => {
-    render(<SettingsPage api={{ load: async () => profile, connect }} />);
+    render(<SettingsPage api={{ load: () => Promise.resolve(profile), connect }} />);
     await screen.findByText('Acme Store');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
@@ -39,7 +39,8 @@ describe('SettingsPage', () => {
     render(
       <SettingsPage
         api={{
-          load: async () => ({ ...profile, gatewayConnectionStatus: 'AWAITING_CREDENTIALS' }),
+          load: () =>
+            Promise.resolve({ ...profile, gatewayConnectionStatus: 'AWAITING_CREDENTIALS' }),
           connect: connectSpy
         }}
       />
@@ -62,9 +63,7 @@ describe('SettingsPage', () => {
       <SettingsPage
         api={{
           connect,
-          load: async () => {
-            throw new Error('internal payload');
-          }
+          load: () => Promise.reject(new Error('internal payload'))
         }}
       />
     );
@@ -79,10 +78,10 @@ describe('SettingsPage', () => {
       <SettingsPage
         api={{
           connect,
-          load: async () => {
+          load: () => {
             const error = new Error('PROFILE_UNAVAILABLE') as Error & { status: number };
             error.status = 503;
-            throw error;
+            return Promise.reject(error);
           }
         }}
       />

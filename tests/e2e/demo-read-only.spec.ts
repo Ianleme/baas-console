@@ -40,9 +40,11 @@ test('opens the deterministic demo without a password and blocks mutations', asy
   await expect(page.getByText('Somente leitura')).toBeVisible();
   await expect(page.getByText('R$ 1.250,00')).toBeVisible();
   await expect(page.getByText(/senha/i)).toHaveCount(0);
-  const response = await page.evaluate(async () =>
-    fetch('/api/v1/payments', { method: 'POST', body: '{}' }).then((result) => result.json())
-  );
+  const response = (await page.evaluate(async () =>
+    fetch('/api/v1/payments', { method: 'POST', body: '{}' }).then(
+      (result) => result.json() as Promise<unknown>
+    )
+  )) as { status: number; code: string };
   expect(response).toEqual({ status: 403, code: 'DEMO_READ_ONLY' });
   expect(requests).toContain('POST /api/v1/demo/session');
   expect(requests).toContain('GET /api/v1/demo/view');

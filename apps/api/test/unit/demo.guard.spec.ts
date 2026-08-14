@@ -1,4 +1,4 @@
-import { ExecutionContext } from '@nestjs/common';
+import type { ExecutionContext } from '@nestjs/common';
 import { DemoReadOnlyGuard } from '../../src/modules/demo/demo.guard.js';
 import { DemoService } from '../../src/modules/demo/demo.service.js';
 

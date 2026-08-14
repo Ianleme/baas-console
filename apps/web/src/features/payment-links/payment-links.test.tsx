@@ -244,7 +244,9 @@ describe('PaymentLinks', () => {
   });
   test('asks confirmation before destructive cancellation', async () => {
     const api = await renderReady();
-    await userEvent.click(screen.getAllByRole('button', { name: 'Cancelar link' })[0]!);
+    const [cancelBtn] = screen.getAllByRole('button', { name: 'Cancelar link' });
+    expect(cancelBtn).toBeDefined();
+    if (cancelBtn) await userEvent.click(cancelBtn);
     expect(api.cancel).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog', { name: 'Cancelar link?' })).toHaveTextContent(
       'não poderá ser desfeita'
@@ -252,7 +254,9 @@ describe('PaymentLinks', () => {
   });
   test('cancels only after explicit confirmation', async () => {
     const api = await renderReady();
-    await userEvent.click(screen.getAllByRole('button', { name: 'Cancelar link' })[0]!);
+    const [cancelBtn] = screen.getAllByRole('button', { name: 'Cancelar link' });
+    expect(cancelBtn).toBeDefined();
+    if (cancelBtn) await userEvent.click(cancelBtn);
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar cancelamento' }));
     await waitFor(() => {
       expect(api.cancel).toHaveBeenCalledWith('link-1');
@@ -261,7 +265,9 @@ describe('PaymentLinks', () => {
   });
   test('keeps the backend state when cancellation fails', async () => {
     await renderReady(client({ cancel: vi.fn().mockRejectedValue(new Error('raw secret')) }));
-    await userEvent.click(screen.getAllByRole('button', { name: 'Cancelar link' })[0]!);
+    const [cancelBtn] = screen.getAllByRole('button', { name: 'Cancelar link' });
+    expect(cancelBtn).toBeDefined();
+    if (cancelBtn) await userEvent.click(cancelBtn);
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar cancelamento' }));
     expect(await screen.findByText('Não foi possível cancelar o link.')).toBeVisible();
     expect(screen.getAllByText('Ativo')[0]).toBeVisible();
@@ -324,7 +330,9 @@ describe('PaymentLinks', () => {
       value: { writeText }
     });
     const api = await renderReady();
-    await userEvent.click(screen.getAllByRole('button', { name: 'Copiar link' })[0]!);
+    const [copyBtn] = screen.getAllByRole('button', { name: 'Copiar link' });
+    expect(copyBtn).toBeDefined();
+    if (copyBtn) await userEvent.click(copyBtn);
 
     await waitFor(() => {
       expect(api.share).toHaveBeenCalledWith('link-1');
@@ -342,12 +350,12 @@ describe('PaymentLinks', () => {
       .mockResolvedValueOnce({ publicToken: 'first-token' })
       .mockResolvedValueOnce({ publicToken: 'rotated-token' });
     const api = await renderReady(client({ share }));
-    const copy = screen.getAllByRole('button', { name: 'Copiar link' })[0]!;
-
-    await userEvent.click(copy);
-    await waitFor(() =>
-      expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('first-token'))
-    );
+    const [copy] = screen.getAllByRole('button', { name: 'Copiar link' });
+    expect(copy).toBeDefined();
+    if (copy) await userEvent.click(copy);
+    await waitFor(() => {
+      expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('first-token'));
+    });
     await userEvent.click(copy);
 
     await waitFor(() => {

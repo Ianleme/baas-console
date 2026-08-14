@@ -152,8 +152,11 @@ export class GatewayOnboardingService {
       dependencyError?.code === 'LERA_BOX_TIMEOUT'
         ? 'GATEWAY_REGISTRATION_UNKNOWN'
         : 'GATEWAY_REGISTRATION_FAILED';
+    const remoteStatusStr = dependencyError?.remoteStatus
+      ? `_${String(dependencyError.remoteStatus)}`
+      : '';
     record.lastErrorCode = dependencyError
-      ? `${dependencyError.code}${dependencyError.remoteStatus ? `_${dependencyError.remoteStatus}` : ''}`
+      ? `${dependencyError.code}${remoteStatusStr}`
       : record.status;
 
     this.logger.error(
