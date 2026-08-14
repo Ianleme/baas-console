@@ -87,7 +87,12 @@ createServer(async (request, response) => {
     return;
   }
 
-  if (request.url?.startsWith('/api/')) {
+  if (
+    request.url?.startsWith('/api/') ||
+    request.url === '/docs' ||
+    request.url?.startsWith('/docs/') ||
+    request.url?.startsWith('/docs-json')
+  ) {
     proxyApiRequest(request, response);
     return;
   }
