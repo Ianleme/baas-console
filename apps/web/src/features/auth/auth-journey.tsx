@@ -283,7 +283,6 @@ export function AuthJourney({
         remember: data.get('remember') === 'on'
       });
       setScreen('active');
-      onAuthenticated?.();
     });
   }
 

@@ -9,14 +9,50 @@ test('manages payment links in the responsive merchant screen', async ({ page })
     methods: 'PIX',
     maxInstallments: 1,
     selectedFeeBps: null,
+    feeSnapshot: [],
     status: 'ACTIVE',
     expiresAt: '2026-08-15T18:18:00.000Z'
   };
-  await page.route('**/api/v1/checkout-links', async (route) => {
+  await page.context().addCookies([
+    {
+      name: 'baas_csrf',
+      value: 'e2e-csrf',
+      domain: '127.0.0.1',
+      path: '/'
+    }
+  ]);
+  await page.route('**/api/v1/auth/refresh', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify([link])
+      body: JSON.stringify({ accessToken: 'e2e-token' })
+    });
+  });
+  await page.route('**/api/v1/session/profile', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        merchant: { legalName: 'Aurora Comércio Ltda', displayName: 'Aurora Store' },
+        owner: { fullName: 'Cliente Aurora', email: 'owner@example.test' },
+        gatewayConnectionStatus: 'ACTIVE'
+      })
+    });
+  });
+  await page.route('**/api/v1/checkout-links**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [link],
+        total: 1,
+        summary: {
+          totalCount: 1,
+          activeCount: 1,
+          paidCount: 0,
+          paidAmountCents: '0'
+        }
+      })
     });
   });
   await page.goto('/app.html#/links');
@@ -25,5 +61,7 @@ test('manages payment links in the responsive merchant screen', async ({ page })
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole('button', { name: '+ Criar link de pagamento' })).toBeVisible();
   await page.getByPlaceholder('Buscar por descrição ou referência').fill('1048');
-  await expect(page.getByText('Pedido #1048')).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'Links em cartões' }).getByText('Pedido #1048')
+  ).toBeVisible();
 });

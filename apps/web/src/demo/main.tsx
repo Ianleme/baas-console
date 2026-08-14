@@ -1,4 +1,4 @@
-import '../../styles/tokens.css';
+import '../styles/tokens.css';
 
 async function loadDemo(): Promise<{
   merchant: { displayName: string };
@@ -27,7 +27,7 @@ void loadDemo()
       style: 'currency',
       currency: 'BRL'
     });
-    root.innerHTML = `<main><h1>${view.merchant.displayName}</h1><p>Somente leitura</p><strong>${amount}</strong><p>Tour demonstrativo sem senha pública.</p></main>`;
+    root.innerHTML = `<main><h1>${view.merchant.displayName}</h1><p>Somente leitura</p><strong>${amount}</strong><p>Tour demonstrativo.</p></main>`;
   })
   .catch(() => {
     root.innerHTML = '<main><h1>Demo indisponível</h1></main>';

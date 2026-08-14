@@ -13,6 +13,14 @@ test('covers authenticated console identity, stale wallet, settings, and logout'
       });
       return;
     }
+    if (url.pathname === '/api/v1/auth/refresh') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ accessToken: 'e2e-token' })
+      });
+      return;
+    }
     if (url.pathname === '/api/v1/auth/logout') {
       await route.fulfill({ status: 204, body: '' });
       return;
@@ -41,12 +49,33 @@ test('covers authenticated console identity, stale wallet, settings, and logout'
       });
       return;
     }
+    if (url.pathname === '/api/v1/transactions') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ items: [], total: 0 })
+      });
+      return;
+    }
+    if (url.pathname === '/api/v1/webhooks') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([])
+      });
+      return;
+    }
     await route.fulfill({ status: 204, body: '' });
   });
 
-  await page.addInitScript(() => {
-    window.localStorage.setItem('baas_access_token', 'e2e-token');
-  });
+  await page.context().addCookies([
+    {
+      name: 'baas_csrf',
+      value: 'e2e-csrf',
+      domain: '127.0.0.1',
+      path: '/'
+    }
+  ]);
   await page.goto('/app.html');
 
   await expect(page.locator('.merchant-name')).toHaveText('Aurora Store');

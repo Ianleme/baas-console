@@ -2,12 +2,29 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function mockApi(page: Page, connectStatus = 'ACTIVE'): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
+    const url = route.request().url();
+    if (url.endsWith('/connect')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: connectStatus })
+      });
+      return;
+    }
+    if (url.endsWith('/register')) {
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          gatewayOnboarding: { status: 'AWAITING_CREDENTIALS' }
+        })
+      });
+      return;
+    }
     await route.fulfill({
-      status: route.request().url().endsWith('/connect') ? 200 : 204,
+      status: 204,
       contentType: 'application/json',
-      body: route.request().url().endsWith('/connect')
-        ? JSON.stringify({ status: connectStatus })
-        : ''
+      body: ''
     });
   });
 }

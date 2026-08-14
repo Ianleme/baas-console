@@ -46,14 +46,16 @@ test('quotes and submits a sandbox card without browser persistence', async ({ p
   });
   await page.goto('/pay.html#/checkout/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQ');
   await expect(page.getByRole('heading', { name: 'Pague com cartão' })).toBeVisible();
-  await page.getByRole('button', { name: 'Calcular parcelas e taxa' }).click();
+  await page.getByRole('button', { name: 'Revisar pagamento' }).click();
   await page.getByLabel('Número do cartão').fill('4111111111111111');
   await page.getByLabel('Nome impresso').fill('CLIENTE SANDBOX');
-  await page.getByLabel('Mês').fill('12');
-  await page.getByLabel('Ano').fill('2030');
+  await page.getByRole('combobox', { name: 'Mês' }).click();
+  await page.getByRole('option', { name: '12' }).click();
+  await page.getByRole('combobox', { name: 'Ano' }).click();
+  await page.getByRole('option', { name: '2030' }).click();
   await page.getByLabel('CVV').fill('123');
-  await page.getByRole('button', { name: 'Confirmar pagamento' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Pagamento confirmado' })).toBeVisible();
+  await page.getByRole('button', { name: /^Pagar/ }).click();
+  await expect(page.getByRole('heading', { name: 'Cartão aprovado' })).toBeVisible();
   expect(requests[0]).not.toContain('411111');
   expect(requests[1]).toContain('4111111111111111');
   expect(

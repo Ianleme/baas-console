@@ -7,6 +7,32 @@ test('manages callbacks in the responsive webhook screen', async ({ page }) => {
     configuredAt: '2026-08-12T14:00:00.000Z',
     lastReceivedAt: null
   };
+  await page.context().addCookies([
+    {
+      name: 'baas_csrf',
+      value: 'e2e-csrf',
+      domain: '127.0.0.1',
+      path: '/'
+    }
+  ]);
+  await page.route('**/api/v1/auth/refresh', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ accessToken: 'e2e-token' })
+    });
+  });
+  await page.route('**/api/v1/session/profile', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        merchant: { legalName: 'Aurora Comércio Ltda', displayName: 'Aurora Store' },
+        owner: { fullName: 'Cliente Aurora', email: 'owner@example.test' },
+        gatewayConnectionStatus: 'ACTIVE'
+      })
+    });
+  });
   await page.route('**/api/v1/webhooks', async (route) => {
     if (route.request().method() === 'POST') {
       const body = route.request().postDataJSON() as { event: string };

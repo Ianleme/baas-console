@@ -35,6 +35,33 @@ test.describe('dashboard reference layout', () => {
         return;
       }
 
+      if (pathname === '/api/v1/auth/refresh') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ accessToken: 'e2e-token' })
+        });
+        return;
+      }
+
+      if (pathname === '/api/v1/transactions') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ items: [], total: 0 })
+        });
+        return;
+      }
+
+      if (pathname === '/api/v1/webhooks') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([])
+        });
+        return;
+      }
+
       if (pathname === '/api/v1/auth/logout') {
         await route.fulfill({ status: 204, body: '' });
         return;
@@ -43,9 +70,14 @@ test.describe('dashboard reference layout', () => {
       await route.fulfill({ status: 204, body: '' });
     });
 
-    await page.addInitScript(() => {
-      window.localStorage.setItem('baas_access_token', 'e2e-token');
-    });
+    await page.context().addCookies([
+      {
+        name: 'baas_csrf',
+        value: 'e2e-csrf',
+        domain: '127.0.0.1',
+        path: '/'
+      }
+    ]);
   });
 
   test('keeps the desktop rail and 4/6/3 insight order', async ({ page }) => {

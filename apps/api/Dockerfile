@@ -16,16 +16,11 @@ RUN npm run build --workspace @baas/api
 FROM node:24.15.0-bookworm-slim@sha256:4e6b70dd6cbfc88c8157ba19aa3d9f9cce6ba4703576d55459e45efcbc9c5f5d AS runtime
 
 ENV NODE_ENV=development
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 WORKDIR /app
 COPY --from=build /workspace/node_modules ./node_modules
 COPY --from=build /workspace/packages/receipt-template ./packages/receipt-template
 COPY --from=build /workspace/apps/api/dist ./apps/api/dist
-
-RUN npx playwright install-deps chromium \
- && npx playwright install chromium \
- && chown -R node:node /ms-playwright
 
 USER node
 EXPOSE 3000

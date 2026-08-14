@@ -250,7 +250,7 @@ function ReceiptCompositionCard({ children }: { children: ReactNode }) {
   return (
     <Card
       className={`${cardClass} flex h-full flex-col rounded-xl xl:col-span-4`}
-      aria-label="Composição dos recebimentos"
+      aria-labelledby="composition-title"
     >
       {children}
     </Card>
@@ -260,7 +260,7 @@ function MovementChartCard({ children }: { children: ReactNode }) {
   return (
     <Card
       className={`${cardClass} flex h-full flex-col rounded-xl xl:col-span-6`}
-      aria-label="Movimentação financeira"
+      aria-labelledby="movement-title"
     >
       {children}
     </Card>
@@ -270,7 +270,7 @@ function OperationCard({ children }: { children: ReactNode }) {
   return (
     <Card
       className={`${cardClass} flex h-full flex-col rounded-xl xl:col-span-3`}
-      aria-label="Operação"
+      aria-labelledby="operation-title"
     >
       {children}
     </Card>
