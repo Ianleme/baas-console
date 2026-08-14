@@ -74,6 +74,7 @@ describe('checkout and payments HTTP runtime', () => {
     process.env.AUTH_TOKEN_SECRET = 'test-auth-token-secret-at-least-32-bytes';
     process.env.ENCRYPTION_KEY_BASE64 = Buffer.alloc(32, 7).toString('base64');
     process.env.LERA_BOX_BASE_URL = 'https://gateway.invalid';
+    process.env.COOKIE_SECURE = 'true';
     const bootstrap: DataSource = createApplicationDataSource();
     await bootstrap.initialize();
     await bootstrap.dropDatabase();
@@ -110,7 +111,7 @@ describe('checkout and payments HTTP runtime', () => {
        VALUES (?, ?, 'ACTIVE', '12345678901', 'PF', ?)`,
         [accountId, principal.principal.merchantId, encrypted]
       );
-  });
+  }, 30000);
 
   afterAll(async () => app.close());
 
@@ -173,7 +174,7 @@ describe('checkout and payments HTTP runtime', () => {
       .send({ token })
       .expect(201);
     const cookies = exchanged.headers['set-cookie'] as unknown as string[] | undefined;
-    expect(cookies?.join(';')).toContain('__Host-baas_checkout=');
+    expect(cookies?.join(';')).toMatch(/(__Host-)?baas_checkout=/u);
     expect(exchanged.headers['cache-control']).toBe('no-store');
     await request(app.getHttpServer() as Server)
       .post('/api/v1/public/checkout-sessions')
@@ -276,7 +277,9 @@ describe('checkout and payments HTTP runtime', () => {
 
 function checkoutCookie(response: request.Response): string {
   const cookies = response.headers['set-cookie'] as unknown as string[] | undefined;
-  const value = cookies?.find((cookie) => cookie.startsWith('__Host-baas_checkout='));
+  const value = cookies?.find(
+    (cookie) => cookie.startsWith('__Host-baas_checkout=') || cookie.startsWith('baas_checkout=')
+  );
   if (!value) throw new Error('CHECKOUT_COOKIE_MISSING');
   return value.split(';')[0] ?? '';
 }

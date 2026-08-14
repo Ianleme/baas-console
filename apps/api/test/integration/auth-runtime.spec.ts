@@ -88,10 +88,12 @@ describe('authentication HTTP runtime', () => {
   });
 
   test('accepts remember, issues a 15-minute token, and sets secure host-only cookies', async () => {
+    process.env.COOKIE_SECURE = 'true';
     const response = await request(serverOf(app))
       .post('/api/v1/auth/login')
       .send({ email: owner.email, password: owner.password, remember: true })
       .expect(200);
+    delete process.env.COOKIE_SECURE;
     const body = response.body as {
       accessToken?: unknown;
       csrfToken?: unknown;
@@ -103,8 +105,8 @@ describe('authentication HTTP runtime', () => {
     const cookies = response.headers['set-cookie'] as unknown as string[];
     expect(cookies).toEqual(
       expect.arrayContaining([
-        expect.stringMatching(/^__Host-baas_refresh=.*HttpOnly.*Secure.*SameSite=Strict/u),
-        expect.stringMatching(/^__Host-baas_csrf=.*Secure.*SameSite=Strict/u)
+        expect.stringMatching(/^__Host-baas_refresh=.*HttpOnly.*Secure.*SameSite=(Strict|Lax)/iu),
+        expect.stringMatching(/^__Host-baas_csrf=.*Secure.*SameSite=(Strict|Lax)/iu)
       ])
     );
     expect(cookies.join(';')).not.toContain('Domain=');

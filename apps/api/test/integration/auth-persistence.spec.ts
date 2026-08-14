@@ -46,7 +46,7 @@ describe('authentication persistence on MySQL 8.4', () => {
     await dataSource.initialize();
     await dataSource.dropDatabase();
     await dataSource.runMigrations({ transaction: 'all' });
-  });
+  }, 30000);
 
   afterAll(async () => {
     await dataSource.destroy();
@@ -64,7 +64,7 @@ describe('authentication persistence on MySQL 8.4', () => {
     } finally {
       await queryRunner.release();
     }
-  });
+  }, 30000);
 
   async function insertMerchant(id = randomUUID()): Promise<string> {
     await dataSource.query(

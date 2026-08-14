@@ -1,8 +1,40 @@
-import type { INestApplication } from '@nestjs/common';
+import { Controller, Delete, Patch, Post, Put, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { DemoModule } from '../../src/modules/demo/demo.module.js';
 import { configureApplication } from '../../src/platform/configure-application.js';
+
+@Controller('api/v1')
+class DummyMutationController {
+  @Post('payments')
+  payments() {
+    return { ok: true };
+  }
+  @Post('withdrawals')
+  withdrawals() {
+    return { ok: true };
+  }
+  @Post('auth/logout')
+  logout() {
+    return { ok: true };
+  }
+  @Post('checkout-links')
+  checkoutLinks() {
+    return { ok: true };
+  }
+  @Put('withdrawals')
+  putWithdrawals() {
+    return { ok: true };
+  }
+  @Patch('withdrawals')
+  patchWithdrawals() {
+    return { ok: true };
+  }
+  @Delete('withdrawals')
+  deleteWithdrawals() {
+    return { ok: true };
+  }
+}
 
 describe('read-only demo HTTP boundary', () => {
   let app: INestApplication;
@@ -12,7 +44,10 @@ describe('read-only demo HTTP boundary', () => {
 
   beforeAll(async () => {
     process.env.DEMO_ENABLED = 'true';
-    const module = await Test.createTestingModule({ imports: [DemoModule] }).compile();
+    const module = await Test.createTestingModule({
+      imports: [DemoModule],
+      controllers: [DummyMutationController]
+    }).compile();
     app = module.createNestApplication({ rawBody: true });
     configureApplication(app);
     await app.init();
@@ -73,10 +108,10 @@ describe('read-only demo HTTP boundary', () => {
     const agent = request(httpServer());
     const response = await (
       method === 'PUT'
-        ? agent.put('/api/v1/withdrawals/1')
+        ? agent.put('/api/v1/withdrawals')
         : method === 'PATCH'
-          ? agent.patch('/api/v1/withdrawals/1')
-          : agent.delete('/api/v1/withdrawals/1')
+          ? agent.patch('/api/v1/withdrawals')
+          : agent.delete('/api/v1/withdrawals')
     ).set('Authorization', `Bearer ${token}`);
     const body = response.body as { code: string };
     expect(response.status).toBe(403);
@@ -100,12 +135,12 @@ describe('read-only demo HTTP boundary', () => {
   });
 
   test('rate limits six session issues from one IP', async () => {
-    const responses = await Promise.all(
-      Array.from({ length: 6 }, () =>
-        request(httpServer()).post('/api/v1/demo/session').set('X-Forwarded-For', '198.51.100.43')
-      )
-    );
-    const lastRes = responses.at(-1);
+    let lastRes;
+    for (let i = 0; i < 6; i++) {
+      lastRes = await request(httpServer())
+        .post('/api/v1/demo/session')
+        .set('X-Forwarded-For', '198.51.100.43');
+    }
     const body = lastRes?.body as { code?: string } | undefined;
     expect(lastRes?.status).toBe(429);
     expect(body?.code).toBe('RATE_LIMITED');
