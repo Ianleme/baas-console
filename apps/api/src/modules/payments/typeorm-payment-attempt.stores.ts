@@ -91,7 +91,11 @@ export class TypeOrmPixAttemptStore implements PixAttemptStore {
       if (result.affected !== 1) throw new Error('PAYMENT_ATTEMPT_STATE_CONFLICT');
       await manager.update(
         TransactionEntity,
-        { merchantId: (await manager.findOneByOrFail(PaymentAttemptEntity, { id })).merchantId, originType: 'PAYMENT', originId: id },
+        {
+          merchantId: (await manager.findOneByOrFail(PaymentAttemptEntity, { id })).merchantId,
+          originType: 'PAYMENT',
+          originId: id
+        },
         {
           ...(update.status ? { status: transactionStatus(update.status) } : {}),
           ...(update.gatewayPaymentId !== undefined

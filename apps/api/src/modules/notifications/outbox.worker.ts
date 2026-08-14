@@ -16,13 +16,19 @@ export class OutboxWorker implements OnModuleInit, OnModuleDestroy {
     this.timer = setInterval(() => void this.process(), 5_000);
     this.timer.unref();
   }
-  onModuleDestroy(): void { if (this.timer) clearInterval(this.timer); }
+  onModuleDestroy(): void {
+    if (this.timer) clearInterval(this.timer);
+  }
   private async process(): Promise<void> {
     if (!this.database.isConnected()) return;
     if (this.running) return;
     this.running = true;
-    try { await this.outbox.processOutbox(); }
-    catch (error) { this.logger.error('Email outbox worker failed', error); }
-    finally { this.running = false; }
+    try {
+      await this.outbox.processOutbox();
+    } catch (error) {
+      this.logger.error('Email outbox worker failed', error);
+    } finally {
+      this.running = false;
+    }
   }
 }

@@ -9,8 +9,12 @@ const statuses = [];
 for (let i = 0; i < iterations; i += 1) statuses.push((await fetch(baseUrl)).status);
 const elapsedMs = performance.now() - started;
 const result = {
-  schemaVersion: 1, measured: true, url: baseUrl, iterations,
-  elapsedMs: Number(elapsedMs.toFixed(2)), statuses,
+  schemaVersion: 1,
+  measured: true,
+  url: baseUrl,
+  iterations,
+  elapsedMs: Number(elapsedMs.toFixed(2)),
+  statuses,
   capturedAt: new Date().toISOString(),
   hardware: process.env.BENCHMARK_HARDWARE ?? 'record externally',
   imageDigests: process.env.BENCHMARK_IMAGE_DIGESTS ?? 'record externally'

@@ -7,6 +7,8 @@ test('observability is opt-in and private', () => {
   assert.match(compose, /profiles: \[observability\]/);
   assert.match(compose, /ops: \{internal: true\}/);
   assert.doesNotMatch(compose, /prometheus:\n(?:.|\n)*?ports:/);
-  const dashboard = JSON.parse(fs.readFileSync('observability/grafana/dashboards/baas-overview.json', 'utf8'));
+  const dashboard = JSON.parse(
+    fs.readFileSync('observability/grafana/dashboards/baas-overview.json', 'utf8')
+  );
   assert.ok(dashboard.panels.length >= 5);
 });

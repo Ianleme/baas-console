@@ -99,19 +99,19 @@ export class AuthController {
       });
       const gatewayOnboarding = isGatewayRegistration(input)
         ? await this.onboarding.register(user.merchantId, {
-          personType: input.personType,
-          name: input.name,
-          tradingName: input.tradingName,
-          email: input.email,
-          phone: input.phone,
-          document: input.document,
-          zipCode: input.zipCode,
-          address: input.address,
-          number: input.number,
-          neighborhood: input.neighborhood,
-          city: input.city,
-          state: input.state
-        })
+            personType: input.personType,
+            name: input.name,
+            tradingName: input.tradingName,
+            email: input.email,
+            phone: input.phone,
+            document: input.document,
+            zipCode: input.zipCode,
+            address: input.address,
+            number: input.number,
+            neighborhood: input.neighborhood,
+            city: input.city,
+            state: input.state
+          })
         : undefined;
       return {
         ...this.writeSession(response, await this.auth.login(input.email, input.password)),

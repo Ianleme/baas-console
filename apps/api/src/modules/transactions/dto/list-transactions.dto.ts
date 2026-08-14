@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import type {
   TransactionOriginType,
   TransactionStatus,
@@ -23,6 +23,14 @@ export class ListTransactionsDto {
   @IsString()
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
   reference?: string;
+
+  @IsOptional()
+  @IsDateString()
+  from?: string;
+
+  @IsOptional()
+  @IsDateString()
+  to?: string;
 
   @IsOptional()
   @Type(() => Number)

@@ -9,11 +9,16 @@ describe('AppRouter', () => {
   beforeEach(() => {
     vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
       if (String(input).includes('/session/profile')) {
-        return Promise.resolve(new Response(JSON.stringify({
-          merchant: { legalName: 'Aurora Ltda', displayName: 'Aurora Store' },
-          owner: { fullName: 'Owner Aurora', email: 'owner@example.test' },
-          gatewayConnectionStatus: null
-        }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              merchant: { legalName: 'Aurora Ltda', displayName: 'Aurora Store' },
+              owner: { fullName: 'Owner Aurora', email: 'owner@example.test' },
+              gatewayConnectionStatus: null
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          )
+        );
       }
       if (String(input).includes('/auth/refresh'))
         return Promise.resolve(new Response('{}', { status: 401 }));
@@ -89,7 +94,9 @@ describe('AppRouter', () => {
     render(<AppRouter session={session} />);
     await waitFor(() => expect(session.token()).toBe(''));
     expect(localStorage.getItem('baas_access_token')).toBeNull();
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument()
+    );
     expect(screen.getByRole('form', { name: 'Entrar' })).toBeVisible();
   });
 
@@ -102,8 +109,13 @@ describe('AppRouter', () => {
       screen.getByRole('button', { name: 'Sair' }).click();
     });
     await waitFor(() => expect(session.token()).toBe(''));
-    expect(globalThis.fetch).toHaveBeenCalledWith('/api/v1/auth/logout', expect.objectContaining({ method: 'POST' }));
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument());
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/v1/auth/logout',
+      expect.objectContaining({ method: 'POST' })
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Sair' })).not.toBeInTheDocument()
+    );
     expect(screen.getByRole('form', { name: 'Entrar' })).toBeVisible();
     expect(screen.queryAllByText('Owner Aurora')).toHaveLength(0);
   });
@@ -115,14 +127,21 @@ describe('AppRouter', () => {
       const url = String(input);
       calls.push(url);
       if (url.includes('/session/profile')) {
-        return Promise.resolve(new Response(JSON.stringify({
-          merchant: { legalName: 'Aurora Ltda', displayName: 'Aurora Store' },
-          owner: { fullName: 'Owner Aurora', email: 'owner@example.test' },
-          gatewayConnectionStatus: null
-        }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              merchant: { legalName: 'Aurora Ltda', displayName: 'Aurora Store' },
+              owner: { fullName: 'Owner Aurora', email: 'owner@example.test' },
+              gatewayConnectionStatus: null
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          )
+        );
       }
-      if (url.includes('/auth/logout')) return Promise.resolve(new Response('server unavailable', { status: 503 }));
-      if (url.includes('/auth/refresh')) return Promise.resolve(new Response('{}', { status: 401 }));
+      if (url.includes('/auth/logout'))
+        return Promise.resolve(new Response('server unavailable', { status: 503 }));
+      if (url.includes('/auth/refresh'))
+        return Promise.resolve(new Response('{}', { status: 401 }));
       return Promise.resolve(new Response('{}', { status: 200 }));
     });
     const session = createBaasMemorySession();

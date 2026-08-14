@@ -54,7 +54,10 @@ test.describe('dashboard reference layout', () => {
 
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
     await expect(page.getByText('R$ 24.850,72')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Hoje' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Hoje' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
     await expect(page.getByRole('button', { name: /notifica/i })).toHaveCount(0);
     await expect(page.getByText('Nenhuma transação no período.')).toBeVisible();
 
@@ -63,7 +66,13 @@ test.describe('dashboard reference layout', () => {
     const boxes = await cards.evaluateAll((elements) =>
       elements.map((element) => {
         const rect = element.getBoundingClientRect();
-        return { label: element.getAttribute('aria-labelledby'), x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+        return {
+          label: element.getAttribute('aria-labelledby'),
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height
+        };
       })
     );
     expect(boxes).toHaveLength(3);
@@ -71,16 +80,25 @@ test.describe('dashboard reference layout', () => {
     const movement = boxes[1]!;
     const operation = boxes[2]!;
     const kpiBox = await kpis.boundingBox();
-    expect(boxes.map((box) => box.label)).toEqual(['composition-title', 'movement-title', 'operation-title']);
+    expect(boxes.map((box) => box.label)).toEqual([
+      'composition-title',
+      'movement-title',
+      'operation-title'
+    ]);
     expect(composition.width).toBeLessThan(movement.width);
     expect(movement.width).toBeGreaterThan(operation.width);
     expect(composition.y).toBe(movement.y);
     expect(movement.y).toBe(operation.y);
     expect(kpiBox?.width).toBeGreaterThan(900);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+    ).toBe(true);
 
     console.log({ viewport: [1488, 1026], kpiBox, insightBoxes: boxes });
-    await page.screenshot({ path: 'artifacts/dashboard-reference/dashboard-desktop.png', fullPage: true });
+    await page.screenshot({
+      path: 'artifacts/dashboard-reference/dashboard-desktop.png',
+      fullPage: true
+    });
   });
 
   test('stacks content on mobile without page overflow', async ({ page }) => {
@@ -92,7 +110,13 @@ test.describe('dashboard reference layout', () => {
     const boxes = await cards.evaluateAll((elements) =>
       elements.map((element) => {
         const rect = element.getBoundingClientRect();
-        return { label: element.getAttribute('aria-labelledby'), x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+        return {
+          label: element.getAttribute('aria-labelledby'),
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height
+        };
       })
     );
     expect(boxes).toHaveLength(3);
@@ -102,11 +126,20 @@ test.describe('dashboard reference layout', () => {
     expect(composition.y).toBeLessThan(movement.y);
     expect(movement.y).toBeLessThan(operation.y);
     expect(boxes.every((box) => box.width <= 390 && box.x >= 0)).toBe(true);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+    ).toBe(true);
     await expect(page.getByRole('table', { name: 'Transações recentes' })).toHaveCount(0);
     await expect(page.getByText('Nenhuma transação no período.')).toBeVisible();
 
-    console.log({ viewport: [390, 844], insightBoxes: boxes, scrollWidth: await page.evaluate(() => document.documentElement.scrollWidth) });
-    await page.screenshot({ path: 'artifacts/dashboard-reference/dashboard-mobile.png', fullPage: true });
+    console.log({
+      viewport: [390, 844],
+      insightBoxes: boxes,
+      scrollWidth: await page.evaluate(() => document.documentElement.scrollWidth)
+    });
+    await page.screenshot({
+      path: 'artifacts/dashboard-reference/dashboard-mobile.png',
+      fullPage: true
+    });
   });
 });

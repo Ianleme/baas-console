@@ -27,7 +27,7 @@ services:
       DATABASE_NAME: ${BAAS_DB_NAME}
       DATABASE_USER: ${BAAS_DB_USER}
       DATABASE_PASSWORD: ${BAAS_DB_PASSWORD}
-    depends_on: {mysql: {condition: service_healthy}}
+    depends_on: { mysql: { condition: service_healthy } }
     networks: [data]
     read_only: true
     tmpfs: [/tmp]
@@ -46,7 +46,7 @@ services:
       AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?AUTH_TOKEN_SECRET is required}
       ENCRYPTION_KEY_BASE64: ${ENCRYPTION_KEY_BASE64:?ENCRYPTION_KEY_BASE64 is required}
       CORS_ALLOWED_ORIGINS: https://${APP_HOST},https://${PAY_HOST}
-    depends_on: {migrate: {condition: service_completed_successfully}}
+    depends_on: { migrate: { condition: service_completed_successfully } }
     networks: [data, edge]
     expose: ['3000']
     read_only: true
@@ -57,8 +57,8 @@ services:
 
   web:
     image: ${WEB_IMAGE:?WEB_IMAGE digest is required}
-    environment: {PORT: 4173, API_ORIGIN: http://api:3000}
-    depends_on: {api: {condition: service_started}}
+    environment: { PORT: 4173, API_ORIGIN: http://api:3000 }
+    depends_on: { api: { condition: service_started } }
     networks: [edge]
     expose: ['4173']
     read_only: true
@@ -72,7 +72,7 @@ services:
     ports: ['80:80', '443:443']
     environment: [ACME_EMAIL, APP_HOST, PAY_HOST, API_HOST]
     volumes: ['./Caddyfile:/etc/caddy/Caddyfile:ro', 'caddy-data:/data', 'caddy-config:/config']
-    depends_on: {web: {condition: service_started}, api: {condition: service_started}}
+    depends_on: { web: { condition: service_started }, api: { condition: service_started } }
     networks: [edge]
     restart: unless-stopped
     security_opt: [no-new-privileges:true]
@@ -99,9 +99,9 @@ services:
     security_opt: [no-new-privileges:true]
 
 networks:
-  data: {internal: true}
+  data: { internal: true }
   edge: {}
-  ops: {internal: true}
+  ops: { internal: true }
 volumes:
   mysql-data:
   caddy-data:

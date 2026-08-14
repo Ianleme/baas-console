@@ -13,7 +13,8 @@ import { EMAIL_GATEWAY } from './email-gateway.token.js';
   providers: [
     {
       provide: EncryptionService,
-      useFactory: () => new EncryptionService(Buffer.from(required('ENCRYPTION_KEY_BASE64'), 'base64'))
+      useFactory: () =>
+        new EncryptionService(Buffer.from(required('ENCRYPTION_KEY_BASE64'), 'base64'))
     },
     {
       provide: EMAIL_GATEWAY,

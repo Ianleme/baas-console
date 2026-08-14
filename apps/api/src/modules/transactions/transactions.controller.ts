@@ -51,7 +51,11 @@ export class TransactionsController {
   ) {
     let actualRes = res;
     let actualFormat = format;
-    if (res && typeof (res as any).setHeader !== 'function' && typeof (format as any)?.setHeader === 'function') {
+    if (
+      res &&
+      typeof (res as any).setHeader !== 'function' &&
+      typeof (format as any)?.setHeader === 'function'
+    ) {
       actualRes = format as unknown as Response;
       actualFormat = typeof res === 'string' ? res : undefined;
     }
@@ -64,11 +68,7 @@ export class TransactionsController {
     await this.handleReceiptResponse(id, 'pdf', res);
   }
 
-  private async handleReceiptResponse(
-    id: string,
-    format: string | undefined,
-    res: Response
-  ) {
+  private async handleReceiptResponse(id: string, format: string | undefined, res: Response) {
     const merchantId = this.principal.current().merchantId;
     const tx = await this.service.findById(merchantId, id);
     if (!tx) {
@@ -97,7 +97,10 @@ export class TransactionsController {
           });
         } catch (launchErr) {
           const errMsg = launchErr instanceof Error ? launchErr.message : String(launchErr);
-          if (errMsg.includes("Executable doesn't exist") || errMsg.includes('playwright install')) {
+          if (
+            errMsg.includes("Executable doesn't exist") ||
+            errMsg.includes('playwright install')
+          ) {
             const { execSync } = await import('node:child_process');
             execSync('npx playwright install chromium', { stdio: 'inherit' });
             browser = await chromium.launch({
@@ -142,4 +145,3 @@ export class TransactionsController {
     res.send(html);
   }
 }
-

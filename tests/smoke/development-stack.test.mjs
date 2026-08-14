@@ -40,10 +40,7 @@ async function freePort() {
 
 before(
   async () => {
-    const [apiPort, webPort] = await Promise.all([
-      freePort(),
-      freePort()
-    ]);
+    const [apiPort, webPort] = await Promise.all([freePort(), freePort()]);
     environment = {
       ...process.env,
       API_PORT: String(apiPort),
@@ -69,12 +66,7 @@ after(
 );
 
 test('defines the three development services plus a one-shot migration job', () => {
-  assert.deepEqual(Object.keys(composeConfig.services).sort(), [
-    'api',
-    'migrate',
-    'mysql',
-    'web'
-  ]);
+  assert.deepEqual(Object.keys(composeConfig.services).sort(), ['api', 'migrate', 'mysql', 'web']);
   assert.equal(composeConfig.services.migrate.restart, 'no');
   assert.equal(
     composeConfig.services.api.depends_on.migrate.condition,

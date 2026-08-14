@@ -7,9 +7,7 @@ import {
   maskEmail
 } from '../../src/modules/notifications/email-outbox.service.js';
 import type { EmailDeliveryEntity } from '../../src/modules/notifications/entities/email-delivery.entity.js';
-import {
-  type EmailGateway
-} from '../../src/modules/notifications/brevo-email.gateway.js';
+import { type EmailGateway } from '../../src/modules/notifications/brevo-email.gateway.js';
 import { EncryptionService } from '../../src/modules/gateway-accounts/encryption.service.js';
 
 describe('EmailOutboxService', () => {

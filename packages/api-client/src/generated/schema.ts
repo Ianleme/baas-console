@@ -441,8 +441,25 @@ export type paths = {
       path?: never;
       cookie?: never;
     };
-    /** Get transaction receipt HTML or printable document */
+    /** Get transaction receipt HTML or downloadable PDF document */
     get: operations['TransactionsController_getReceipt'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/transactions/{id}/receipt/pdf': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Download transaction receipt as PDF */
+    get: operations['TransactionsController_getReceiptPdf'];
     put?: never;
     post?: never;
     delete?: never;
@@ -1202,6 +1219,27 @@ export interface operations {
     };
   };
   TransactionsController_getReceipt: {
+    parameters: {
+      query: {
+        format: string;
+      };
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  TransactionsController_getReceiptPdf: {
     parameters: {
       query?: never;
       header?: never;

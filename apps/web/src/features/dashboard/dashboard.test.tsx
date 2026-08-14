@@ -51,10 +51,16 @@ function api(value: DashboardData = populated): DashboardApi {
   return { load: vi.fn().mockResolvedValue(value) };
 }
 
-async function ready(value: DashboardData = populated) {
+async function ready(
+  value: DashboardData = populated,
+  selectedPeriod: 'Hoje' | 'Todo o período' = 'Todo o período'
+) {
   const client = api(value);
   render(<Dashboard api={client} />);
   await screen.findByText('R$ 24.850,72');
+  if (selectedPeriod !== 'Hoje') {
+    await userEvent.click(screen.getByRole('button', { name: selectedPeriod }));
+  }
   return client;
 }
 
@@ -74,7 +80,7 @@ describe('Dashboard', () => {
     expect(client.load).toHaveBeenCalledTimes(1);
   });
   test('shows authoritative wallet balance in BRL', async () => {
-    await ready();
+    await ready(populated, 'Hoje');
     expect(screen.getByText('R$ 24.850,72')).toBeVisible();
   });
   test('shows received amount in BRL', async () => {
@@ -104,6 +110,24 @@ describe('Dashboard', () => {
     await ready({ ...populated, wallet: { ...populated.wallet, stale: true } });
     expect(screen.getByText('Dados desatualizados')).toBeVisible();
     expect(screen.getByText('R$ 24.850,72')).toBeVisible();
+  });
+  test('refreshes a stale wallet through the optional API hook', async () => {
+    const refreshWallet = vi.fn().mockResolvedValue({
+      balanceCents: '3000000',
+      capturedAt: '2026-08-12T17:00:00.000Z',
+      stale: false
+    });
+    const client = {
+      load: vi
+        .fn()
+        .mockResolvedValue({ ...populated, wallet: { ...populated.wallet, stale: true } }),
+      refreshWallet
+    };
+    render(<Dashboard api={client} />);
+    await screen.findByText('Dados desatualizados');
+    await userEvent.click(screen.getByRole('button', { name: 'Atualizar saldo' }));
+    expect(refreshWallet).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('R$ 30.000,00')).toBeVisible();
   });
   test('does not show stale warning for fresh snapshot', async () => {
     await ready();
@@ -163,8 +187,10 @@ describe('Dashboard', () => {
     expect(screen.queryByText('raw gateway payload')).not.toBeInTheDocument();
   });
   test('offers keyboard-accessible period controls', async () => {
-    await ready();
+    await ready(populated, 'Hoje');
     const user = userEvent.setup();
+    await user.tab();
+    await user.tab();
     await user.tab();
     expect(screen.getByRole('button', { name: 'Hoje' })).toHaveFocus();
   });
@@ -174,20 +200,37 @@ describe('Dashboard', () => {
     expect(screen.getByRole('button', { name: '30 dias' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('R$ 24.850,72')).toBeVisible();
   });
-  test('exposes extended period filters from the reference', async () => {
+  test('exposes the complete supported period filters', async () => {
     await ready();
     expect(screen.getByRole('button', { name: 'Todo o período' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Personalizado' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Personalizado' })).not.toBeInTheDocument();
   });
   test('aligns the compact header and outlined lime filters', async () => {
-    await ready();
+    await ready(populated, 'Hoje');
     expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Solicitar saque' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Solicitar saque' })).toBeVisible();
     const today = screen.getByRole('button', { name: 'Hoje' });
     expect(today).toHaveAttribute('aria-pressed', 'true');
     expect(today).toHaveClass('border');
     expect(today).toHaveClass('bg-brand-control-active');
     expect(screen.queryByRole('button', { name: /notifica/i })).not.toBeInTheDocument();
+  });
+  test('uses header callbacks without navigating', async () => {
+    const onRequestWithdrawal = vi.fn();
+    const onCreatePaymentLink = vi.fn();
+    const client = api();
+    render(
+      <Dashboard
+        api={client}
+        onRequestWithdrawal={onRequestWithdrawal}
+        onCreatePaymentLink={onCreatePaymentLink}
+      />
+    );
+    await screen.findByText('PED-1048');
+    await userEvent.click(screen.getByRole('button', { name: 'Solicitar saque' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Criar link de pagamento' }));
+    expect(onRequestWithdrawal).toHaveBeenCalledTimes(1);
+    expect(onCreatePaymentLink).toHaveBeenCalledTimes(1);
   });
   test('groups KPIs into a connected desktop rail with the approval ring at the end', async () => {
     await ready();

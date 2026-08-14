@@ -34,12 +34,7 @@ function leasedFromGateway(eventType: LeasedWebhookEvent['eventType']): LeasedWe
   const raw = Buffer.from(
     JSON.stringify({ event: eventType, transactionId: 'gateway-id', status: 'APPROVED' })
   ).toString('base64');
-  event.rawBodyCiphertext = encryption.encrypt(
-    raw,
-    event.merchantId,
-    event.id,
-    'webhook-raw-body'
-  );
+  event.rawBodyCiphertext = encryption.encrypt(raw, event.merchantId, event.id, 'webhook-raw-body');
   return event;
 }
 

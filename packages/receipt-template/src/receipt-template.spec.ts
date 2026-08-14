@@ -88,4 +88,3 @@ describe('@baas/receipt-template', () => {
     expect(html).toContain('&lt;script&gt;');
   });
 });
-

@@ -21,7 +21,9 @@ export function configureApplication(app: INestApplication): void {
       origin: string | undefined,
       callback: (error: Error | null, allow?: boolean) => void
     ) => {
-      const allowed = (process.env.CORS_ALLOWED_ORIGINS ?? 'http://localhost:5173')
+      const allowed = (
+        process.env.CORS_ALLOWED_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:4173'
+      )
         .split(',')
         .map((item) => item.trim())
         .filter(Boolean);

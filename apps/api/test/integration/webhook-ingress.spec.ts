@@ -88,7 +88,11 @@ describe('WebhookIngressService', () => {
   test('accepts the transactionId field sent by Lera Box', async () => {
     const { service } = setup();
     const rawBody = Buffer.from(
-      JSON.stringify({ event: 'PAYMENT_PIX', transactionId: 'gateway-event-id', status: 'APPROVED' })
+      JSON.stringify({
+        event: 'PAYMENT_PIX',
+        transactionId: 'gateway-event-id',
+        status: 'APPROVED'
+      })
     );
     await expect(
       service.receive({

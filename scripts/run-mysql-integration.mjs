@@ -52,7 +52,10 @@ function runJest(port) {
               `npm run test:integration:jest --workspace @baas/api -- ${forwardedArgs.join(' ')}`
             ]
           ]
-        : ['npm', ['run', 'test:integration:jest', '--workspace', '@baas/api', '--', ...forwardedArgs]];
+        : [
+            'npm',
+            ['run', 'test:integration:jest', '--workspace', '@baas/api', '--', ...forwardedArgs]
+          ];
     const [executable, args] = command;
     const child = spawn(executable, args, {
       env: {

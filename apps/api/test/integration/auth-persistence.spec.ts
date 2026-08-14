@@ -140,7 +140,15 @@ describe('authentication persistence on MySQL 8.4', () => {
     const merchantId = await insertMerchant();
     await dataSource.query(
       'INSERT INTO users (id, merchant_id, email, full_name, email_normalized, password_hash, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [randomUUID(), merchantId, 'owner@example.test', 'Owner Aurora', 'owner@example.test', 'argon2id-hash', 'ACTIVE']
+      [
+        randomUUID(),
+        merchantId,
+        'owner@example.test',
+        'Owner Aurora',
+        'owner@example.test',
+        'argon2id-hash',
+        'ACTIVE'
+      ]
     );
     const legacyMerchantId = await insertMerchant();
     await insertUser(legacyMerchantId, 'legacy@example.test');
@@ -154,7 +162,9 @@ describe('authentication persistence on MySQL 8.4', () => {
   });
 
   test('defines full name as a nullable legacy-compatible column', async () => {
-    const [column] = await dataSource.query<{ IS_NULLABLE: string; COLUMN_DEFAULT: string | null }[]>(
+    const [column] = await dataSource.query<
+      { IS_NULLABLE: string; COLUMN_DEFAULT: string | null }[]
+    >(
       "SELECT IS_NULLABLE, COLUMN_DEFAULT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'full_name'",
       [databaseName]
     );

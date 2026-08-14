@@ -426,13 +426,59 @@ export function createReconciliationClient(options: BaasClientOptions) {
   };
 }
 
+type DashboardTransaction = {
+  id: string;
+  originType: 'PAYMENT' | 'WITHDRAWAL';
+  externalReference: string;
+  status: 'APPROVED' | 'DENIED' | 'PENDING' | 'EXPIRED' | 'CANCELLED';
+  grossAmountCents: string;
+  netAmountCents: string;
+  occurredAt: string;
+};
+export type DashboardLoadOptions = {
+  period?: { from?: string; to?: string };
+  from?: string;
+  to?: string;
+  status?: DashboardTransaction['status'];
+  type?: 'CREDIT' | 'DEBIT';
+  originType?: DashboardTransaction['originType'];
+  reference?: string;
+};
+
+const saoPauloDay = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Sao_Paulo',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit'
+});
+
 export function createDashboardClient(options: BaasClientOptions) {
   const request = createAuthenticatedTransport(options);
+
+  const queryValue = (value: string | undefined) =>
+    value === undefined || value === '' ? undefined : value;
+
   return {
-    async load() {
+    async load(loadOptions?: DashboardLoadOptions) {
+      const period = loadOptions?.period;
+      const filter = {
+        from: queryValue(period?.from ?? loadOptions?.from),
+        to: queryValue(period?.to ?? loadOptions?.to),
+        status: loadOptions?.status,
+        type: loadOptions?.type,
+        originType: loadOptions?.originType,
+        reference: loadOptions?.reference
+      };
+      const filterQuery = Object.entries(filter)
+        .filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+        .join('&');
+      const transactionPath = (offset: number) =>
+        `/api/v1/transactions?limit=100&offset=${offset}${filterQuery ? `&${filterQuery}` : ''}`;
+
       const [walletResponse, transactionsResponse, webhooksResponse] = await Promise.all([
         request('/api/v1/wallet'),
-        request('/api/v1/transactions?limit=100&offset=0'),
+        request(transactionPath(0)),
         request('/api/v1/webhooks')
       ]);
       if (!walletResponse.ok || !transactionsResponse.ok || !webhooksResponse.ok)
@@ -442,19 +488,24 @@ export function createDashboardClient(options: BaasClientOptions) {
         capturedAt: string;
         stale: boolean;
       };
-      const statement = (await transactionsResponse.json()) as {
-        items?: Array<{
-          id: string;
-          originType: 'PAYMENT' | 'WITHDRAWAL';
-          externalReference: string;
-          status: 'APPROVED' | 'DENIED' | 'PENDING' | 'EXPIRED' | 'CANCELLED';
-          grossAmountCents: string;
-          netAmountCents: string;
-          occurredAt: string;
-        }>;
+      const firstStatement = (await transactionsResponse.json()) as {
+        items?: DashboardTransaction[];
+        total?: number;
       };
-      const items = statement.items ?? [];
-      const payments = items.filter((item) => item.originType === 'PAYMENT');
+      const items = [...(firstStatement.items ?? [])];
+      // The API caps a page at 100. Follow its total when present so a full
+      // dashboard period is not silently truncated.
+      const total = typeof firstStatement.total === 'number' ? firstStatement.total : items.length;
+      for (let offset = items.length; offset < total; offset += 100) {
+        const response = await request(transactionPath(offset));
+        if (!response.ok) throw new Error('DASHBOARD_UNAVAILABLE');
+        const page = (await response.json()) as { items?: DashboardTransaction[] };
+        const pageItems = page.items ?? [];
+        items.push(...pageItems);
+        if (pageItems.length === 0) break;
+      }
+      const dashboardItems = items;
+      const payments = dashboardItems.filter((item) => item.originType === 'PAYMENT');
       const approvedPayments = payments.filter((item) => item.status === 'APPROVED');
       const receivedCents = approvedPayments.reduce(
         (total, item) => total + BigInt(item.netAmountCents),
@@ -465,6 +516,19 @@ export function createDashboardClient(options: BaasClientOptions) {
         .reduce((total, item) => total + BigInt(item.netAmountCents), 0n);
       const cardReceivedCents = receivedCents - pixReceivedCents;
       const webhooks = (await webhooksResponse.json()) as Array<{ status?: string }>;
+      const movementByDay = new Map<string, { inCents: bigint; outCents: bigint }>();
+      for (const item of approvedPayments.concat(
+        dashboardItems.filter(
+          (transaction) =>
+            transaction.originType === 'WITHDRAWAL' && transaction.status === 'APPROVED'
+        )
+      )) {
+        const day = saoPauloDay.format(new Date(item.occurredAt));
+        const point = movementByDay.get(day) ?? { inCents: 0n, outCents: 0n };
+        if (item.originType === 'PAYMENT') point.inCents += BigInt(item.netAmountCents);
+        else point.outCents += BigInt(item.grossAmountCents || item.netAmountCents);
+        movementByDay.set(day, point);
+      }
       return {
         wallet,
         receivedCents: receivedCents.toString(),
@@ -474,7 +538,14 @@ export function createDashboardClient(options: BaasClientOptions) {
         pixReceivedCents: pixReceivedCents.toString(),
         cardReceivedCents: cardReceivedCents.toString(),
         webhooksActive: webhooks.some((item) => item.status === 'ACTIVE'),
-        operations: items.slice(0, 10).map((item) => ({
+        movement: [...movementByDay.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([day, point]) => ({
+            label: `${day.slice(8, 10)}/${day.slice(5, 7)}`,
+            inCents: point.inCents.toString(),
+            outCents: point.outCents.toString()
+          })),
+        operations: dashboardItems.slice(0, 10).map((item) => ({
           id: item.id,
           reference: item.externalReference,
           method:
@@ -489,6 +560,23 @@ export function createDashboardClient(options: BaasClientOptions) {
             : ('PENDING' as const),
           occurredAt: item.occurredAt
         }))
+      };
+    },
+    async refreshWallet() {
+      const csrfToken = options.csrfToken?.();
+      const response = await request('/api/v1/wallet/refresh', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {})
+        },
+        body: '{}'
+      });
+      if (!response.ok) throw new Error('WALLET_REFRESH_FAILED');
+      return (await response.json()) as {
+        balanceCents: string;
+        capturedAt: string;
+        stale: boolean;
       };
     }
   };
@@ -518,7 +606,9 @@ export function createTransactionsClient(options: BaasClientOptions) {
       return response.text();
     },
     async downloadReceiptPdf(id: string): Promise<Blob> {
-      const response = await request(`/api/v1/transactions/${encodeURIComponent(id)}/receipt?format=pdf`);
+      const response = await request(
+        `/api/v1/transactions/${encodeURIComponent(id)}/receipt?format=pdf`
+      );
       if (!response.ok) throw new Error('RECEIPT_UNAVAILABLE');
       return response.blob();
     }

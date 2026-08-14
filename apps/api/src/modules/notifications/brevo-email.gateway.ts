@@ -32,7 +32,9 @@ export class BrevoEmailGateway implements EmailGateway {
     }
 
     const body: Record<string, unknown> = {
-      sender: this.senderName ? { email: this.senderEmail, name: this.senderName } : { email: this.senderEmail },
+      sender: this.senderName
+        ? { email: this.senderEmail, name: this.senderName }
+        : { email: this.senderEmail },
       to: [{ email: message.to }],
       subject: message.subject
     };

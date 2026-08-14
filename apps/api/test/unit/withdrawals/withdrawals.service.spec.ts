@@ -78,7 +78,9 @@ describe('WithdrawalsService', () => {
     };
 
     mockCredentials = {
-      activeAuth: jest.fn().mockResolvedValue({ accessToken: 'test_token', document: '12345678901' })
+      activeAuth: jest
+        .fn()
+        .mockResolvedValue({ accessToken: 'test_token', document: '12345678901' })
     };
 
     service = new WithdrawalsService(

@@ -150,12 +150,38 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
         }
       />
     );
-  if (hash === '#/links')
-    return <AppShell {...shellProps} content={<PaymentLinks api={clients.links} />} />;
+  if (hash === '#/links' || hash === '#/links?criar=1')
+    return (
+      <AppShell
+        {...shellProps}
+        content={
+          <PaymentLinks
+            api={clients.links}
+            createModalOpen={hash === '#/links?criar=1'}
+            onCreateModalOpenChange={(open) => {
+              if (!open) globalThis.location.hash = '#/links';
+            }}
+          />
+        }
+      />
+    );
   if (hash === '#/transactions')
     return <AppShell {...shellProps} content={<TransactionsPage api={clients.transactions} />} />;
-  if (hash === '#/saques' || hash === '#/withdrawals')
-    return <AppShell {...shellProps} content={<WithdrawalsPage api={clients.withdrawals} />} />;
+  if (hash === '#/saques' || hash === '#/saques?solicitar=1' || hash === '#/withdrawals')
+    return (
+      <AppShell
+        {...shellProps}
+        content={
+          <WithdrawalsPage
+            api={clients.withdrawals}
+            requestModalOpen={hash === '#/saques?solicitar=1'}
+            onRequestModalOpenChange={(open) => {
+              if (!open) globalThis.location.hash = '#/saques';
+            }}
+          />
+        }
+      />
+    );
   if (hash === '#/webhooks')
     return <AppShell {...shellProps} content={<WebhookManagement api={clients.webhooks} />} />;
   if (hash === '#/reconciliation')

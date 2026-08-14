@@ -1,10 +1,16 @@
 import { expect, test } from '@playwright/test';
 
-test('covers authenticated console identity, stale wallet, settings, and logout', async ({ page }) => {
+test('covers authenticated console identity, stale wallet, settings, and logout', async ({
+  page
+}) => {
   await page.route('**/api/v1/**', async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname === '/api/v1/auth/login') {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ accessToken: 'e2e-token' }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ accessToken: 'e2e-token' })
+      });
       return;
     }
     if (url.pathname === '/api/v1/auth/logout') {
@@ -27,7 +33,11 @@ test('covers authenticated console identity, stale wallet, settings, and logout'
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ balanceCents: '123450', capturedAt: '2026-08-13T12:00:00.000Z', stale: true })
+        body: JSON.stringify({
+          balanceCents: '123450',
+          capturedAt: '2026-08-13T12:00:00.000Z',
+          stale: true
+        })
       });
       return;
     }

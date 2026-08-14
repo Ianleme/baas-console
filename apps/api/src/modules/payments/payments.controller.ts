@@ -25,10 +25,11 @@ import {
 import { PixPaymentError, PixPaymentService } from './pix/pix-payment.service.js';
 import { TypeOrmPixAttemptStore } from './typeorm-payment-attempt.stores.js';
 
-const CHECKOUT_COOKIE = '__Host-baas_checkout';
+const CHECKOUT_COOKIE = 'baas_checkout';
+const SECURE_CHECKOUT_COOKIE = '__Host-baas_checkout';
 
 class ExchangeDto {
-  @IsString() @Length(43, 256) token!: string;
+  @IsString() @Length(36, 256) token!: string;
 }
 class PixDto {
   @IsString() @Length(11, 32) payerDocument!: string;
@@ -101,15 +102,20 @@ export class PaymentsController {
   @ApiCreatedResponse({
     description: 'One-time fragment token exchanged for a short secure session'
   })
-  async exchange(@Body() input: ExchangeDto, @Res({ passthrough: true }) response: Response) {
+  async exchange(
+    @Req() request: Request,
+    @Body() input: ExchangeDto,
+    @Res({ passthrough: true }) response: Response
+  ) {
     try {
       const result = await this.sessions.exchange(input.token);
       setPublicHeaders(response);
-      response.cookie(CHECKOUT_COOKIE, result.sessionToken, {
+      const secure = isSecureRequest(request);
+      response.cookie(secure ? SECURE_CHECKOUT_COOKIE : CHECKOUT_COOKIE, result.sessionToken, {
         httpOnly: true,
-        secure: true,
+        secure,
         sameSite: 'strict',
-        path: '/api/v1/public',
+        path: secure ? '/' : '/api/v1/public',
         maxAge: result.cookie.maxAgeSeconds * 1000
       });
       return { checkout: result.checkout, csrfToken: result.csrfToken };
@@ -226,13 +232,18 @@ export class PaymentsController {
 
   private async writeSession(request: Request, csrf: string | undefined) {
     if (!csrf) throw new ProblemException('CSRF_INVALID', 403, 'CSRF validation failed.');
-    const session = await this.sessionStore.resolve(cookie(request, CHECKOUT_COOKIE), csrf);
+    const session = await this.sessionStore.resolve(
+      cookie(request, isSecureRequest(request) ? SECURE_CHECKOUT_COOKIE : CHECKOUT_COOKIE),
+      csrf
+    );
     if (!session)
       throw new ProblemException('CHECKOUT_SESSION_INVALID', 401, 'Checkout session is invalid.');
     return session;
   }
   private async readSession(request: Request) {
-    const session = await this.sessionStore.resolveRead(cookie(request, CHECKOUT_COOKIE));
+    const session = await this.sessionStore.resolveRead(
+      cookie(request, isSecureRequest(request) ? SECURE_CHECKOUT_COOKIE : CHECKOUT_COOKIE)
+    );
     if (!session)
       throw new ProblemException('CHECKOUT_SESSION_INVALID', 401, 'Checkout session is invalid.');
     return session;
@@ -253,6 +264,13 @@ function cookie(request: Request, name: string): string {
     if (key === name) return decodeURIComponent(rest.join('='));
   }
   return '';
+}
+function isSecureRequest(request: Request): boolean {
+  const forwarded = request.headers['x-forwarded-proto'];
+  const protocol = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0]?.trim();
+  return (
+    protocol === 'https' || request.protocol === 'https' || process.env.NODE_ENV === 'production'
+  );
 }
 function setPublicHeaders(response: Response): void {
   for (const [name, value] of Object.entries(publicCheckoutHeaders()))

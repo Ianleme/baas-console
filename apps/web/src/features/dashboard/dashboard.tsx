@@ -1,5 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowUp, CheckCircle2, ChevronRight, CreditCard, QrCode, Wallet } from 'lucide-react';
+import {
+  ArrowUp,
+  CheckCircle2,
+  ChevronRight,
+  CreditCard,
+  QrCode,
+  RefreshCw,
+  Wallet
+} from 'lucide-react';
 
 import { Badge } from '../../components/ui/badge.js';
 import { Card, CardContent, CardHeader } from '../../components/ui/card.js';
@@ -44,7 +52,12 @@ export interface DashboardData {
 }
 
 export interface DashboardApi {
-  load(): Promise<DashboardData>;
+  load(options?: {
+    from?: string;
+    to?: string;
+    period?: { from?: string; to?: string };
+  }): Promise<DashboardData>;
+  refreshWallet?: () => Promise<DashboardData['wallet']>;
 }
 
 export function approvalRate(approved: number, denied: number) {
@@ -56,27 +69,20 @@ const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: '
 const clock = new Intl.DateTimeFormat('pt-BR', {
   hour: '2-digit',
   minute: '2-digit',
-  timeZone: 'UTC',
+  timeZone: 'America/Sao_Paulo',
   hour12: false
 });
 const dayMonth = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
   month: 'short',
-  timeZone: 'UTC'
+  timeZone: 'America/Sao_Paulo'
 });
 const fullTimestamp = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
   timeStyle: 'short',
-  timeZone: 'UTC'
+  timeZone: 'America/Sao_Paulo'
 });
-const periods = [
-  'Hoje',
-  '7 dias',
-  '30 dias',
-  '90 dias',
-  'Todo o período',
-  'Personalizado'
-] as const;
+const periods = ['Hoje', '7 dias', '30 dias', '90 dias', 'Todo o período'] as const;
 
 const cardClass = 'rounded-2xl border border-slate-200/90 bg-white shadow-none';
 
@@ -98,20 +104,37 @@ function relativeTime(iso: string, now = Date.now()) {
 
 function formatOperationWhen(iso: string, now = new Date()) {
   const date = new Date(iso);
-  const sameUtcDay =
-    date.getUTCFullYear() === now.getUTCFullYear() &&
-    date.getUTCMonth() === now.getUTCMonth() &&
-    date.getUTCDate() === now.getUTCDate();
+  const dateParts = saoPauloParts(date);
+  const nowParts = saoPauloParts(now);
+  const sameSaoPauloDay =
+    dateParts.year === nowParts.year &&
+    dateParts.month === nowParts.month &&
+    dateParts.day === nowParts.day;
   const time = clock.format(date);
-  if (sameUtcDay) return `Hoje, ${time}`;
+  if (sameSaoPauloDay) return `Hoje, ${time}`;
   const yesterday = new Date(now);
   yesterday.setUTCDate(now.getUTCDate() - 1);
+  const yesterdayParts = saoPauloParts(yesterday);
   const isYesterday =
-    date.getUTCFullYear() === yesterday.getUTCFullYear() &&
-    date.getUTCMonth() === yesterday.getUTCMonth() &&
-    date.getUTCDate() === yesterday.getUTCDate();
+    dateParts.year === yesterdayParts.year &&
+    dateParts.month === yesterdayParts.month &&
+    dateParts.day === yesterdayParts.day;
   if (isYesterday) return `Ontem, ${time}`;
   return `${dayMonth.format(date).replace('.', '')}, ${time}`;
+}
+
+const saoPauloDateParts = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Sao_Paulo',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit'
+});
+
+function saoPauloParts(date: Date) {
+  const parts = Object.fromEntries(
+    saoPauloDateParts.formatToParts(date).map(({ type, value }) => [type, value])
+  );
+  return { year: Number(parts.year), month: Number(parts.month), day: Number(parts.day) };
 }
 
 function buildMovementPath(
@@ -140,7 +163,21 @@ function buildAreaPath(linePath: string, width: number, height: number) {
   return `${linePath} L${String(width - 4)},${String(height - 10)} L4,${String(height - 10)} Z`;
 }
 
-function DashboardHeader() {
+function periodDays(period: (typeof periods)[number]) {
+  if (period === 'Hoje') return 1;
+  if (period === '7 dias') return 7;
+  if (period === '30 dias') return 30;
+  if (period === '90 dias') return 90;
+  return Infinity;
+}
+
+function DashboardHeader({
+  onRequestWithdrawal,
+  onCreatePaymentLink
+}: {
+  onRequestWithdrawal?: (() => void) | undefined;
+  onCreatePaymentLink?: (() => void) | undefined;
+}) {
   return (
     <header className="dashboard__heading flex flex-wrap items-center justify-between gap-5">
       <div className="space-y-1">
@@ -152,16 +189,16 @@ function DashboardHeader() {
       </div>
       <div className="dashboard__actions flex items-center gap-3">
         <a
+          href="#/saques?solicitar=1"
+          onClick={onRequestWithdrawal}
           className="inline-flex h-11 items-center justify-center rounded-lg border border-brand-primary bg-brand-panel px-5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-primary-soft"
-          href="#/saques"
-          tabIndex={-1}
         >
           Solicitar saque
         </a>
         <a
+          href="#/links?criar=1"
+          onClick={onCreatePaymentLink}
           className="inline-flex h-11 items-center justify-center rounded-lg bg-brand-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-primary-dark"
-          href="#/links"
-          tabIndex={-1}
         >
           <span className="mr-2 text-xl font-light leading-none" aria-hidden="true">
             +
@@ -250,19 +287,40 @@ function RecentTransactionsCard({ children }: { children: ReactNode }) {
   );
 }
 
-export function Dashboard({ api }: { api: DashboardApi }) {
+export function Dashboard({
+  api,
+  onRequestWithdrawal,
+  onCreatePaymentLink
+}: {
+  api: DashboardApi;
+  onRequestWithdrawal?: (() => void) | undefined;
+  onCreatePaymentLink?: (() => void) | undefined;
+}) {
   const [data, setData] = useState<DashboardData>();
   const [failed, setFailed] = useState(false);
   const [period, setPeriod] = useState<(typeof periods)[number]>('Hoje');
+  const [refreshingWallet, setRefreshingWallet] = useState(false);
+
+  const periodOptions = (selected: (typeof periods)[number]) => {
+    if (selected === 'Todo o período') return {};
+    const days = periodDays(selected);
+    const today = saoPauloParts(new Date());
+    const endDate = new Date(Date.UTC(today.year, today.month - 1, today.day));
+    const startDate = new Date(endDate);
+    startDate.setUTCDate(startDate.getUTCDate() - (days - 1));
+    const localIso = (date: Date, endOfDay = false) =>
+      `${date.toISOString().slice(0, 10)}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}-03:00`;
+    return { from: localIso(startDate), to: localIso(endDate, true) };
+  };
 
   useEffect(() => {
     void api
-      .load()
+      .load(periodOptions(period))
       .then(setData)
       .catch(() => {
         setFailed(true);
       });
-  }, [api]);
+  }, [api, period]);
 
   if (failed)
     return (
@@ -277,16 +335,21 @@ export function Dashboard({ api }: { api: DashboardApi }) {
       </p>
     );
 
-  const totalReceived = BigInt(data.pixReceivedCents) + BigInt(data.cardReceivedCents);
+  const visibleData = data;
+  const totalReceived =
+    BigInt(visibleData.pixReceivedCents) + BigInt(visibleData.cardReceivedCents);
   const pixPercent =
-    totalReceived === 0n ? 0 : Number((BigInt(data.pixReceivedCents) * 100n) / totalReceived);
+    totalReceived === 0n
+      ? 0
+      : Number((BigInt(visibleData.pixReceivedCents) * 100n) / totalReceived);
   const cardPercent = totalReceived === 0n ? 0 : 100 - pixPercent;
-  const rate = approvalRate(data.approvedCount, data.deniedCount);
-  const transactionCount = data.approvedCount + data.deniedCount + data.pendingCount;
-  const lastOperation = data.operations[0];
+  const rate = approvalRate(visibleData.approvedCount, visibleData.deniedCount);
+  const transactionCount =
+    visibleData.approvedCount + visibleData.deniedCount + visibleData.pendingCount;
+  const lastOperation = visibleData.operations[0];
   const pendingEvents = data.pendingEvents ?? 0;
   const webhooksActive = data.webhooksActive ?? true;
-  const movement = data.movement ?? [];
+  const movement = visibleData.movement ?? [];
   const movementMax = Math.max(
     500_000,
     ...movement.flatMap((point) => [Number(point.inCents), Number(point.outCents)])
@@ -305,7 +368,10 @@ export function Dashboard({ api }: { api: DashboardApi }) {
 
   return (
     <div className="dashboard space-y-5">
-      <DashboardHeader />
+      <DashboardHeader
+        onRequestWithdrawal={onRequestWithdrawal}
+        onCreatePaymentLink={onCreatePaymentLink}
+      />
 
       <PeriodFilters period={period} onChange={setPeriod} />
 
@@ -320,14 +386,36 @@ export function Dashboard({ api }: { api: DashboardApi }) {
           <div className="min-w-0">
             <span className="text-sm font-semibold text-white">Saldo disponível</span>
             <strong className="mt-1 block text-3xl font-bold leading-none text-white">
-              {money(data.wallet.balanceCents)}
+              {money(visibleData.wallet.balanceCents)}
             </strong>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <small className="text-sm text-white/90">Disponível para saque</small>
-              {data.wallet.stale && (
+              {visibleData.wallet.stale && (
                 <b className="stale inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
                   Dados desatualizados
                 </b>
+              )}
+              {visibleData.wallet.stale && api.refreshWallet && (
+                <button
+                  type="button"
+                  className="inline-flex size-8 items-center justify-center rounded-md border border-white/60 text-white hover:bg-white/10 disabled:opacity-60"
+                  aria-label="Atualizar saldo"
+                  title="Atualizar saldo"
+                  disabled={refreshingWallet}
+                  onClick={() => {
+                    setRefreshingWallet(true);
+                    void api.refreshWallet!()
+                      .then((wallet) =>
+                        setData((current) => (current ? { ...current, wallet } : current))
+                      )
+                      .finally(() => setRefreshingWallet(false));
+                  }}
+                >
+                  <RefreshCw
+                    className={refreshingWallet ? 'size-4 animate-spin' : 'size-4'}
+                    aria-hidden="true"
+                  />
+                </button>
               )}
             </div>
             <span className="sr-only">
@@ -347,7 +435,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
         >
           <span className="text-sm font-medium text-brand-muted">Recebimentos</span>
           <strong className="mt-4 text-3xl font-bold leading-none text-brand-ink">
-            {money(data.receivedCents)}
+            {money(visibleData.receivedCents)}
           </strong>
           {typeof data.receivedChangePercent === 'number' ? (
             <small className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-primary">
@@ -457,7 +545,9 @@ export function Dashboard({ api }: { api: DashboardApi }) {
                   <QrCode className="size-4" />
                 </span>
                 <p className="min-w-0 flex-1 text-sm font-semibold text-brand-ink">Pix</p>
-                <p className="text-sm font-bold text-brand-ink">{money(data.pixReceivedCents)}</p>
+                <p className="text-sm font-bold text-brand-ink">
+                  {money(visibleData.pixReceivedCents)}
+                </p>
                 <p className="text-sm text-brand-muted">{pixPercent}% do volume</p>
               </div>
               <div
@@ -468,7 +558,9 @@ export function Dashboard({ api }: { api: DashboardApi }) {
                   <CreditCard className="size-4" />
                 </span>
                 <p className="min-w-0 flex-1 text-sm font-semibold text-brand-ink">Cartão</p>
-                <p className="text-sm font-bold text-brand-ink">{money(data.cardReceivedCents)}</p>
+                <p className="text-sm font-bold text-brand-ink">
+                  {money(visibleData.cardReceivedCents)}
+                </p>
                 <p className="text-sm text-brand-muted">{cardPercent}% do volume</p>
               </div>
             </div>
@@ -633,7 +725,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
           </a>
         </CardHeader>
         <CardContent className="p-0 pb-2">
-          {data.operations.length === 0 ? (
+          {visibleData.operations.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-slate-500">
               Nenhuma transação no período.
             </p>
@@ -662,7 +754,7 @@ export function Dashboard({ api }: { api: DashboardApi }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.operations.map((operation) => (
+                {visibleData.operations.map((operation) => (
                   <TableRow key={operation.id} className="border-slate-100">
                     <TableCell className="px-5 py-3.5 font-semibold text-slate-900">
                       {operation.reference}

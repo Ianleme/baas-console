@@ -66,6 +66,8 @@ export class TransactionsService {
     if (query.reference) {
       qb.andWhere('LOWER(tx.externalReference) LIKE LOWER(:ref)', { ref: `%${query.reference}%` });
     }
+    if (query.from) qb.andWhere('tx.occurredAt >= :from', { from: new Date(query.from) });
+    if (query.to) qb.andWhere('tx.occurredAt <= :to', { to: new Date(query.to) });
 
     qb.orderBy('tx.occurredAt', 'DESC').skip(query.offset).take(query.limit);
 

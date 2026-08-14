@@ -426,7 +426,8 @@ describe('runtime API composition', () => {
     let refreshed = false;
     const request = vi.fn<typeof fetch>().mockImplementation((input) => {
       const url = String(input);
-      if (url === '/api/v1/auth/logout') return Promise.resolve(new Response(null, { status: 204 }));
+      if (url === '/api/v1/auth/logout')
+        return Promise.resolve(new Response(null, { status: 204 }));
       if (url === '/api/v1/auth/refresh') {
         refreshed = true;
         return Promise.resolve(response({ accessToken: 'new-token' }));

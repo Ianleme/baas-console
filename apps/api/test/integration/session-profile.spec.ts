@@ -79,8 +79,14 @@ describe('current session profile HTTP API', () => {
       .get('/api/v1/session/profile?merchantId=attacker-selected')
       .set('Authorization', `Bearer ${second.accessToken}`)
       .expect(200);
-    expect(response.body.merchant).toEqual({ legalName: 'Owner Boreal', displayName: 'Boreal Store' });
-    expect(response.body.owner).toEqual({ fullName: 'Owner Boreal', email: 'owner-b@example.test' });
+    expect(response.body.merchant).toEqual({
+      legalName: 'Owner Boreal',
+      displayName: 'Boreal Store'
+    });
+    expect(response.body.owner).toEqual({
+      fullName: 'Owner Boreal',
+      email: 'owner-b@example.test'
+    });
     expect(JSON.stringify(response.body)).not.toContain('attacker-selected');
   });
 
@@ -91,12 +97,17 @@ describe('current session profile HTTP API', () => {
       name: 'Legacy Owner',
       tradingName: 'Legacy Store'
     });
-    await database.query('UPDATE users SET full_name = NULL WHERE email = ?', ['legacy@example.test']);
+    await database.query('UPDATE users SET full_name = NULL WHERE email = ?', [
+      'legacy@example.test'
+    ]);
     const response = await request(app.getHttpServer())
       .get('/api/v1/session/profile')
       .set('Authorization', `Bearer ${session.accessToken}`)
       .expect(200);
-    expect(response.body.owner).toEqual({ fullName: 'legacy@example.test', email: 'legacy@example.test' });
+    expect(response.body.owner).toEqual({
+      fullName: 'legacy@example.test',
+      email: 'legacy@example.test'
+    });
     expect(JSON.stringify(response.body)).not.toMatch(/password|hash|token|Id|secret/iu);
   });
 });
