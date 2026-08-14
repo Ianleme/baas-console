@@ -1,0 +1,8 @@
+[allowlist]
+description = "Allowlist SHA-256 hashes in documentation spikes"
+paths = [
+  '''docs/integrations/.*'''
+]
+regexes = [
+  '''[a-f0-9]{64}'''
+]
