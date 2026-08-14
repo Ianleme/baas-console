@@ -32,8 +32,9 @@ export class AuditEventService {
   constructor(private readonly database: DatabaseService) {}
 
   private get dataSource(): DataSource {
-    if (this.database && typeof (this.database as any).getDataSource === 'function') {
-      return this.database.getDataSource();
+    const db = this.database as unknown as { getDataSource?: () => DataSource };
+    if (typeof db.getDataSource === 'function') {
+      return db.getDataSource();
     }
     return this.database as unknown as DataSource;
   }

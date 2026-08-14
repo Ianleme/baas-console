@@ -35,9 +35,12 @@ describe('DemoReadOnlyGuard', () => {
 
   test.each(['POST', 'PUT', 'PATCH', 'DELETE'])('denies %s mutations', (method) => {
     const token = service.issueSession().accessToken;
-    expect(() => guard.canActivate(context(method, '/api/v1/payments', `Bearer ${token}`))).toThrow(
-      expect.objectContaining({ code: 'DEMO_READ_ONLY', status: 403 })
-    );
+    try {
+      guard.canActivate(context(method, '/api/v1/payments', `Bearer ${token}`));
+      throw new Error('UNREACHABLE');
+    } catch (err: unknown) {
+      expect(err).toMatchObject({ code: 'DEMO_READ_ONLY', status: 403 });
+    }
   });
 
   test('does not classify a normal request as demo', () => {
@@ -50,9 +53,12 @@ describe('DemoReadOnlyGuard', () => {
 
   test('rejects a demo token on a nested mutation', () => {
     const token = service.issueSession().accessToken;
-    expect(() =>
-      guard.canActivate(context('POST', '/api/v1/withdrawals/1/retry', `Bearer ${token}`))
-    ).toThrow(expect.objectContaining({ code: 'DEMO_READ_ONLY', status: 403 }));
+    try {
+      guard.canActivate(context('POST', '/api/v1/withdrawals/1/retry', `Bearer ${token}`));
+      throw new Error('UNREACHABLE');
+    } catch (err: unknown) {
+      expect(err).toMatchObject({ code: 'DEMO_READ_ONLY', status: 403 });
+    }
   });
 
   test('allows a demo GET regardless of resource path', () => {
@@ -64,9 +70,12 @@ describe('DemoReadOnlyGuard', () => {
 
   test('accepts only the exact session issuance path as a mutation exception', () => {
     const token = service.issueSession().accessToken;
-    expect(() =>
-      guard.canActivate(context('POST', '/api/v1/demo/session/other', `Bearer ${token}`))
-    ).toThrow(expect.objectContaining({ code: 'DEMO_READ_ONLY', status: 403 }));
+    try {
+      guard.canActivate(context('POST', '/api/v1/demo/session/other', `Bearer ${token}`));
+      throw new Error('UNREACHABLE');
+    } catch (err: unknown) {
+      expect(err).toMatchObject({ code: 'DEMO_READ_ONLY', status: 403 });
+    }
   });
 
   test('attaches the fixed demo principal to the request', () => {

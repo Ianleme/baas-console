@@ -11,7 +11,7 @@ describe('BrevoEmailGateway', () => {
   it('posts the Brevo payload and returns its message id', async () => {
     const fetchMock = jest.fn().mockResolvedValue({
       status: 201,
-      json: async () => ({ messageId: '<brevo-message>' })
+      json: () => Promise.resolve({ messageId: '<brevo-message>' })
     });
     globalThis.fetch = fetchMock as typeof fetch;
 

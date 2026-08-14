@@ -15,6 +15,7 @@ function getUrl(input: unknown): string {
 
 describe('AppRouter', () => {
   beforeEach(() => {
+    globalThis.location.hash = '#/';
     vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
       const url = getUrl(input);
       if (url.includes('/session/profile')) {
@@ -31,11 +32,18 @@ describe('AppRouter', () => {
       }
       if (url.includes('/auth/refresh'))
         return Promise.resolve(new Response('{}', { status: 401 }));
+      if (url.includes('/webhooks')) {
+        return Promise.resolve(
+          new Response(JSON.stringify([]), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        );
+      }
       if (
         url.includes('/checkout-links') ||
         url.includes('/transactions') ||
-        url.includes('/withdrawals') ||
-        url.includes('/webhooks')
+        url.includes('/withdrawals')
       ) {
         return Promise.resolve(
           new Response(JSON.stringify({ items: [], total: 0 }), {
@@ -87,11 +95,15 @@ describe('AppRouter', () => {
     session.setToken('access-token');
     render(<AppRouter session={session} />);
     expect(await screen.findByText('Aurora Store')).toBeVisible();
-    globalThis.location.hash = '#/carteira';
-    globalThis.dispatchEvent(new HashChangeEvent('hashchange'));
+    act(() => {
+      globalThis.location.hash = '#/carteira';
+      globalThis.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
     expect(await screen.findByRole('heading', { name: 'Carteira' })).toBeVisible();
-    globalThis.location.hash = '#/configuracoes';
-    globalThis.dispatchEvent(new HashChangeEvent('hashchange'));
+    act(() => {
+      globalThis.location.hash = '#/configuracoes';
+      globalThis.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
     expect(await screen.findByRole('heading', { name: 'Configurações' })).toBeVisible();
   });
 
@@ -116,7 +128,7 @@ describe('AppRouter', () => {
     session.setToken('logout-token');
     render(<AppRouter session={session} />);
     expect((await screen.findAllByText('Owner Aurora')).length).toBeGreaterThan(0);
-    await act(() => {
+    await act(async () => {
       screen.getByRole('button', { name: 'Sair' }).click();
     });
     await waitFor(() => {
@@ -161,7 +173,7 @@ describe('AppRouter', () => {
     session.setToken('old-token');
     render(<AppRouter session={session} />);
     expect((await screen.findAllByText('Owner Aurora')).length).toBeGreaterThan(0);
-    await act(() => {
+    await act(async () => {
       screen.getByRole('button', { name: 'Sair' }).click();
     });
     await waitFor(() => {

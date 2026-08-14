@@ -88,11 +88,6 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
     void clients.profile
       .load()
       .then((value) => {
-        if (!value) {
-          setProfile(null);
-          setProfileState('unavailable');
-          return;
-        }
         setProfile(value);
         setProfileState('ready');
       })
@@ -119,7 +114,7 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
     activePath: hash,
     onLogout: async () => {
       try {
-        if (clients.auth.logout) await clients.auth.logout();
+        await clients.auth.logout();
       } finally {
         endSession();
       }
@@ -146,10 +141,10 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
               connect: (input) => clients.auth.connect(input),
               ...(clients.auth.registerGateway
                 ? {
-                    registerGateway: (input: Record<string, string>) =>
-                      clients.auth.registerGateway
-                        ? clients.auth.registerGateway(input)
-                        : Promise.resolve()
+                    registerGateway: async (input: Record<string, string>) => {
+                      if (!clients.auth.registerGateway) return '';
+                      return clients.auth.registerGateway(input);
+                    }
                   }
                 : {})
             }}

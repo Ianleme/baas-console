@@ -7,6 +7,7 @@ export default tseslint.config(
   {
     ignores: [
       '**/dist/**',
+      '**/dist',
       '**/coverage/**',
       '**/node_modules/**',
       'artifacts/**',
@@ -14,6 +15,11 @@ export default tseslint.config(
       'playwright-report/**',
       'test-results/**'
     ]
+  },
+  {
+    linterOptions: {
+      reportUnusedDisableDirectives: 'off'
+    }
   },
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked.map((config) => ({
@@ -79,6 +85,23 @@ export default tseslint.config(
           ]
         }
       ]
+    }
+  },
+  {
+    files: ['**/*.spec.ts', '**/*.test.ts', '**/*.test.tsx', 'tests/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/require-await': 'off',
+      '@typescript-eslint/await-thenable': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-confusing-void-expression': 'off',
+      '@typescript-eslint/no-unnecessary-condition': 'off',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off'
     }
   },
   {

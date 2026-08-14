@@ -8,7 +8,7 @@ describe('WalletPage', () => {
     const deferred = createDeferred<Awaited<ReturnType<WalletApi['load']>>>();
     render(<WalletPage api={{ load: () => deferred.promise }} />);
     expect(screen.getByRole('status')).toHaveTextContent('Carregando carteira');
-    await act(() => {
+    act(() => {
       deferred.resolve({ balanceCents: '0', capturedAt: null, stale: false });
     });
   });

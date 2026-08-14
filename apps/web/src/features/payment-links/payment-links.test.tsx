@@ -246,7 +246,7 @@ describe('PaymentLinks', () => {
     const api = await renderReady();
     const [cancelBtn] = screen.getAllByRole('button', { name: 'Cancelar link' });
     expect(cancelBtn).toBeDefined();
-    if (cancelBtn) await userEvent.click(cancelBtn);
+    if (cancelBtn) await userEvent.click(cancelBtn as Element);
     expect(api.cancel).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog', { name: 'Cancelar link?' })).toHaveTextContent(
       'não poderá ser desfeita'
@@ -256,7 +256,7 @@ describe('PaymentLinks', () => {
     const api = await renderReady();
     const [cancelBtn] = screen.getAllByRole('button', { name: 'Cancelar link' });
     expect(cancelBtn).toBeDefined();
-    if (cancelBtn) await userEvent.click(cancelBtn);
+    if (cancelBtn) await userEvent.click(cancelBtn as Element);
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar cancelamento' }));
     await waitFor(() => {
       expect(api.cancel).toHaveBeenCalledWith('link-1');
@@ -267,7 +267,7 @@ describe('PaymentLinks', () => {
     await renderReady(client({ cancel: vi.fn().mockRejectedValue(new Error('raw secret')) }));
     const [cancelBtn] = screen.getAllByRole('button', { name: 'Cancelar link' });
     expect(cancelBtn).toBeDefined();
-    if (cancelBtn) await userEvent.click(cancelBtn);
+    if (cancelBtn) await userEvent.click(cancelBtn as Element);
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar cancelamento' }));
     expect(await screen.findByText('Não foi possível cancelar o link.')).toBeVisible();
     expect(screen.getAllByText('Ativo')[0]).toBeVisible();
@@ -332,7 +332,7 @@ describe('PaymentLinks', () => {
     const api = await renderReady();
     const [copyBtn] = screen.getAllByRole('button', { name: 'Copiar link' });
     expect(copyBtn).toBeDefined();
-    if (copyBtn) await userEvent.click(copyBtn);
+    if (copyBtn) await userEvent.click(copyBtn as Element);
 
     await waitFor(() => {
       expect(api.share).toHaveBeenCalledWith('link-1');
@@ -352,11 +352,11 @@ describe('PaymentLinks', () => {
     const api = await renderReady(client({ share }));
     const [copy] = screen.getAllByRole('button', { name: 'Copiar link' });
     expect(copy).toBeDefined();
-    if (copy) await userEvent.click(copy);
+    if (copy) await userEvent.click(copy as Element);
     await waitFor(() => {
       expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('first-token'));
     });
-    await userEvent.click(copy);
+    if (copy) await userEvent.click(copy as Element);
 
     await waitFor(() => {
       expect(share).toHaveBeenCalledTimes(2);

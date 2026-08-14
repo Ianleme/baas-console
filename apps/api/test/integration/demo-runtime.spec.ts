@@ -8,39 +8,42 @@ describe('read-only demo HTTP boundary', () => {
   let app: INestApplication;
   let token: string;
 
+  const httpServer = () => app.getHttpServer() as Parameters<typeof request>[0];
+
   beforeAll(async () => {
     process.env.DEMO_ENABLED = 'true';
     const module = await Test.createTestingModule({ imports: [DemoModule] }).compile();
     app = module.createNestApplication({ rawBody: true });
     configureApplication(app);
     await app.init();
-    token = (
-      await request(app.getHttpServer())
-        .post('/api/v1/demo/session')
-        .set('X-Forwarded-For', '198.51.100.1')
-        .expect(200)
-    ).body.accessToken as string;
+    const res = await request(httpServer())
+      .post('/api/v1/demo/session')
+      .set('X-Forwarded-For', '198.51.100.1')
+      .expect(200);
+    const body = res.body as { accessToken: string };
+    token = body.accessToken;
   });
 
   afterAll(async () => {
     delete process.env.DEMO_ENABLED;
-    await app?.close();
+    if (app) await app.close();
   });
 
   test('issues a fixed short session without a password', async () => {
-    const response = await request(app.getHttpServer())
+    const response = await request(httpServer())
       .post('/api/v1/demo/session')
       .set('X-Forwarded-For', '198.51.100.2')
       .expect(200);
-    expect(response.body.principal).toEqual(
+    const body = response.body as { principal: { exp: number } };
+    expect(body.principal).toEqual(
       expect.objectContaining({ demo: true, merchantId: '00000000-0000-4000-8000-000000000043' })
     );
-    expect(response.body.principal.exp).toBeGreaterThan(Date.now());
+    expect(body.principal.exp).toBeGreaterThan(Date.now());
     expect(JSON.stringify(response.body)).not.toMatch(/password|senha/iu);
   });
 
   test('serves the fixed demo read model', async () => {
-    const response = await request(app.getHttpServer())
+    const response = await request(httpServer())
       .get('/api/v1/demo/view')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
@@ -57,16 +60,17 @@ describe('read-only demo HTTP boundary', () => {
     '/api/v1/auth/logout',
     '/api/v1/checkout-links'
   ])('denies %s mutations with stable code', async (path) => {
-    const response = await request(app.getHttpServer())
+    const response = await request(httpServer())
       .post(path)
       .set('Authorization', `Bearer ${token}`)
       .send({ amount: 100 });
+    const body = response.body as { code: string };
     expect(response.status).toBe(403);
-    expect(response.body.code).toBe('DEMO_READ_ONLY');
+    expect(body.code).toBe('DEMO_READ_ONLY');
   });
 
   test.each(['PUT', 'PATCH', 'DELETE'])('denies %s mutations too', async (method) => {
-    const agent = request(app.getHttpServer());
+    const agent = request(httpServer());
     const response = await (
       method === 'PUT'
         ? agent.put('/api/v1/withdrawals/1')
@@ -74,45 +78,47 @@ describe('read-only demo HTTP boundary', () => {
           ? agent.patch('/api/v1/withdrawals/1')
           : agent.delete('/api/v1/withdrawals/1')
     ).set('Authorization', `Bearer ${token}`);
+    const body = response.body as { code: string };
     expect(response.status).toBe(403);
-    expect(response.body.code).toBe('DEMO_READ_ONLY');
+    expect(body.code).toBe('DEMO_READ_ONLY');
   });
 
   test('does not deny unauthenticated normal requests as demo', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/api/v1/payments')
-      .send({ amount: 100 });
+    const response = await request(httpServer()).post('/api/v1/payments').send({ amount: 100 });
+    const body = response.body as { code?: string };
     expect(response.status).not.toBe(403);
-    expect(response.body.code).not.toBe('DEMO_READ_ONLY');
+    expect(body.code).not.toBe('DEMO_READ_ONLY');
   });
 
   test('allows an authenticated demo GET without mutation', async () => {
-    const response = await request(app.getHttpServer())
+    const response = await request(httpServer())
       .get('/api/v1/demo/view')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    expect(response.body.mode).toBe('READ_ONLY');
+    const body = response.body as { mode: string };
+    expect(body.mode).toBe('READ_ONLY');
   });
 
   test('rate limits six session issues from one IP', async () => {
     const responses = await Promise.all(
       Array.from({ length: 6 }, () =>
-        request(app.getHttpServer())
-          .post('/api/v1/demo/session')
-          .set('X-Forwarded-For', '198.51.100.43')
+        request(httpServer()).post('/api/v1/demo/session').set('X-Forwarded-For', '198.51.100.43')
       )
     );
-    expect(responses.at(-1)?.status).toBe(429);
-    expect(responses.at(-1)?.body.code).toBe('RATE_LIMITED');
+    const lastRes = responses.at(-1);
+    const body = lastRes?.body as { code?: string } | undefined;
+    expect(lastRes?.status).toBe(429);
+    expect(body?.code).toBe('RATE_LIMITED');
   });
 
   test('rejects disabled demo entry', async () => {
     delete process.env.DEMO_ENABLED;
-    const response = await request(app.getHttpServer())
+    const response = await request(httpServer())
       .post('/api/v1/demo/session')
       .set('X-Forwarded-For', '198.51.100.99')
       .expect(404);
-    expect(response.body.code).toBe('DEMO_DISABLED');
+    const body = response.body as { code: string };
+    expect(body.code).toBe('DEMO_DISABLED');
     process.env.DEMO_ENABLED = 'true';
   });
 });

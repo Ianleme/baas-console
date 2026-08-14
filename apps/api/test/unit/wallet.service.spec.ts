@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method -- Jest mocks are inspected without invocation. */
 import {
   WalletService,
   WalletUnavailableError,

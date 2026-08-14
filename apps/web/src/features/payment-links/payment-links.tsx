@@ -273,7 +273,7 @@ export function PaymentLinks({
       const detailed = await resolvePublicLink(link);
       if (!detailed.publicToken) throw new Error('PUBLIC_TOKEN_UNAVAILABLE');
       const url = checkoutUrl(detailed.publicToken);
-      if (typeof navigator?.clipboard?.writeText === 'function') {
+      if ('clipboard' in navigator && typeof navigator.clipboard.writeText === 'function') {
         await globalThis.navigator.clipboard.writeText(url);
       } else {
         copyWithFallback(url);

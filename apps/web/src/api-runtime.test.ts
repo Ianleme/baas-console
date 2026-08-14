@@ -429,7 +429,8 @@ describe('runtime API composition', () => {
   test('logout sends cookies and CSRF, while authenticated feature clients share recovery', async () => {
     let refreshed = false;
     const request = vi.fn<typeof fetch>().mockImplementation((input) => {
-      const url = String(input);
+      const url =
+        typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
       if (url === '/api/v1/auth/logout')
         return Promise.resolve(new Response(null, { status: 204 }));
       if (url === '/api/v1/auth/refresh') {

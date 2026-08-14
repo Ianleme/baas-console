@@ -79,9 +79,7 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
   }
 
   const gateway = gatewayStatus(profile.gatewayConnectionStatus);
-  const canConnect =
-    profile.gatewayConnectionStatus === 'AWAITING_CREDENTIALS' ||
-    profile.gatewayConnectionStatus === 'ACTIVE';
+  const canConnect = profile.gatewayConnectionStatus === 'AWAITING_CREDENTIALS';
   const registrationFailed = profile.gatewayConnectionStatus === 'GATEWAY_REGISTRATION_FAILED';
   const registrationPending = ['GATEWAY_REGISTRATION_UNKNOWN', 'REGISTRATION_PENDING'].includes(
     profile.gatewayConnectionStatus ?? ''
@@ -289,19 +287,6 @@ export function SettingsPage({ api }: { api: CurrentProfileApi }) {
                       ? 'Sua conexão está ativa. Webhooks e pagamentos podem ser usados por esta conta.'
                       : 'A conexão com a Lera Box ainda não está disponível.'}
                   </p>
-                  {profile.gatewayConnectionStatus === 'ACTIVE' && !formOpen && (
-                    <Button
-                      className="mt-4"
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setFormOpen(true);
-                      }}
-                    >
-                      Reconectar / Atualizar credenciais{' '}
-                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  )}
                 </div>
               )}
             </div>

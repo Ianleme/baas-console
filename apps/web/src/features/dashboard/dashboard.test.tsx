@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 import axe from 'axe-core';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -76,7 +75,7 @@ describe('Dashboard', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Carregando painel financeiro');
   });
   test('loads the real dashboard projection once', async () => {
-    const client = await ready();
+    const client = await ready(populated, 'Hoje');
     expect(client.load).toHaveBeenCalledTimes(1);
   });
   test('shows authoritative wallet balance in BRL', async () => {

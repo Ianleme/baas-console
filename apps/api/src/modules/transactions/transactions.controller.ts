@@ -51,11 +51,13 @@ export class TransactionsController {
   ) {
     let actualRes = res;
     let actualFormat = format;
-    if (
-      res &&
-      typeof (res as any).setHeader !== 'function' &&
-      typeof (format as any)?.setHeader === 'function'
-    ) {
+    const hasSetHeader = (obj: unknown): obj is { setHeader: (k: string, v: string) => void } =>
+      typeof obj === 'object' &&
+      obj !== null &&
+      'setHeader' in obj &&
+      typeof (obj as { setHeader: unknown }).setHeader === 'function';
+
+    if (!hasSetHeader(res) && hasSetHeader(format)) {
       actualRes = format as unknown as Response;
       actualFormat = typeof res === 'string' ? res : undefined;
     }

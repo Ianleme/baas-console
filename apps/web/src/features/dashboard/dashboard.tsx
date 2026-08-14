@@ -80,7 +80,7 @@ const dayMonth = new Intl.DateTimeFormat('pt-BR', {
 const fullTimestamp = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
   timeStyle: 'short',
-  timeZone: 'America/Sao_Paulo'
+  timeZone: 'UTC'
 });
 const periods = ['Hoje', '7 dias', '30 dias', '90 dias', 'Todo o período'] as const;
 
@@ -183,15 +183,15 @@ function DashboardHeader({
         <p className="text-sm text-brand-muted">Acompanhe sua operação em tempo real.</p>
       </div>
       <div className="dashboard__actions flex items-center gap-3">
-        <a
-          href="#/saques?solicitar=1"
+        <button
+          type="button"
           onClick={onRequestWithdrawal}
           className="inline-flex h-11 items-center justify-center rounded-lg border border-brand-primary bg-brand-panel px-5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-primary-soft"
         >
           Solicitar saque
-        </a>
-        <a
-          href="#/links?criar=1"
+        </button>
+        <button
+          type="button"
           onClick={onCreatePaymentLink}
           className="inline-flex h-11 items-center justify-center rounded-lg bg-brand-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-primary-dark"
         >
@@ -199,7 +199,7 @@ function DashboardHeader({
             +
           </span>
           Criar link de pagamento
-        </a>
+        </button>
       </div>
     </header>
   );
@@ -355,6 +355,7 @@ export function Dashboard({
   const chartHeight = 168;
   const inValues = movement.map((point) => Number(point.inCents));
   const outValues = movement.map((point) => Number(point.outCents));
+  const inPath = buildMovementPath(inValues, chartWidth, chartHeight, movementMax);
   const outPath = buildMovementPath(outValues, chartWidth, chartHeight, movementMax);
   const yTicks = [1, 0.75, 0.5, 0.25, 0].map((ratio) => ({
     ratio,

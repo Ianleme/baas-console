@@ -117,17 +117,21 @@ describe('CheckoutLinkController sendEmail', () => {
         recipient: 'destinatario@empresa.com'
       })
     );
-    const queued = enqueueMock.mock.calls[0]?.[0] as {
-      idempotencyKey: string;
-      payload: { checkoutUrl: string; text: string; html: string };
-    };
+    const calls = enqueueMock.mock.calls as unknown as [
+      {
+        idempotencyKey: string;
+        payload: { checkoutUrl: string; text: string; html: string };
+      }
+    ][];
+    const queued = calls[0]![0];
     expect(queued.idempotencyKey).not.toContain('recovered-public-token');
     expect(queued.payload.checkoutUrl).toBe(
       'https://checkout.example.com/pay.html#/checkout/recovered-public-token'
     );
     expect(queued.payload.text).toContain(queued.payload.checkoutUrl);
     expect(queued.payload.html).toContain(`href="${queued.payload.checkoutUrl}"`);
-    expect(mockLinksService.share).toHaveBeenCalledWith('merchant-1', 'link-100');
+    const shareSpy = mockLinksService.share as jest.Mock;
+    expect(shareSpy).toHaveBeenCalledWith('merchant-1', 'link-100');
   });
 
   it('never exposes the public token in the authenticated list response', async () => {
@@ -145,7 +149,8 @@ describe('CheckoutLinkController sendEmail', () => {
     await expect(controller.share(mockRequest, 'link-100')).resolves.toMatchObject({
       publicToken: 'recovered-public-token'
     });
-    expect(mockLinksService.share).toHaveBeenCalledWith('merchant-1', 'link-100');
+    const shareSpy = mockLinksService.share as jest.Mock;
+    expect(shareSpy).toHaveBeenCalledWith('merchant-1', 'link-100');
   });
 
   it('throws 404 ProblemException if link is not found or owned by another tenant', async () => {

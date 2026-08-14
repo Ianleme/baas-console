@@ -15,8 +15,10 @@ const owner = {
   password: 'StrongPassword123'
 };
 
+const httpServer = (app: INestApplication) => app.getHttpServer() as Parameters<typeof request>[0];
+
 async function register(app: INestApplication, input: Record<string, unknown>) {
-  const response = await request(app.getHttpServer()).post('/api/v1/auth/register').send(input);
+  const response = await request(httpServer(app)).post('/api/v1/auth/register').send(input);
   expect(response.status).toBe(201);
   return response.body as { accessToken: string };
 }
@@ -48,21 +50,26 @@ describe('current session profile HTTP API', () => {
 
   test('returns the authenticated merchant and owner allowlist', async () => {
     const session = await register(app, owner);
-    const response = await request(app.getHttpServer())
+    const response = await request(httpServer(app))
       .get('/api/v1/session/profile')
       .set('Authorization', `Bearer ${session.accessToken}`)
       .expect(200);
-    expect(response.body).toEqual({
+    const body = response.body as {
+      merchant: unknown;
+      owner: unknown;
+      gatewayConnectionStatus: unknown;
+    };
+    expect(body).toEqual({
       merchant: { legalName: 'Owner Aurora', displayName: 'Aurora Store' },
       owner: { fullName: 'Owner Aurora', email: owner.email },
       gatewayConnectionStatus: null
     });
-    expect(Object.keys(response.body)).toEqual(['merchant', 'owner', 'gatewayConnectionStatus']);
+    expect(Object.keys(body)).toEqual(['merchant', 'owner', 'gatewayConnectionStatus']);
   });
 
   test('rejects missing and invalid access tokens', async () => {
-    await request(app.getHttpServer()).get('/api/v1/session/profile').expect(401);
-    await request(app.getHttpServer())
+    await request(httpServer(app)).get('/api/v1/session/profile').expect(401);
+    await request(httpServer(app))
       .get('/api/v1/session/profile')
       .set('Authorization', 'Bearer invalid-token')
       .expect(401);
@@ -75,15 +82,16 @@ describe('current session profile HTTP API', () => {
       tradingName: 'Boreal Store',
       email: 'owner-b@example.test'
     });
-    const response = await request(app.getHttpServer())
+    const response = await request(httpServer(app))
       .get('/api/v1/session/profile?merchantId=attacker-selected')
       .set('Authorization', `Bearer ${second.accessToken}`)
       .expect(200);
-    expect(response.body.merchant).toEqual({
+    const body = response.body as { merchant: unknown; owner: unknown };
+    expect(body.merchant).toEqual({
       legalName: 'Owner Boreal',
       displayName: 'Boreal Store'
     });
-    expect(response.body.owner).toEqual({
+    expect(body.owner).toEqual({
       fullName: 'Owner Boreal',
       email: 'owner-b@example.test'
     });
@@ -100,11 +108,12 @@ describe('current session profile HTTP API', () => {
     await database.query('UPDATE users SET full_name = NULL WHERE email = ?', [
       'legacy@example.test'
     ]);
-    const response = await request(app.getHttpServer())
+    const response = await request(httpServer(app))
       .get('/api/v1/session/profile')
       .set('Authorization', `Bearer ${session.accessToken}`)
       .expect(200);
-    expect(response.body.owner).toEqual({
+    const body = response.body as { owner: unknown };
+    expect(body.owner).toEqual({
       fullName: 'legacy@example.test',
       email: 'legacy@example.test'
     });
