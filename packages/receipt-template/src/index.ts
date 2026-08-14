@@ -26,6 +26,7 @@ export function formatReceiptDate(isoDate: string): string {
     const d = new Date(isoDate);
     if (isNaN(d.getTime())) return isoDate;
     return d.toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
