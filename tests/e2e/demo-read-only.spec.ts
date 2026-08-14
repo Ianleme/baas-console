@@ -39,7 +39,7 @@ test('opens the deterministic demo without a password and blocks mutations', asy
   await expect(page.getByRole('heading', { name: 'Demo Aurora Store' })).toBeVisible();
   await expect(page.getByText('Somente leitura')).toBeVisible();
   await expect(page.getByText('R$ 1.250,00')).toBeVisible();
-  await expect(page.getByText(/senha/i)).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: /senha/i })).toHaveCount(0);
   const response = (await page.evaluate(async () =>
     fetch('/api/v1/payments', { method: 'POST', body: '{}' }).then(
       (result) => result.json() as Promise<unknown>

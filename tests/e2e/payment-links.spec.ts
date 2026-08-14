@@ -12,7 +12,13 @@ test('manages payment links in the responsive merchant screen', async ({ page })
     status: 'ACTIVE',
     expiresAt: '2026-08-15T18:18:00.000Z'
   };
-  await page.route('**/api/v1/checkout-links', async (route) => {
+  await page.context().addCookies([
+    { name: 'baas_csrf', value: 'e2e-csrf', domain: '127.0.0.1', path: '/' }
+  ]);
+  await page.route('**/api/v1/auth/refresh', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+  });
+  await page.route('**/api/v1/checkout-links**', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',

@@ -1,4 +1,4 @@
-import '../../styles/tokens.css';
+import '../styles/tokens.css';
 
 async function loadDemo(): Promise<{
   merchant: { displayName: string };

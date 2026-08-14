@@ -9,6 +9,12 @@ test('shows honest reconciliation state and safe responsive verification', async
     classification: 'LOCAL_ONLY',
     updatedAt: '2026-08-12T16:00:00.000Z'
   };
+  await page.context().addCookies([
+    { name: 'baas_csrf', value: 'e2e-csrf', domain: '127.0.0.1', path: '/' }
+  ]);
+  await page.route('**/api/v1/auth/refresh', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+  });
   await page.route('**/api/v1/reconciliation', async (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([row]) })
   );

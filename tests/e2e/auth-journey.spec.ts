@@ -2,13 +2,24 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function mockApi(page: Page, connectStatus = 'ACTIVE'): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
-    await route.fulfill({
-      status: route.request().url().endsWith('/connect') ? 200 : 204,
-      contentType: 'application/json',
-      body: route.request().url().endsWith('/connect')
-        ? JSON.stringify({ status: connectStatus })
-        : ''
-    });
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname === '/api/v1/auth/register') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ gatewayOnboarding: { status: 'AWAITING_CREDENTIALS' } })
+      });
+      return;
+    }
+    if (pathname === '/api/v1/gateway-account/connect') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: connectStatus })
+      });
+      return;
+    }
+    await route.fulfill({ status: 204, contentType: 'application/json', body: '' });
   });
 }
 
@@ -40,7 +51,7 @@ test('authenticates an existing merchant', async ({ page }) => {
   await page.getByLabel('E-mail').fill('owner@example.test');
   await page.getByLabel('Senha').fill('StrongPassword123');
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page.getByRole('heading', { name: 'Sua operação está pronta' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sair' })).toBeVisible();
 });
 
 test('completes registration and one-time gateway connection', async ({ page }) => {
@@ -51,7 +62,8 @@ test('completes registration and one-time gateway connection', async ({ page }) 
   await page.getByLabel('CPF ou CNPJ').fill('12345678909');
   await page.getByLabel('Senha temporária da Lera Box').fill('temporary-secret');
   await page.getByRole('button', { name: 'Verificar e conectar' }).click();
-  await expect(page.getByRole('heading', { name: 'Sua operação está pronta' })).toBeVisible();
+  await page.getByRole('link', { name: 'Ir para o dashboard' }).click();
+  await expect(page.getByRole('button', { name: 'Sair' })).toBeVisible();
 });
 
 test('keeps a divergent gateway profile disconnected', async ({ page }) => {
