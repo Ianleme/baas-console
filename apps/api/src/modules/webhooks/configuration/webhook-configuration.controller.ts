@@ -4,6 +4,7 @@ import {
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiOkResponse,
+  ApiProperty,
   ApiTags
 } from '@nestjs/swagger';
 import { IsIn } from 'class-validator';
@@ -20,7 +21,13 @@ import {
 } from './webhook-configuration.service.js';
 
 class ConfigureWebhookDto {
-  @IsIn(['PAYMENT_PIX', 'PAYMENT_CARD', 'WITHDRAWAL']) event!: GatewayWebhookEvent;
+  @ApiProperty({
+    enum: ['PAYMENT_PIX', 'PAYMENT_CARD', 'WITHDRAWAL'],
+    example: 'PAYMENT_PIX',
+    description: 'Tipo de evento de webhook a ser configurado no gateway'
+  })
+  @IsIn(['PAYMENT_PIX', 'PAYMENT_CARD', 'WITHDRAWAL'])
+  event!: GatewayWebhookEvent;
 }
 
 @ApiTags('webhooks')

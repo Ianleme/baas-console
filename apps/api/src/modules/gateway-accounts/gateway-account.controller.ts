@@ -1,5 +1,12 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProperty,
+  ApiPropertyOptional,
+  ApiTags
+} from '@nestjs/swagger';
 import { IsEmail, IsIn, IsOptional, IsString, Length, MaxLength } from 'class-validator';
 import type { Request } from 'express';
 import { ProblemException } from '../../platform/errors/problem.exception.js';
@@ -8,24 +15,89 @@ import { extractAccessToken } from '../auth/extract-token.js';
 import { GatewayOnboardingError, GatewayOnboardingService } from './gateway-onboarding.service.js';
 
 class ConnectGatewayDto {
-  @IsString() @Length(3, 32) document!: string;
-  @IsString() @Length(1, 128) password!: string;
+  @ApiProperty({
+    example: '12.345.678/0001-90',
+    description: 'Documento (CPF ou CNPJ) cadastrado no gateway'
+  })
+  @IsString()
+  @Length(3, 32)
+  document!: string;
+
+  @ApiProperty({
+    example: 'temporary-secret',
+    description: 'Senha temporária recebida por e-mail da Lera Box'
+  })
+  @IsString()
+  @Length(1, 128)
+  password!: string;
 }
 
 class RegisterGatewayDto {
-  @IsIn(['PF', 'PJ']) personType!: 'PF' | 'PJ';
-  @IsString() @Length(2, 255) name!: string;
-  @IsOptional() @IsString() @Length(2, 120) tradingName?: string;
-  @IsEmail() @MaxLength(254) email!: string;
-  @IsString() @Length(8, 20) phone!: string;
-  @IsString() @Length(3, 32) document!: string;
-  @IsString() @Length(8, 12) zipCode!: string;
-  @IsString() @Length(2, 255) address!: string;
-  @IsString() @Length(1, 20) number!: string;
-  @IsOptional() @IsString() @Length(1, 120) complement?: string;
-  @IsString() @Length(2, 120) neighborhood!: string;
-  @IsString() @Length(2, 120) city!: string;
-  @IsString() @Length(2, 2) state!: string;
+  @ApiProperty({ enum: ['PF', 'PJ'], example: 'PJ', description: 'Tipo de pessoa' })
+  @IsIn(['PF', 'PJ'])
+  personType!: 'PF' | 'PJ';
+
+  @ApiProperty({ example: 'Empresa Exemplo Ltda', description: 'Razão social ou nome completo' })
+  @IsString()
+  @Length(2, 255)
+  name!: string;
+
+  @ApiPropertyOptional({ example: 'Minha Loja', description: 'Nome fantasia' })
+  @IsOptional()
+  @IsString()
+  @Length(2, 120)
+  tradingName?: string;
+
+  @ApiProperty({ example: 'proprietario@empresa.com.br', description: 'E-mail do responsável' })
+  @IsEmail()
+  @MaxLength(254)
+  email!: string;
+
+  @ApiProperty({ example: '(11) 98765-4321', description: 'Telefone com DDD' })
+  @IsString()
+  @Length(8, 20)
+  phone!: string;
+
+  @ApiProperty({ example: '12.345.678/0001-90', description: 'CPF ou CNPJ' })
+  @IsString()
+  @Length(3, 32)
+  document!: string;
+
+  @ApiProperty({ example: '01001-000', description: 'CEP' })
+  @IsString()
+  @Length(8, 12)
+  zipCode!: string;
+
+  @ApiProperty({ example: 'Praça da Sé', description: 'Endereço / Logradouro' })
+  @IsString()
+  @Length(2, 255)
+  address!: string;
+
+  @ApiProperty({ example: '100', description: 'Número' })
+  @IsString()
+  @Length(1, 20)
+  number!: string;
+
+  @ApiPropertyOptional({ example: 'Sala 42', description: 'Complemento' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 120)
+  complement?: string;
+
+  @ApiProperty({ example: 'Centro', description: 'Bairro' })
+  @IsString()
+  @Length(2, 120)
+  neighborhood!: string;
+
+  @ApiProperty({ example: 'São Paulo', description: 'Cidade' })
+  @IsString()
+  @Length(2, 120)
+  city!: string;
+
+  @ApiProperty({ example: 'SP', description: 'UF (sigla do estado com 2 letras)' })
+  @IsString()
+  @Length(2, 2)
+  state!: string;
 }
 
 @ApiTags('gateway-account')

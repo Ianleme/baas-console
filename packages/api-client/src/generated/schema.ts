@@ -617,8 +617,55 @@ export type paths = {
 export type webhooks = Record<string, never>;
 export type components = {
   schemas: {
-    CardConfirmDto: Record<string, never>;
-    CardQuoteDto: Record<string, never>;
+    CardConfirmDto: {
+      /** @description Dados do cartão de crédito para processamento */
+      card: components['schemas']['CardDataDto'];
+      /**
+       * @description ID ou token assinado da cotação obtida anteriormente
+       * @example eyJzZXNzaW9uSWQiOiJzZXNzLTEiLCJsaW5rSWQiOiJsaW5rLTEifQ.signature
+       */
+      quoteId: string;
+    };
+    CardDataDto: {
+      /**
+       * @description Código de segurança CVV/CVC
+       * @example 123
+       */
+      cvv: string;
+      /**
+       * @description Mês de validade (MM)
+       * @example 12
+       */
+      expiryMonth: number;
+      /**
+       * @description Ano de validade com 4 dígitos (AAAA)
+       * @example 2030
+       */
+      expiryYear: number;
+      /**
+       * @description Nome impresso no cartão
+       * @example CLIENTE SANDBOX
+       */
+      holder: string;
+      /**
+       * @description Número do cartão de crédito
+       * @example 4111111111111111
+       */
+      number: string;
+    };
+    CardQuoteDto: {
+      /**
+       * @description Bandeira do cartão
+       * @example VISA
+       * @enum {string}
+       */
+      brand: 'VISA' | 'MASTERCARD' | 'ELO';
+      /**
+       * @description Número de parcelas desejadas
+       * @example 1
+       */
+      installments: number;
+    };
     CheckoutLinkFeeResponseDto: {
       /** @enum {string} */
       brand: 'VISA' | 'MASTERCARD' | 'ELO';
@@ -648,21 +695,273 @@ export type components = {
       /** @enum {string} */
       status: 'ACTIVE' | 'PAID' | 'EXPIRED' | 'CANCELLED';
     };
-    ConfigureWebhookDto: Record<string, never>;
-    ConnectGatewayDto: Record<string, never>;
-    CreateCheckoutLinkDto: Record<string, never>;
-    CreateWithdrawalDto: Record<string, never>;
-    ExchangeDto: Record<string, never>;
+    ConfigureWebhookDto: {
+      /**
+       * @description Tipo de evento de webhook a ser configurado no gateway
+       * @example PAYMENT_PIX
+       * @enum {string}
+       */
+      event: 'PAYMENT_PIX' | 'PAYMENT_CARD' | 'WITHDRAWAL';
+    };
+    ConnectGatewayDto: {
+      /**
+       * @description Documento (CPF ou CNPJ) cadastrado no gateway
+       * @example 12.345.678/0001-90
+       */
+      document: string;
+      /**
+       * @description Senha temporária recebida por e-mail da Lera Box
+       * @example temporary-secret
+       */
+      password: string;
+    };
+    CreateCheckoutLinkDto: {
+      /**
+       * @description Métodos aceitos no checkout
+       * @example PIX_CARD
+       * @enum {string}
+       */
+      allowedMethods: 'PIX' | 'CARD' | 'PIX_CARD';
+      /**
+       * @description Valor total da cobrança em centavos de Real (ex: 32000 = R$ 320,00)
+       * @example 32000
+       */
+      amountCents: string;
+      /**
+       * @description Descrição da cobrança exibida ao pagador
+       * @example Pedido #1048 - 2x Camisetas Algodão Premium
+       */
+      description: string;
+      /**
+       * Format: date-time
+       * @description Data de expiração do link
+       * @example 2026-12-31T23:59:59.000Z
+       */
+      expiresAt: string;
+      /**
+       * @description Número máximo de parcelas permitidas no cartão
+       * @example 12
+       */
+      maxInstallments: number;
+      /**
+       * @description Referência única pública do pedido ou cobrança
+       * @example REF-2026-01048
+       */
+      publicReference: string;
+    };
+    CreateWithdrawalDto: {
+      /**
+       * @description Valor do saque em centavos (ex: 50000 = R$ 500,00)
+       * @example 50000
+       */
+      amountCents: string;
+      /**
+       * @description Identificador ou referência externa customizada para reconciliação
+       * @example SAQUE-2026-001
+       */
+      externalReference?: string;
+      /**
+       * @description Chave Pix de destino dos fundos
+       * @example 12345678909
+       */
+      pixKey: string;
+      /**
+       * @description Tipo da chave Pix de destino
+       * @example CPF
+       * @enum {string}
+       */
+      pixKeyType: 'CPF' | 'CNPJ' | 'EMAIL' | 'PHONE' | 'RANDOM';
+    };
+    ExchangeDto: {
+      /**
+       * @description Token público assinado para inicialização da sessão de checkout
+       * @example dGhpcy1pcy1hLXNhbXBsZS1wdWJsaWMtdG9rZW4tZm9yLWNoZWNrb3V0
+       */
+      token: string;
+    };
     ListCheckoutLinksResponseDto: {
       items: components['schemas']['CheckoutLinkResponseDto'][];
       summary: components['schemas']['CheckoutLinkListSummaryResponseDto'];
       total: number;
     };
-    LoginDto: Record<string, never>;
-    PixDto: Record<string, never>;
-    RegisterGatewayDto: Record<string, never>;
-    RegisterOwnerDto: Record<string, never>;
-    SendCheckoutLinkEmailDto: Record<string, never>;
+    LoginDto: {
+      /**
+       * @description E-mail cadastrado
+       * @example proprietario@empresa.com.br
+       */
+      email: string;
+      /**
+       * @description Senha da conta
+       * @example StrongPassword123!
+       */
+      password: string;
+      /**
+       * @description Manter sessão conectada
+       * @example true
+       */
+      remember: boolean;
+    };
+    Object: Record<string, never>;
+    PixDto: {
+      /**
+       * @description CPF ou CNPJ do pagador para geração da cobrança Pix
+       * @example 123.456.789-09
+       */
+      payerDocument: string;
+    };
+    RegisterGatewayDto: {
+      /**
+       * @description Endereço / Logradouro
+       * @example Praça da Sé
+       */
+      address: string;
+      /**
+       * @description Cidade
+       * @example São Paulo
+       */
+      city: string;
+      /**
+       * @description Complemento
+       * @example Sala 42
+       */
+      complement?: string;
+      /**
+       * @description CPF ou CNPJ
+       * @example 12.345.678/0001-90
+       */
+      document: string;
+      /**
+       * @description E-mail do responsável
+       * @example proprietario@empresa.com.br
+       */
+      email: string;
+      /**
+       * @description Razão social ou nome completo
+       * @example Empresa Exemplo Ltda
+       */
+      name: string;
+      /**
+       * @description Bairro
+       * @example Centro
+       */
+      neighborhood: string;
+      /**
+       * @description Número
+       * @example 100
+       */
+      number: string;
+      /**
+       * @description Tipo de pessoa
+       * @example PJ
+       * @enum {string}
+       */
+      personType: 'PF' | 'PJ';
+      /**
+       * @description Telefone com DDD
+       * @example (11) 98765-4321
+       */
+      phone: string;
+      /**
+       * @description UF (sigla do estado com 2 letras)
+       * @example SP
+       */
+      state: string;
+      /**
+       * @description Nome fantasia
+       * @example Minha Loja
+       */
+      tradingName?: string;
+      /**
+       * @description CEP
+       * @example 01001-000
+       */
+      zipCode: string;
+    };
+    RegisterOwnerDto: {
+      /**
+       * @description Logradouro / Endereço
+       * @example Praça da Sé
+       */
+      address?: string;
+      /**
+       * @description Cidade
+       * @example São Paulo
+       */
+      city?: string;
+      /**
+       * @description Nome de exibição (legado)
+       * @example Minha Loja
+       */
+      displayName?: string;
+      /**
+       * @description CPF ou CNPJ do proprietário/empresa
+       * @example 12.345.678/0001-90
+       */
+      document?: string;
+      /**
+       * @description E-mail de acesso do proprietário
+       * @example proprietario@empresa.com.br
+       */
+      email: string;
+      /**
+       * @description Razão social (legado)
+       * @example Empresa Exemplo Ltda
+       */
+      legalName?: string;
+      /**
+       * @description Nome completo ou Razão Social
+       * @example Empresa Exemplo Ltda
+       */
+      name?: string;
+      /**
+       * @description Bairro
+       * @example Centro
+       */
+      neighborhood?: string;
+      /**
+       * @description Número do endereço
+       * @example 100
+       */
+      number?: string;
+      /**
+       * @description Senha de acesso (mínimo 12 caracteres)
+       * @example StrongPassword123!
+       */
+      password: string;
+      /**
+       * @description Tipo de pessoa (Pessoa Física ou Jurídica)
+       * @example PJ
+       * @enum {string}
+       */
+      personType?: 'PF' | 'PJ';
+      /**
+       * @description Telefone de contato com DDD
+       * @example (11) 98765-4321
+       */
+      phone?: string;
+      /**
+       * @description Unidade Federativa (UF com 2 letras)
+       * @example SP
+       */
+      state?: string;
+      /**
+       * @description Nome fantasia da loja
+       * @example Minha Loja
+       */
+      tradingName?: string;
+      /**
+       * @description CEP do endereço comercial
+       * @example 01001-000
+       */
+      zipCode?: string;
+    };
+    SendCheckoutLinkEmailDto: {
+      /**
+       * @description E-mail do destinatário para envio do link
+       * @example cliente@exemplo.com.br
+       */
+      email: string;
+    };
   };
   responses: never;
   parameters: never;
@@ -1183,7 +1482,24 @@ export interface operations {
   };
   TransactionsController_list: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Data de início do período (ISO 8601) */
+        from?: string;
+        /** @description Quantidade máxima de registros por página */
+        limit?: components['schemas']['Object'];
+        /** @description Deslocamento / offset para paginação */
+        offset?: components['schemas']['Object'];
+        /** @description Origem da transação (Pagamento recebido ou Saque) */
+        originType?: 'PAYMENT' | 'WITHDRAWAL';
+        /** @description Busca por referência da transação ou pedido */
+        reference?: string;
+        /** @description Filtrar por status da transação */
+        status?: 'APPROVED' | 'DENIED' | 'PENDING' | 'EXPIRED' | 'CANCELLED';
+        /** @description Data de término do período (ISO 8601) */
+        to?: string;
+        /** @description Tipo de movimentação (Crédito ou Débito) */
+        type?: 'CREDIT' | 'DEBIT';
+      };
       header?: never;
       path?: never;
       cookie?: never;

@@ -36,16 +36,64 @@ import {
 export const PUBLIC_CHECKOUT_BASE_URL = 'PUBLIC_CHECKOUT_BASE_URL';
 
 class CreateCheckoutLinkDto {
-  @IsString() @Length(1, 100) publicReference!: string;
-  @IsString() @Length(1, 255) description!: string;
-  @IsString() amountCents!: string;
-  @IsIn(['PIX', 'CARD', 'PIX_CARD']) allowedMethods!: 'PIX' | 'CARD' | 'PIX_CARD';
-  @IsInt() @Min(1) @Max(21) maxInstallments!: number;
-  @IsDateString() expiresAt!: string;
+  @ApiProperty({
+    example: 'REF-2026-01048',
+    description: 'Referência única pública do pedido ou cobrança'
+  })
+  @IsString()
+  @Length(1, 100)
+  publicReference!: string;
+
+  @ApiProperty({
+    example: 'Pedido #1048 - 2x Camisetas Algodão Premium',
+    description: 'Descrição da cobrança exibida ao pagador'
+  })
+  @IsString()
+  @Length(1, 255)
+  description!: string;
+
+  @ApiProperty({
+    example: '32000',
+    description: 'Valor total da cobrança em centavos de Real (ex: 32000 = R$ 320,00)'
+  })
+  @IsString()
+  amountCents!: string;
+
+  @ApiProperty({
+    enum: ['PIX', 'CARD', 'PIX_CARD'],
+    example: 'PIX_CARD',
+    description: 'Métodos aceitos no checkout'
+  })
+  @IsIn(['PIX', 'CARD', 'PIX_CARD'])
+  allowedMethods!: 'PIX' | 'CARD' | 'PIX_CARD';
+
+  @ApiProperty({
+    example: 12,
+    minimum: 1,
+    maximum: 21,
+    description: 'Número máximo de parcelas permitidas no cartão'
+  })
+  @IsInt()
+  @Min(1)
+  @Max(21)
+  maxInstallments!: number;
+
+  @ApiProperty({
+    example: '2026-12-31T23:59:59.000Z',
+    format: 'date-time',
+    description: 'Data de expiração do link'
+  })
+  @IsDateString()
+  expiresAt!: string;
 }
 
 export class SendCheckoutLinkEmailDto {
-  @IsEmail() email!: string;
+  @ApiProperty({
+    example: 'cliente@exemplo.com.br',
+    description: 'E-mail do destinatário para envio do link'
+  })
+  @IsEmail()
+  email!: string;
 }
 
 class ListCheckoutLinksDto {

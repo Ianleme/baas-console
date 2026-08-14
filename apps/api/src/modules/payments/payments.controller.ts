@@ -1,6 +1,12 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Body, Controller, Get, Headers, Param, Post, Req, Res } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProperty,
+  ApiTags
+} from '@nestjs/swagger';
 import { IsIn, IsInt, IsObject, IsString, Length, Max, Min } from 'class-validator';
 import type { Request, Response } from 'express';
 
@@ -29,25 +35,109 @@ const CHECKOUT_COOKIE = 'baas_checkout';
 const SECURE_CHECKOUT_COOKIE = '__Host-baas_checkout';
 
 class ExchangeDto {
-  @IsString() @Length(36, 256) token!: string;
+  @ApiProperty({
+    example: 'dGhpcy1pcy1hLXNhbXBsZS1wdWJsaWMtdG9rZW4tZm9yLWNoZWNrb3V0',
+    description: 'Token público assinado para inicialização da sessão de checkout'
+  })
+  @IsString()
+  @Length(36, 256)
+  token!: string;
 }
+
 class PixDto {
-  @IsString() @Length(11, 32) payerDocument!: string;
+  @ApiProperty({
+    example: '123.456.789-09',
+    description: 'CPF ou CNPJ do pagador para geração da cobrança Pix'
+  })
+  @IsString()
+  @Length(11, 32)
+  payerDocument!: string;
 }
+
 class CardQuoteDto {
-  @IsIn(['VISA', 'MASTERCARD', 'ELO']) brand!: CardBrand;
-  @IsInt() @Min(1) @Max(21) installments!: number;
+  @ApiProperty({
+    enum: ['VISA', 'MASTERCARD', 'ELO'],
+    example: 'VISA',
+    description: 'Bandeira do cartão'
+  })
+  @IsIn(['VISA', 'MASTERCARD', 'ELO'])
+  brand!: CardBrand;
+
+  @ApiProperty({
+    example: 1,
+    minimum: 1,
+    maximum: 21,
+    description: 'Número de parcelas desejadas'
+  })
+  @IsInt()
+  @Min(1)
+  @Max(21)
+  installments!: number;
 }
+
 class CardDataDto {
-  @IsString() @Length(13, 25) number!: string;
-  @IsString() @Length(2, 100) holder!: string;
-  @IsInt() @Min(1) @Max(12) expiryMonth!: number;
-  @IsInt() @Min(2026) @Max(2200) expiryYear!: number;
-  @IsString() @Length(3, 4) cvv!: string;
+  @ApiProperty({
+    example: '4111111111111111',
+    description: 'Número do cartão de crédito'
+  })
+  @IsString()
+  @Length(13, 25)
+  number!: string;
+
+  @ApiProperty({
+    example: 'CLIENTE SANDBOX',
+    description: 'Nome impresso no cartão'
+  })
+  @IsString()
+  @Length(2, 100)
+  holder!: string;
+
+  @ApiProperty({
+    example: 12,
+    minimum: 1,
+    maximum: 12,
+    description: 'Mês de validade (MM)'
+  })
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  expiryMonth!: number;
+
+  @ApiProperty({
+    example: 2030,
+    minimum: 2026,
+    maximum: 2200,
+    description: 'Ano de validade com 4 dígitos (AAAA)'
+  })
+  @IsInt()
+  @Min(2026)
+  @Max(2200)
+  expiryYear!: number;
+
+  @ApiProperty({
+    example: '123',
+    description: 'Código de segurança CVV/CVC'
+  })
+  @IsString()
+  @Length(3, 4)
+  cvv!: string;
 }
+
 class CardConfirmDto {
-  @IsString() @Length(40, 4096) quoteId!: string;
-  @IsObject() card!: CardDataDto;
+  @ApiProperty({
+    example: 'eyJzZXNzaW9uSWQiOiJzZXNzLTEiLCJsaW5rSWQiOiJsaW5rLTEifQ.signature',
+    description: 'ID ou token assinado da cotação obtida anteriormente'
+  })
+  @IsString()
+  @Length(40, 4096)
+  quoteId!: string;
+
+  @ApiProperty({
+    type: CardDataDto,
+    description: 'Dados do cartão de crédito para processamento'
+  })
+  @IsObject()
+  card!: CardDataDto;
 }
 
 export class CheckoutQuoteSigner {

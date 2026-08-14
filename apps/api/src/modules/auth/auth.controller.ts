@@ -9,7 +9,14 @@ import {
   Req,
   Res
 } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProperty,
+  ApiPropertyOptional,
+  ApiTags
+} from '@nestjs/swagger';
 import { IsBoolean, IsEmail, IsOptional, IsString, Length, MaxLength } from 'class-validator';
 import type { Request, Response } from 'express';
 
@@ -46,27 +53,125 @@ function csrfCookieName(): string {
 const COOKIE_PATH = '/';
 
 export class RegisterOwnerDto {
-  @IsOptional() @IsString() @Length(2, 2) personType?: 'PF' | 'PJ';
-  @IsOptional() @IsString() @Length(2, 255) name?: string;
-  @IsOptional() @IsString() @Length(2, 120) tradingName?: string;
-  @IsOptional() @IsString() @Length(2, 255) legalName?: string;
-  @IsOptional() @IsString() @Length(2, 120) displayName?: string;
-  @IsEmail() @MaxLength(254) email!: string;
-  @IsString() @Length(12, 128) password!: string;
-  @IsOptional() @IsString() @Length(8, 20) phone?: string;
-  @IsOptional() @IsString() @Length(3, 32) document?: string;
-  @IsOptional() @IsString() @Length(8, 12) zipCode?: string;
-  @IsOptional() @IsString() @Length(2, 255) address?: string;
-  @IsOptional() @IsString() @Length(1, 20) number?: string;
-  @IsOptional() @IsString() @Length(2, 120) neighborhood?: string;
-  @IsOptional() @IsString() @Length(2, 120) city?: string;
-  @IsOptional() @IsString() @Length(2, 2) state?: string;
+  @ApiPropertyOptional({
+    enum: ['PF', 'PJ'],
+    example: 'PJ',
+    description: 'Tipo de pessoa (Pessoa Física ou Jurídica)'
+  })
+  @IsOptional()
+  @IsString()
+  @Length(2, 2)
+  personType?: 'PF' | 'PJ';
+
+  @ApiPropertyOptional({
+    example: 'Empresa Exemplo Ltda',
+    description: 'Nome completo ou Razão Social'
+  })
+  @IsOptional()
+  @IsString()
+  @Length(2, 255)
+  name?: string;
+
+  @ApiPropertyOptional({ example: 'Minha Loja', description: 'Nome fantasia da loja' })
+  @IsOptional()
+  @IsString()
+  @Length(2, 120)
+  tradingName?: string;
+
+  @ApiPropertyOptional({ example: 'Empresa Exemplo Ltda', description: 'Razão social (legado)' })
+  @IsOptional()
+  @IsString()
+  @Length(2, 255)
+  legalName?: string;
+
+  @ApiPropertyOptional({ example: 'Minha Loja', description: 'Nome de exibição (legado)' })
+  @IsOptional()
+  @IsString()
+  @Length(2, 120)
+  displayName?: string;
+
+  @ApiProperty({
+    example: 'proprietario@empresa.com.br',
+    description: 'E-mail de acesso do proprietário'
+  })
+  @IsEmail()
+  @MaxLength(254)
+  email!: string;
+
+  @ApiProperty({
+    example: 'StrongPassword123!',
+    description: 'Senha de acesso (mínimo 12 caracteres)'
+  })
+  @IsString()
+  @Length(12, 128)
+  password!: string;
+
+  @ApiPropertyOptional({ example: '(11) 98765-4321', description: 'Telefone de contato com DDD' })
+  @IsOptional()
+  @IsString()
+  @Length(8, 20)
+  phone?: string;
+
+  @ApiPropertyOptional({
+    example: '12.345.678/0001-90',
+    description: 'CPF ou CNPJ do proprietário/empresa'
+  })
+  @IsOptional()
+  @IsString()
+  @Length(3, 32)
+  document?: string;
+
+  @ApiPropertyOptional({ example: '01001-000', description: 'CEP do endereço comercial' })
+  @IsOptional()
+  @IsString()
+  @Length(8, 12)
+  zipCode?: string;
+
+  @ApiPropertyOptional({ example: 'Praça da Sé', description: 'Logradouro / Endereço' })
+  @IsOptional()
+  @IsString()
+  @Length(2, 255)
+  address?: string;
+
+  @ApiPropertyOptional({ example: '100', description: 'Número do endereço' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 20)
+  number?: string;
+
+  @ApiPropertyOptional({ example: 'Centro', description: 'Bairro' })
+  @IsOptional()
+  @IsString()
+  @Length(2, 120)
+  neighborhood?: string;
+
+  @ApiPropertyOptional({ example: 'São Paulo', description: 'Cidade' })
+  @IsOptional()
+  @IsString()
+  @Length(2, 120)
+  city?: string;
+
+  @ApiPropertyOptional({ example: 'SP', description: 'Unidade Federativa (UF com 2 letras)' })
+  @IsOptional()
+  @IsString()
+  @Length(2, 2)
+  state?: string;
 }
 
 export class LoginDto {
-  @IsEmail() @MaxLength(254) email!: string;
-  @IsString() @Length(1, 128) password!: string;
-  @IsBoolean() remember!: boolean;
+  @ApiProperty({ example: 'proprietario@empresa.com.br', description: 'E-mail cadastrado' })
+  @IsEmail()
+  @MaxLength(254)
+  email!: string;
+
+  @ApiProperty({ example: 'StrongPassword123!', description: 'Senha da conta' })
+  @IsString()
+  @Length(1, 128)
+  password!: string;
+
+  @ApiProperty({ example: true, description: 'Manter sessão conectada' })
+  @IsBoolean()
+  remember!: boolean;
 }
 
 @ApiTags('auth')
