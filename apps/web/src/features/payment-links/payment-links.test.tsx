@@ -30,15 +30,26 @@ const paid: PaymentLinkView = {
 function client(overrides: Partial<PaymentLinksApi> = {}): PaymentLinksApi {
   return {
     list: vi.fn().mockResolvedValue([active, paid]),
-    create: vi.fn().mockResolvedValue({ ...active, id: 'link-3' }),
+    detail: vi
+      .fn()
+      .mockImplementation((id: string) => Promise.resolve(id === paid.id ? paid : active)),
+    share: vi
+      .fn()
+      .mockImplementation((id: string) => Promise.resolve({ publicToken: `token-${id}` })),
+    create: vi.fn().mockResolvedValue({ ...active, id: 'link-3', publicToken: 'token-link-3' }),
     cancel: vi.fn().mockResolvedValue({ ...active, status: 'CANCELLED' }),
+    sendEmail: vi.fn().mockResolvedValue({
+      deliveryId: 'del-default',
+      status: 'QUEUED',
+      recipientMasked: 'c***@example.com'
+    }),
     ...overrides
   };
 }
 
 async function renderReady(api = client()) {
   render(<PaymentLinks api={api} />);
-  await screen.findByText('Pedido #1048');
+  await screen.findAllByText('Pedido #1048');
   return api;
 }
 
@@ -63,13 +74,13 @@ describe('PaymentLinks', () => {
   });
   test('renders explicit active and paid statuses', async () => {
     await renderReady();
-    expect(screen.getByText('Ativo')).toBeVisible();
-    expect(screen.getByText('Pago')).toBeVisible();
+    expect(screen.getAllByText('Ativo')[0]).toBeVisible();
+    expect(screen.getAllByText('Pago')[0]).toBeVisible();
   });
   test('renders values as BRL from integer cents', async () => {
     await renderReady();
-    expect(screen.getByText('R$ 320,00')).toBeVisible();
-    expect(screen.getAllByText('R$ 1.250,00')).toHaveLength(2);
+    expect(screen.getAllByText('R$ 320,00')[0]).toBeVisible();
+    expect(screen.getAllByText('R$ 1.250,00')).toHaveLength(3);
   });
   test('summarizes active and paid links without pending inflation', async () => {
     await renderReady();
@@ -84,7 +95,7 @@ describe('PaymentLinks', () => {
       'consultoria'
     );
     expect(screen.queryByText('Pedido #1048')).not.toBeInTheDocument();
-    expect(screen.getByText('Consultoria mensal')).toBeVisible();
+    expect(screen.getAllByText('Consultoria mensal')[0]).toBeVisible();
   });
   test('searches by reference case-insensitively', async () => {
     await renderReady();
@@ -92,7 +103,7 @@ describe('PaymentLinks', () => {
       screen.getByPlaceholderText('Buscar por descrição ou referência'),
       'ref-2026-01048'
     );
-    expect(screen.getByText('Pedido #1048')).toBeVisible();
+    expect(screen.getAllByText('Pedido #1048')[0]).toBeVisible();
     expect(screen.queryByText('Consultoria mensal')).not.toBeInTheDocument();
   });
   test('filters by status', async () => {
@@ -103,7 +114,7 @@ describe('PaymentLinks', () => {
     const option = await screen.findByRole('option', { name: 'Pagos' });
     await user.click(option);
     await waitFor(() => {
-      expect(screen.getByText('Consultoria mensal')).toBeVisible();
+      expect(screen.getAllByText('Consultoria mensal')[0]).toBeVisible();
       expect(screen.queryByText('Pedido #1048')).not.toBeInTheDocument();
     });
   });
@@ -115,7 +126,7 @@ describe('PaymentLinks', () => {
     const option = await screen.findByRole('option', { name: 'Pix' });
     await user.click(option);
     await waitFor(() => {
-      expect(screen.getByText('Pedido #1048')).toBeVisible();
+      expect(screen.getAllByText('Pedido #1048')[0]).toBeVisible();
       expect(screen.queryByText('Consultoria mensal')).not.toBeInTheDocument();
     });
   });
@@ -124,27 +135,50 @@ describe('PaymentLinks', () => {
     await userEvent.click(screen.getByRole('button', { name: '+ Criar link de pagamento' }));
     expect(screen.getByRole('form', { name: 'Criar link de pagamento' })).toBeVisible();
   });
-  test('submits exact integer cents and selected fee', async () => {
+  test('CHK-03 converts a BRL amount to exact integer cents without exposing basis points', async () => {
     const api = await renderReady();
     await userEvent.click(screen.getByRole('button', { name: '+ Criar link de pagamento' }));
     const form = screen.getByRole('form', { name: 'Criar link de pagamento' });
     fireEvent.change(within(form).getByLabelText('Descrição'), { target: { value: 'Pedido' } });
     fireEvent.change(within(form).getByLabelText('Referência'), { target: { value: 'REF-3' } });
-    fireEvent.change(within(form).getByLabelText('Valor em centavos'), {
-      target: { value: '32000' }
+    fireEvent.change(within(form).getByRole('textbox', { name: /^Valor da cobrança/iu }), {
+      target: { value: 'R$ 320,00' }
     });
-    fireEvent.change(within(form).getByLabelText('Taxa selecionada (basis points)'), {
-      target: { value: '299' }
-    });
-    fireEvent.change(within(form).getByLabelText('Expiração'), {
-      target: { value: '2026-08-20T10:00' }
-    });
+    expect(within(form).queryByText(/basis points/iu)).not.toBeInTheDocument();
     fireEvent.submit(form);
     await waitFor(() => {
       expect(api.create).toHaveBeenCalledWith(
-        expect.objectContaining({ amountCents: '32000', selectedFeeBps: 299 })
+        expect.objectContaining({
+          amountCents: '32000',
+          methods: 'PIX',
+          maxInstallments: 1,
+          selectedFeeBps: null
+        })
       );
     });
+  });
+  test('CHK-05 shows installments and automatic gateway fee guidance only for card', async () => {
+    await renderReady();
+    await userEvent.click(screen.getByRole('button', { name: '+ Criar link de pagamento' }));
+    const form = screen.getByRole('form', { name: 'Criar link de pagamento' });
+    expect(
+      within(form).queryByRole('combobox', { name: 'Máximo de parcelas' })
+    ).not.toBeInTheDocument();
+    await userEvent.click(within(form).getByRole('button', { name: /CartãoCrédito parcelado/iu }));
+    expect(within(form).getByRole('combobox', { name: 'Máximo de parcelas' })).toBeVisible();
+    expect(
+      within(form).getByText(/taxa correspondente será consultada no gateway/iu)
+    ).toBeVisible();
+  });
+  test('CHK-08 offers expiration presets and a custom date', async () => {
+    await renderReady();
+    await userEvent.click(screen.getByRole('button', { name: '+ Criar link de pagamento' }));
+    const form = screen.getByRole('form', { name: 'Criar link de pagamento' });
+    for (const name of ['24 horas', '3 dias', '7 dias', 'Personalizada']) {
+      expect(within(form).getByRole('button', { name })).toBeVisible();
+    }
+    await userEvent.click(within(form).getByRole('button', { name: 'Personalizada' }));
+    expect(within(form).getByLabelText('Data e hora de expiração')).toBeVisible();
   });
   test('opens detail with selected fee and installments', async () => {
     await renderReady();
@@ -152,32 +186,34 @@ describe('PaymentLinks', () => {
     const paidDetail = buttons.at(1);
     if (!paidDetail) throw new Error('PAID_DETAIL_ACTION_MISSING');
     await userEvent.click(paidDetail);
-    expect(screen.getByRole('dialog', { name: 'Detalhes do link' })).toHaveTextContent('2.99%');
+    expect(await screen.findByRole('dialog', { name: 'Detalhes do link' })).toHaveTextContent(
+      '2.99%'
+    );
     expect(screen.getByRole('dialog', { name: 'Detalhes do link' })).toHaveTextContent('Até 3x');
   });
   test('asks confirmation before destructive cancellation', async () => {
     const api = await renderReady();
-    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    await userEvent.click(screen.getAllByRole('button', { name: 'Cancelar link' })[0]!);
     expect(api.cancel).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog', { name: 'Cancelar link?' })).toHaveTextContent(
-      'não pode ser desfeita'
+      'não poderá ser desfeita'
     );
   });
   test('cancels only after explicit confirmation', async () => {
     const api = await renderReady();
-    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    await userEvent.click(screen.getAllByRole('button', { name: 'Cancelar link' })[0]!);
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar cancelamento' }));
     await waitFor(() => {
       expect(api.cancel).toHaveBeenCalledWith('link-1');
     });
-    expect(await screen.findByText('Link cancelado.')).toBeVisible();
+    expect(await screen.findByText('Link cancelado. O histórico foi preservado.')).toBeVisible();
   });
   test('keeps the backend state when cancellation fails', async () => {
     await renderReady(client({ cancel: vi.fn().mockRejectedValue(new Error('raw secret')) }));
-    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    await userEvent.click(screen.getAllByRole('button', { name: 'Cancelar link' })[0]!);
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar cancelamento' }));
     expect(await screen.findByText('Não foi possível cancelar o link.')).toBeVisible();
-    expect(screen.getByText('Ativo')).toBeVisible();
+    expect(screen.getAllByText('Ativo')[0]).toBeVisible();
   });
   test('supports keyboard access to filters and primary action', async () => {
     await renderReady();
@@ -212,9 +248,82 @@ describe('PaymentLinks', () => {
       await screen.findByText('E-mail enfileirado com sucesso para c***@loja.com.')
     ).toBeVisible();
   });
+  test('CHK-10 presents the created checkout URL with copy, open and email actions', async () => {
+    const api = await renderReady();
+    await userEvent.click(screen.getByRole('button', { name: '+ Criar link de pagamento' }));
+    const form = screen.getByRole('form', { name: 'Criar link de pagamento' });
+    fireEvent.change(within(form).getByLabelText('Descrição'), { target: { value: 'Pedido' } });
+    fireEvent.change(within(form).getByLabelText('Referência'), { target: { value: 'REF-3' } });
+    fireEvent.change(within(form).getByRole('textbox', { name: /^Valor da cobrança/iu }), {
+      target: { value: '10,50' }
+    });
+    fireEvent.submit(form);
+
+    const success = await screen.findByRole('dialog', { name: 'Link criado com sucesso' });
+    expect(within(success).getByDisplayValue(/pay\.html#\/checkout\/token-link-3/u)).toBeVisible();
+    expect(within(success).getByRole('button', { name: 'Copiar link' })).toBeVisible();
+    expect(within(success).getByRole('button', { name: 'Abrir checkout' })).toBeVisible();
+    expect(within(success).getByRole('button', { name: 'Enviar por e-mail' })).toBeVisible();
+    expect(api.create).toHaveBeenCalledWith(expect.objectContaining({ amountCents: '1050' }));
+  });
+  test('CHK-10 issues a list item token through the authenticated share boundary before copying', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(globalThis.navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText }
+    });
+    const api = await renderReady();
+    await userEvent.click(screen.getAllByRole('button', { name: 'Copiar link' })[0]!);
+
+    await waitFor(() => {
+      expect(api.share).toHaveBeenCalledWith('link-1');
+      expect(writeText).toHaveBeenCalledWith(expect.stringContaining('token-link-1'));
+    });
+  });
+  test('requests a fresh share boundary result every time instead of reusing a consumed token', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(globalThis.navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText }
+    });
+    const share = vi
+      .fn()
+      .mockResolvedValueOnce({ publicToken: 'first-token' })
+      .mockResolvedValueOnce({ publicToken: 'rotated-token' });
+    const api = await renderReady(client({ share }));
+    const copy = screen.getAllByRole('button', { name: 'Copiar link' })[0]!;
+
+    await userEvent.click(copy);
+    await waitFor(() =>
+      expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('first-token'))
+    );
+    await userEvent.click(copy);
+
+    await waitFor(() => {
+      expect(share).toHaveBeenCalledTimes(2);
+      expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('rotated-token'));
+    });
+    expect(api.share).toBe(share);
+  });
+  test('UI-07 renders a card-oriented mobile representation without horizontal table dependency', async () => {
+    await renderReady();
+    const cards = screen.getByRole('region', { name: 'Links em cartões' });
+    expect(within(cards).getAllByText('Pedido #1048')[0]).toBeVisible();
+    expect(within(cards).getAllByRole('button', { name: 'Copiar link' })[0]).toBeVisible();
+  });
+  test('filters the loaded links by the selected real creation period', async () => {
+    const recent = { ...active, createdAt: new Date().toISOString() };
+    const old = { ...paid, createdAt: '2020-01-01T00:00:00.000Z' };
+    await renderReady(client({ list: vi.fn().mockResolvedValue([recent, old]) }));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('combobox', { name: 'Filtrar por período' }));
+    await user.click(await screen.findByRole('option', { name: 'Últimos 7 dias' }));
+    expect(screen.getAllByText('Pedido #1048')[0]).toBeVisible();
+    expect(screen.queryByText('Consultoria mensal')).not.toBeInTheDocument();
+  });
   test('has no automated axe violations in the populated state', async () => {
     const { container } = render(<PaymentLinks api={client()} />);
-    await screen.findByText('Pedido #1048');
+    await screen.findAllByText('Pedido #1048');
     expect(
       (await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })).violations
     ).toEqual([]);

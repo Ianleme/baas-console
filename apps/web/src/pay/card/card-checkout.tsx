@@ -258,7 +258,7 @@ export function CardCheckout({
         <div className="card-row grid grid-cols-3 gap-3">
           <div className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
             <span id="expiry-month-label">Mês</span>
-            <Select value={expiryMonth} onValueChange={setExpiryMonth} name="expiryMonth">
+            <Select value={expiryMonth} onValueChange={setExpiryMonth}>
               <SelectTrigger aria-labelledby="expiry-month-label" aria-required="true">
                 <SelectValue placeholder="MM" />
               </SelectTrigger>
@@ -276,7 +276,7 @@ export function CardCheckout({
           </div>
           <div className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
             <span id="expiry-year-label">Ano</span>
-            <Select value={expiryYear} onValueChange={setExpiryYear} name="expiryYear">
+            <Select value={expiryYear} onValueChange={setExpiryYear}>
               <SelectTrigger aria-labelledby="expiry-year-label" aria-required="true">
                 <SelectValue placeholder="AAAA" />
               </SelectTrigger>

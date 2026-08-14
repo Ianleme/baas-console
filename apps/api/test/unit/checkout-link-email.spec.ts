@@ -39,9 +39,18 @@ describe('CheckoutLinkController sendEmail', () => {
     } as unknown as AuthService;
 
     mockLinksService = {
+      list: jest.fn().mockResolvedValue([mockLink]),
       detail: jest.fn().mockImplementation((merchantId: string, id: string) => {
         if (merchantId === 'merchant-1' && id === 'link-100') {
           return Promise.resolve(mockLink);
+        }
+        const err = new Error('LINK_NOT_FOUND') as Error & { code: string };
+        err.code = 'LINK_NOT_FOUND';
+        return Promise.reject(err);
+      }),
+      share: jest.fn().mockImplementation((merchantId: string, id: string) => {
+        if (merchantId === 'merchant-1' && id === 'link-100') {
+          return Promise.resolve({ link: mockLink, publicToken: 'recovered-public-token' });
         }
         const err = new Error('LINK_NOT_FOUND') as Error & { code: string };
         err.code = 'LINK_NOT_FOUND';
@@ -76,7 +85,12 @@ describe('CheckoutLinkController sendEmail', () => {
       enqueue: enqueueMock
     } as unknown as EmailOutboxService;
 
-    controller = new CheckoutLinkController(mockLinksService, mockAuthService, mockOutboxService);
+    controller = new CheckoutLinkController(
+      mockLinksService,
+      mockAuthService,
+      mockOutboxService,
+      'https://checkout.example.com'
+    );
   });
 
   it('enqueues checkout link email delivery and returns masked recipient', async () => {
@@ -93,10 +107,41 @@ describe('CheckoutLinkController sendEmail', () => {
       expect.objectContaining({
         merchantId: 'merchant-1',
         kind: 'CHECKOUT_LINK',
-        idempotencyKey: 'checkout-email:link-100:destinatario@empresa.com',
+        idempotencyKey: expect.stringMatching(
+          /^checkout-email:link-100:destinatario@empresa\.com:[a-f0-9]{16}$/u
+        ),
         recipient: 'destinatario@empresa.com'
       })
     );
+    const queued = enqueueMock.mock.calls[0]?.[0] as {
+      idempotencyKey: string;
+      payload: { checkoutUrl: string; text: string; html: string };
+    };
+    expect(queued.idempotencyKey).not.toContain('recovered-public-token');
+    expect(queued.payload.checkoutUrl).toBe(
+      'https://checkout.example.com/pay.html#/checkout/recovered-public-token'
+    );
+    expect(queued.payload.text).toContain(queued.payload.checkoutUrl);
+    expect(queued.payload.html).toContain(`href="${queued.payload.checkoutUrl}"`);
+    expect(mockLinksService.share).toHaveBeenCalledWith('merchant-1', 'link-100');
+  });
+
+  it('never exposes the public token in the authenticated list response', async () => {
+    const result = await controller.list(mockRequest);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).not.toHaveProperty('publicToken');
+    expect(result[0]).not.toHaveProperty('publicTokenCiphertext');
+  });
+
+  it('returns no token from detail and issues it only from tenant-scoped share', async () => {
+    await expect(controller.detail(mockRequest, 'link-100')).resolves.not.toHaveProperty(
+      'publicToken'
+    );
+    await expect(controller.share(mockRequest, 'link-100')).resolves.toMatchObject({
+      publicToken: 'recovered-public-token'
+    });
+    expect(mockLinksService.share).toHaveBeenCalledWith('merchant-1', 'link-100');
   });
 
   it('throws 404 ProblemException if link is not found or owned by another tenant', async () => {
@@ -113,5 +158,21 @@ describe('CheckoutLinkController sendEmail', () => {
         email: 'destinatario@empresa.com'
       })
     ).rejects.toThrow(ProblemException);
+  });
+
+  it('rejects an insecure non-local public checkout origin', async () => {
+    const insecureController = new CheckoutLinkController(
+      mockLinksService,
+      mockAuthService,
+      mockOutboxService,
+      'http://checkout.example.com'
+    );
+
+    await expect(
+      insecureController.sendEmail(mockRequest, 'link-100', {
+        email: 'destinatario@empresa.com'
+      })
+    ).rejects.toThrow(ProblemException);
+    expect(enqueueMock).not.toHaveBeenCalled();
   });
 });

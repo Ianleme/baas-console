@@ -34,6 +34,12 @@ export interface CheckoutLinkStore {
     next: CheckoutLinkStatus,
     tokenClosedAt: Date | null
   ): Promise<boolean>;
+  replacePublicTokenIfClosed(
+    merchantId: string,
+    id: string,
+    publicTokenHash: Buffer,
+    publicTokenCiphertext: Buffer
+  ): Promise<boolean>;
   hasUnresolvedAttempt(merchantId: string, checkoutLinkId: string): Promise<boolean>;
 }
 
@@ -44,6 +50,7 @@ export interface CheckoutFeeProvider {
 export interface CheckoutTokenProtector {
   hash(token: string): Buffer;
   seal(token: string): Buffer;
+  unseal(ciphertext: Buffer): string;
 }
 
 export interface CreateCheckoutLinkInput {
@@ -56,6 +63,11 @@ export interface CreateCheckoutLinkInput {
 }
 
 export interface CreatedCheckoutLink {
+  link: CheckoutLinkRecord;
+  publicToken: string;
+}
+
+export interface CheckoutLinkDetail {
   link: CheckoutLinkRecord;
   publicToken: string;
 }
@@ -116,6 +128,37 @@ export class CheckoutLinkService {
     return link;
   }
 
+  async share(merchantId: string, id: string): Promise<CheckoutLinkDetail> {
+    let link = await this.detail(merchantId, id);
+    if (link.status !== 'ACTIVE') throw new CheckoutLinkError('LINK_NOT_ACTIVE');
+    if (link.tokenClosedAt !== null) {
+      const publicToken = this.token();
+      if (Buffer.from(publicToken, 'base64url').byteLength < 32)
+        throw new CheckoutLinkError('TOKEN_ENTROPY_INVALID');
+      const publicTokenHash = this.tokenProtector.hash(publicToken);
+      const publicTokenCiphertext = this.tokenProtector.seal(publicToken);
+      const replaced = await this.store.replacePublicTokenIfClosed(
+        merchantId,
+        id,
+        publicTokenHash,
+        publicTokenCiphertext
+      );
+      if (replaced) {
+        link.publicTokenHash = publicTokenHash;
+        link.publicTokenCiphertext = publicTokenCiphertext;
+        link.tokenClosedAt = null;
+        return { link, publicToken };
+      }
+      link = await this.detail(merchantId, id);
+      if (link.status !== 'ACTIVE' || link.tokenClosedAt !== null)
+        throw new CheckoutLinkError('LINK_STATE_CONFLICT');
+    }
+    return {
+      link,
+      publicToken: this.tokenProtector.unseal(link.publicTokenCiphertext)
+    };
+  }
+
   async cancel(merchantId: string, id: string): Promise<CheckoutLinkRecord> {
     const link = await this.required(merchantId, id);
     await this.expireIfNeeded(link);
@@ -171,11 +214,15 @@ export class CheckoutLinkService {
 }
 
 export function createSha256TokenProtector(
-  seal: (token: string) => Buffer
+  seal: (token: string) => Buffer,
+  unseal: (ciphertext: Buffer) => string = () => {
+    throw new CheckoutLinkError('TOKEN_RECOVERY_UNAVAILABLE');
+  }
 ): CheckoutTokenProtector {
   return {
     hash: (token) => createHash('sha256').update(token, 'utf8').digest(),
-    seal
+    seal,
+    unseal
   };
 }
 

@@ -293,7 +293,7 @@ export function AppShell({
         <main
           id="main-content"
           tabIndex={-1}
-          className="flex-1 p-5 md:p-7 lg:p-8 w-full max-w-[1600px] mx-auto space-y-5"
+          className="flex-1 px-5 pb-5 pt-16 md:p-7 lg:p-8 w-full max-w-[1600px] mx-auto space-y-5"
         >
           {content ?? (
             <>

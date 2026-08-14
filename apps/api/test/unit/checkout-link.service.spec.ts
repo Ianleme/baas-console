@@ -45,6 +45,20 @@ class MemoryLinkStore implements CheckoutLinkStore {
     link.tokenClosedAt = tokenClosedAt;
     return Promise.resolve(true);
   }
+  replacePublicTokenIfClosed(
+    merchantId: string,
+    id: string,
+    publicTokenHash: Buffer,
+    publicTokenCiphertext: Buffer
+  ): Promise<boolean> {
+    const link = this.links.find((item) => item.merchantId === merchantId && item.id === id);
+    if (!link || link.status !== 'ACTIVE' || link.tokenClosedAt === null)
+      return Promise.resolve(false);
+    link.publicTokenHash = publicTokenHash;
+    link.publicTokenCiphertext = publicTokenCiphertext;
+    link.tokenClosedAt = null;
+    return Promise.resolve(true);
+  }
   hasUnresolvedAttempt(): Promise<boolean> {
     return Promise.resolve(this.unresolved);
   }
@@ -71,7 +85,10 @@ function setup() {
   const service = new CheckoutLinkService(
     store,
     fees,
-    createSha256TokenProtector((token) => Buffer.from(`sealed:${token}`)),
+    createSha256TokenProtector(
+      (token) => Buffer.from(`sealed:${token}`),
+      (ciphertext) => ciphertext.toString('utf8').replace(/^sealed:/u, '')
+    ),
     () => now,
     () => `id-${String(store.links.length + 1)}`,
     () => Buffer.alloc(32, store.links.length + 1).toString('base64url')
@@ -196,6 +213,29 @@ describe('CheckoutLinkService', () => {
     await expect(service.detail('merchant-b', created.link.id)).rejects.toMatchObject({
       code: 'LINK_NOT_FOUND'
     });
+  });
+  test('issues the protected token only after a tenant-scoped share request', async () => {
+    const { service } = setup();
+    const created = await service.create('merchant-a', input);
+
+    await expect(service.share('merchant-b', created.link.id)).rejects.toMatchObject({
+      code: 'LINK_NOT_FOUND'
+    });
+    await expect(service.share('merchant-a', created.link.id)).resolves.toMatchObject({
+      link: { id: created.link.id },
+      publicToken: created.publicToken
+    });
+  });
+  test('rotates a consumed public token before sharing the link again', async () => {
+    const { service } = setup();
+    const created = await service.create('merchant-a', input);
+    created.link.tokenClosedAt = now;
+
+    const shared = await service.share('merchant-a', created.link.id);
+
+    expect(shared.publicToken).not.toBe(created.publicToken);
+    expect(Buffer.from(shared.publicToken, 'base64url')).toHaveLength(32);
+    expect(shared.link.tokenClosedAt).toBeNull();
   });
   test('expires an active link lazily after its deadline', async () => {
     const { service, store } = setup();

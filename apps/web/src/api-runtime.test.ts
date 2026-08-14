@@ -89,6 +89,25 @@ describe('runtime API composition', () => {
     );
   });
 
+  test('issues a checkout share token only through the authenticated POST boundary', async () => {
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(response({ publicToken: 'sandbox-public-token' }));
+
+    const result = await createPaymentLinksClient({
+      baseUrl: '',
+      fetch: request,
+      accessToken: () => 'merchant-access-token'
+    }).share('link/1');
+
+    expect(request.mock.calls[0]?.[0]).toBe('/api/v1/checkout-links/link%2F1/share');
+    expect(request.mock.calls[0]?.[1]?.method).toBe('POST');
+    expect(new Headers(request.mock.calls[0]?.[1]?.headers).get('authorization')).toBe(
+      'Bearer merchant-access-token'
+    );
+    expect(result).toEqual({ publicToken: 'sandbox-public-token' });
+  });
+
   test('propagates checkout CSRF and serializes Pix and nested card DTOs exactly', async () => {
     const request = vi
       .fn<typeof fetch>()

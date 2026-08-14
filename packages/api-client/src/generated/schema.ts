@@ -153,6 +153,23 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/checkout-links/{id}/share': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Issue an active tenant-scoped checkout URL token */
+    post: operations['CheckoutLinkController_share'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/demo/session': {
     parameters: {
       query?: never;
@@ -796,6 +813,26 @@ export interface operations {
     responses: {
       /** @description Checkout link delivery enqueued */
       201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  CheckoutLinkController_share: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Current or safely rotated public checkout token */
+      200: {
         headers: {
           [name: string]: unknown;
         };

@@ -63,6 +63,13 @@ describe('CardCheckout', () => {
     expect(await screen.findByRole('option', { name: /3x de R.*106,67/ })).toBeVisible();
     expect(screen.getAllByRole('option')).toHaveLength(21);
   });
+  test('exposes exactly four labelled Radix dropdowns without duplicate native controls', () => {
+    view();
+    expect(screen.getAllByRole('combobox')).toHaveLength(4);
+    for (const label of ['Mês', 'Ano', 'Bandeira', 'Parcelas']) {
+      expect(screen.getByRole('combobox', { name: label })).toBeVisible();
+    }
+  });
   test('detects a supported card brand from the test PAN before quoting', () => {
     view();
     fireEvent.change(screen.getByLabelText('Número do cartão'), {

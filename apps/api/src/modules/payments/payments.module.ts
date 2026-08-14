@@ -4,7 +4,10 @@ import { LeraBoxFeesClient } from '../../integrations/lera-box/fees/lera-box-fee
 import { LeraBoxCardClient } from '../../integrations/lera-box/payments/lera-box-card.client.js';
 import { LeraBoxPixClient } from '../../integrations/lera-box/payments/lera-box-pix.client.js';
 import { AuthModule } from '../auth/auth.module.js';
-import { CheckoutLinkController } from '../checkout-links/checkout-link.controller.js';
+import {
+  CheckoutLinkController,
+  PUBLIC_CHECKOUT_BASE_URL
+} from '../checkout-links/checkout-link.controller.js';
 import {
   CheckoutLinkService,
   createSha256TokenProtector
@@ -36,6 +39,10 @@ export const GATEWAY_CARD = Symbol('GATEWAY_CARD');
     TypeOrmPixAttemptStore,
     TypeOrmCardAttemptStore,
     {
+      provide: PUBLIC_CHECKOUT_BASE_URL,
+      useFactory: () => required('PUBLIC_CHECKOUT_BASE_URL')
+    },
+    {
       provide: GATEWAY_FEES,
       useFactory: () => new LeraBoxFeesClient(required('LERA_BOX_BASE_URL'))
     },
@@ -55,8 +62,10 @@ export const GATEWAY_CARD = Symbol('GATEWAY_CARD');
         new CheckoutLinkService(
           store,
           fees,
-          createSha256TokenProtector((token) =>
-            encryption.encrypt(token, 'checkout-token', 'checkout-token', 'publicToken')
+          createSha256TokenProtector(
+            (token) => encryption.encrypt(token, 'checkout-token', 'checkout-token', 'publicToken'),
+            (ciphertext) =>
+              encryption.decrypt(ciphertext, 'checkout-token', 'checkout-token', 'publicToken')
           )
         )
     },
@@ -98,6 +107,8 @@ function required(name: string): string {
   if (process.env.JEST_WORKER_ID && name === 'AUTH_TOKEN_SECRET')
     return 'jest-auth-token-secret-at-least-32-bytes';
   if (process.env.JEST_WORKER_ID && name === 'LERA_BOX_BASE_URL') return 'https://gateway.invalid';
+  if (process.env.JEST_WORKER_ID && name === 'PUBLIC_CHECKOUT_BASE_URL')
+    return 'https://checkout.invalid';
   if (!value) throw new Error(`CONFIGURATION_MISSING: ${name}`);
   return value;
 }

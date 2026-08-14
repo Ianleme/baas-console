@@ -247,6 +247,15 @@ export function createPaymentLinksClient(options: BaasClientOptions) {
   }
   return {
     list: async () => mapPaymentLinks(await json('/api/v1/checkout-links')),
+    detail: async (id: string) =>
+      mapPaymentLink(await json(`/api/v1/checkout-links/${encodeURIComponent(id)}`)),
+    share: async (id: string) => {
+      const value = (await json(`/api/v1/checkout-links/${encodeURIComponent(id)}/share`, {
+        method: 'POST'
+      })) as { publicToken?: unknown };
+      if (typeof value.publicToken !== 'string') throw new Error('BAAS_RESPONSE_INVALID');
+      return { publicToken: value.publicToken };
+    },
     create: async (input: PaymentLinkInput) =>
       mapPaymentLink(
         await json('/api/v1/checkout-links', {
@@ -295,6 +304,8 @@ interface PaymentLinkResponse {
   feeSnapshot: { installments: number; feeBps: number }[];
   status: 'ACTIVE' | 'PAID' | 'EXPIRED' | 'CANCELLED';
   expiresAt: string;
+  createdAt?: string;
+  publicToken?: string;
 }
 
 function mapPaymentLinks(value: unknown) {
@@ -314,7 +325,9 @@ function mapPaymentLink(value: unknown) {
     maxInstallments: link.maxInstallments,
     selectedFeeBps: selectedFee?.feeBps ?? null,
     status: link.status,
-    expiresAt: link.expiresAt
+    expiresAt: link.expiresAt,
+    ...(link.createdAt ? { createdAt: link.createdAt } : {}),
+    ...(link.publicToken ? { publicToken: link.publicToken } : {})
   };
 }
 

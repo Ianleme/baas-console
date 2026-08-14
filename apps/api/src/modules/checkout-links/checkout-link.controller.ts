@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Optional, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Optional, Param, Post, Req } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -18,6 +19,8 @@ import {
   CheckoutLinkService,
   type CheckoutLinkRecord
 } from './checkout-link.service.js';
+
+export const PUBLIC_CHECKOUT_BASE_URL = 'PUBLIC_CHECKOUT_BASE_URL';
 
 class CreateCheckoutLinkDto {
   @IsString() @Length(1, 100) publicReference!: string;
@@ -39,7 +42,10 @@ export class CheckoutLinkController {
   constructor(
     private readonly links: CheckoutLinkService,
     private readonly auth: AuthService,
-    @Optional() private readonly outbox?: EmailOutboxService
+    @Optional() private readonly outbox?: EmailOutboxService,
+    @Optional()
+    @Inject(PUBLIC_CHECKOUT_BASE_URL)
+    private readonly publicCheckoutBaseUrl?: string
   ) {}
 
   @Get()
@@ -54,6 +60,18 @@ export class CheckoutLinkController {
   async detail(@Req() request: Request, @Param('id') id: string) {
     try {
       return publicRecord(await this.links.detail(this.merchant(request), id));
+    } catch (error) {
+      throw problem(error);
+    }
+  }
+
+  @Post(':id/share')
+  @ApiOperation({ summary: 'Issue an active tenant-scoped checkout URL token' })
+  @ApiOkResponse({ description: 'Current or safely rotated public checkout token' })
+  async share(@Req() request: Request, @Param('id') id: string) {
+    try {
+      const detail = await this.links.share(this.merchant(request), id);
+      return { publicToken: detail.publicToken };
     } catch (error) {
       throw problem(error);
     }
@@ -96,7 +114,6 @@ export class CheckoutLinkController {
   ) {
     try {
       const merchantId = this.merchant(request);
-      const link = await this.links.detail(merchantId, id);
       if (!this.outbox) {
         throw new ProblemException(
           'OUTBOX_UNAVAILABLE',
@@ -104,8 +121,18 @@ export class CheckoutLinkController {
           'Email outbox service is not configured.'
         );
       }
+      if (!this.publicCheckoutBaseUrl) {
+        throw new ProblemException(
+          'PUBLIC_CHECKOUT_BASE_URL_MISSING',
+          503,
+          'Public checkout URL is not configured.'
+        );
+      }
+      const { link, publicToken } = await this.links.share(merchantId, id);
+      const checkoutUrl = createCheckoutUrl(this.publicCheckoutBaseUrl, publicToken);
       const recipient = input.email.trim();
-      const idempotencyKey = `checkout-email:${link.id}:${recipient.toLowerCase()}`;
+      const tokenVersion = createHash('sha256').update(publicToken).digest('hex').slice(0, 16);
+      const idempotencyKey = `checkout-email:${link.id}:${recipient.toLowerCase()}:${tokenVersion}`;
       const delivery = await this.outbox.enqueue({
         merchantId,
         kind: 'CHECKOUT_LINK',
@@ -116,7 +143,9 @@ export class CheckoutLinkController {
           publicReference: link.publicReference,
           description: link.description,
           amountCents: link.amountCents,
-          text: `Checkout Link: ${link.description} (Ref: ${link.publicReference})`
+          checkoutUrl,
+          text: `Acesse seu checkout seguro: ${checkoutUrl}`,
+          html: `<p>Sua cobrança está pronta.</p><p><a href="${checkoutUrl}">Abrir checkout seguro</a></p>`
         }
       });
       return {
@@ -138,6 +167,29 @@ export class CheckoutLinkController {
       throw new ProblemException('AUTH_REQUIRED', 401, 'Authentication is required.');
     }
   }
+}
+
+function createCheckoutUrl(baseUrl: string, publicToken: string) {
+  let url: URL;
+  try {
+    url = new URL('/pay.html', baseUrl);
+  } catch {
+    throw new ProblemException(
+      'PUBLIC_CHECKOUT_BASE_URL_INVALID',
+      503,
+      'Public checkout URL is invalid.'
+    );
+  }
+  const localHttp = url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname);
+  if (url.protocol !== 'https:' && !localHttp) {
+    throw new ProblemException(
+      'PUBLIC_CHECKOUT_BASE_URL_INVALID',
+      503,
+      'Public checkout URL must use HTTPS.'
+    );
+  }
+  url.hash = `/checkout/${publicToken}`;
+  return url.toString();
 }
 
 function publicRecord(link: CheckoutLinkRecord) {

@@ -51,6 +51,25 @@ export class TypeOrmCheckoutLinkStore implements CheckoutLinkStore {
     return result.affected === 1;
   }
 
+  async replacePublicTokenIfClosed(
+    merchantId: string,
+    id: string,
+    publicTokenHash: Buffer,
+    publicTokenCiphertext: Buffer
+  ): Promise<boolean> {
+    const result = await this.database
+      .getDataSource()
+      .createQueryBuilder()
+      .update(CheckoutLinkEntity)
+      .set({ publicTokenHash, publicTokenCiphertext, tokenClosedAt: null })
+      .where('merchant_id = :merchantId', { merchantId })
+      .andWhere('id = :id', { id })
+      .andWhere('status = :status', { status: 'ACTIVE' })
+      .andWhere('token_closed_at IS NOT NULL')
+      .execute();
+    return result.affected === 1;
+  }
+
   async hasUnresolvedAttempt(merchantId: string, checkoutLinkId: string): Promise<boolean> {
     const rows = await this.database.getDataSource().manager.find(PaymentAttemptEntity, {
       where: { merchantId, checkoutLinkId }
