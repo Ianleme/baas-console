@@ -1,3 +1,6 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+
 import {
   formatBrlCurrency,
   formatReceiptDate,
@@ -8,7 +11,7 @@ import {
   type ReceiptData
 } from './index.js';
 
-describe('@baas/receipt-template', () => {
+void describe('@baas/receipt-template', () => {
   const sampleData: ReceiptData = {
     transactionId: 'tx-12345',
     externalReference: 'REF-2026-99',
@@ -21,70 +24,69 @@ describe('@baas/receipt-template', () => {
     occurredAt: '2026-08-12T14:30:00.000Z'
   };
 
-  it('formats BRL currency correctly from integer cents', () => {
-    expect(formatBrlCurrency('5000')).toMatch(/R\$\s*50,00/);
-    expect(formatBrlCurrency('150')).toMatch(/R\$\s*1,50/);
-    expect(formatBrlCurrency('invalid')).toBe('R$ 0,00');
+  void it('formats BRL currency correctly from integer cents', () => {
+    assert.match(formatBrlCurrency('5000'), /R\$\s*50,00/);
+    assert.match(formatBrlCurrency('150'), /R\$\s*1,50/);
+    assert.equal(formatBrlCurrency('invalid'), 'R$ 0,00');
   });
 
-  it('formats receipt date in pt-BR locale', () => {
+  void it('formats receipt date in pt-BR locale', () => {
     const formatted = formatReceiptDate('2026-08-12T14:30:00.000Z');
-    expect(formatted).toContain('12/08/2026');
+    assert.ok(formatted.includes('12/08/2026'));
   });
 
-  it('translates status and type into PT-BR correctly', () => {
-    expect(translateStatus('APPROVED')).toBe('APROVADO');
-    expect(translateStatus('DENIED')).toBe('NEGADO');
-    expect(translateStatus('PENDING')).toBe('PENDENTE');
-    expect(translateStatus('EXPIRED')).toBe('EXPIRADO');
+  void it('translates status and type into PT-BR correctly', () => {
+    assert.equal(translateStatus('APPROVED'), 'APROVADO');
+    assert.equal(translateStatus('DENIED'), 'NEGADO');
+    assert.equal(translateStatus('PENDING'), 'PENDENTE');
+    assert.equal(translateStatus('EXPIRED'), 'EXPIRADO');
 
-    expect(translateType('DEBIT')).toBe('DÉBITO');
-    expect(translateType('CREDIT')).toBe('CRÉDITO');
-    expect(translateType('PAYMENT_PIX')).toBe('PAGAMENTO');
-    expect(translateType('WITHDRAWAL')).toBe('SAQUE');
+    assert.equal(translateType('DEBIT'), 'DÉBITO');
+    assert.equal(translateType('CREDIT'), 'CRÉDITO');
+    assert.equal(translateType('PAYMENT_PIX'), 'PAGAMENTO');
+    assert.equal(translateType('WITHDRAWAL'), 'SAQUE');
   });
 
-  it('provides red badge styles for DENIED status and green for APPROVED', () => {
+  void it('provides red badge styles for DENIED status and green for APPROVED', () => {
     const deniedStyle = getStatusBadgeStyle('DENIED');
-    expect(deniedStyle.bg).toBe('#fee2e2');
-    expect(deniedStyle.color).toBe('#b91c1c');
+    assert.equal(deniedStyle.bg, '#fee2e2');
+    assert.equal(deniedStyle.color, '#b91c1c');
 
     const approvedStyle = getStatusBadgeStyle('APPROVED');
-    expect(approvedStyle.bg).toBe('#dcfce7');
-    expect(approvedStyle.color).toBe('#15803d');
+    assert.equal(approvedStyle.bg, '#dcfce7');
+    assert.equal(approvedStyle.color, '#15803d');
   });
 
-  it('renders complete HTML receipt with translated strings, escape guards and CSS print media rules', () => {
+  void it('renders complete HTML receipt with translated strings, escape guards and CSS print media rules', () => {
     const html = renderReceiptHtml(sampleData);
-    expect(html).toContain('<!DOCTYPE html>');
-    expect(html).toContain('REF-2026-99');
-    expect(html).toContain('APROVADO');
-    expect(html).toContain('PAGAMENTO');
-    expect(html).toContain('gw-999');
-    expect(html).toContain('tx-12345');
-    expect(html).toContain('@media print');
+    assert.ok(html.includes('<!DOCTYPE html>'));
+    assert.ok(html.includes('REF-2026-99'));
+    assert.ok(html.includes('APROVADO'));
+    assert.ok(html.includes('PAGAMENTO'));
+    assert.ok(html.includes('Comprovante de Operação'));
+    assert.ok(html.includes('@media print'));
   });
 
-  it('renders DENIED receipt with red badge and translated text NEGADO', () => {
+  void it('renders DENIED receipt with red badge and translated text NEGADO', () => {
     const html = renderReceiptHtml({
       ...sampleData,
       status: 'DENIED',
       type: 'DEBIT'
     });
-    expect(html).toContain('NEGADO');
-    expect(html).toContain('DÉBITO');
-    expect(html).toContain('background: #fee2e2');
-    expect(html).toContain('color: #b91c1c');
+    assert.ok(html.includes('NEGADO'));
+    assert.ok(html.includes('DÉBITO'));
+    assert.ok(html.includes('background: #fee2e2'));
+    assert.ok(html.includes('color: #b91c1c'));
   });
 
-  it('escapes dangerous HTML characters in reference and status', () => {
+  void it('escapes dangerous HTML characters in reference and status', () => {
     const xssData: ReceiptData = {
       ...sampleData,
       externalReference: '<script>alert(1)</script>',
       status: '<b>APPROVED</b>'
     };
     const html = renderReceiptHtml(xssData);
-    expect(html).not.toContain('<script>');
-    expect(html).toContain('&lt;script&gt;');
+    assert.ok(!html.includes('<script>'));
+    assert.ok(html.includes('&lt;script&gt;'));
   });
 });

@@ -22,16 +22,22 @@ export function generateReceiptPdf(data: ReceiptData): Promise<Buffer> {
     });
 
     const chunks: Buffer[] = [];
-    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-    doc.on('error', reject);
+    doc.on('data', (chunk: Buffer) => {
+      chunks.push(chunk);
+    });
+    doc.on('end', () => {
+      resolve(Buffer.concat(chunks));
+    });
+    doc.on('error', (err: Error) => {
+      reject(err);
+    });
 
     const gross = formatBrlCurrency(data.grossAmountCents);
     const net = formatBrlCurrency(data.netAmountCents);
     const dateFormatted = formatReceiptDate(data.occurredAt);
     const statusText = translateStatus(data.status);
     const typeText = translateType(data.type);
-    const companyName = data.merchantName || 'BaaS Console';
+    const companyName = data.merchantName ?? 'BaaS Console';
 
     // Generate security hash
     const authProtocol = createHash('sha256')

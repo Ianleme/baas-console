@@ -118,7 +118,7 @@ export function renderReceiptHtml(data: ReceiptData): string {
   const translatedStatus = translateStatus(data.status);
   const translatedType = translateType(data.type);
   const badgeStyle = getStatusBadgeStyle(data.status);
-  const companyName = data.merchantName || 'BaaS Console';
+  const companyName = data.merchantName ?? 'BaaS Console';
 
   // Compute security hash
   let authHash = `${data.transactionId}:${data.externalReference}:${data.occurredAt}:${data.netAmountCents}`;

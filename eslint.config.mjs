@@ -10,6 +10,8 @@ export default tseslint.config(
       '**/dist',
       '**/coverage/**',
       '**/node_modules/**',
+      '**/.stryker-tmp/**',
+      '**/stryker-tmp/**',
       'artifacts/**',
       'packages/api-client/src/generated/**',
       'playwright-report/**',
