@@ -127,7 +127,22 @@ export function AppRouter({ session }: { session: BaasMemorySession }) {
     }
   };
   if (hash === '#/')
-    return <AppShell {...shellProps} content={<Dashboard api={clients.dashboard} />} />;
+    return (
+      <AppShell
+        {...shellProps}
+        content={
+          <Dashboard
+            api={clients.dashboard}
+            onRequestWithdrawal={() => {
+              globalThis.location.hash = '#/saques?solicitar=1';
+            }}
+            onCreatePaymentLink={() => {
+              globalThis.location.hash = '#/links?criar=1';
+            }}
+          />
+        }
+      />
+    );
   if (hash === '#/carteira')
     return <AppShell {...shellProps} content={<WalletPage api={walletApi} />} />;
   if (hash === '#/configuracoes')

@@ -4,6 +4,7 @@ import { renderReceiptHtml } from '@baas/receipt-template';
 import type { Response } from 'express';
 
 import { ProblemException } from '../../platform/errors/problem.exception.js';
+import { generateReceiptPdf } from './receipt-pdf.generator.js';
 import { ListTransactionsDto } from './dto/list-transactions.dto.js';
 import {
   TransactionsService,
@@ -89,40 +90,19 @@ export class TransactionsController {
     });
 
     if (format === 'pdf' || format === 'download') {
-      let browser;
       try {
-        const { chromium } = await import('playwright');
-        try {
-          browser = await chromium.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-          });
-        } catch (launchErr) {
-          const errMsg = launchErr instanceof Error ? launchErr.message : String(launchErr);
-          if (
-            errMsg.includes("Executable doesn't exist") ||
-            errMsg.includes('playwright install')
-          ) {
-            const { execSync } = await import('node:child_process');
-            execSync('npx playwright install chromium', { stdio: 'inherit' });
-            browser = await chromium.launch({
-              headless: true,
-              args: ['--no-sandbox', '--disable-setuid-sandbox']
-            });
-          } else {
-            throw launchErr;
-          }
-        }
-        const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle' });
-        const pdfBuffer = await page.pdf({
-          format: 'A4',
-          printBackground: true,
-          margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' }
+        const buffer = await generateReceiptPdf({
+          transactionId: tx.id,
+          externalReference: tx.externalReference,
+          gatewayTransactionId: tx.gatewayTransactionId,
+          type: tx.type,
+          status: tx.status,
+          grossAmountCents: tx.grossAmountCents,
+          feeAmountCents: tx.feeAmountCents,
+          netAmountCents: tx.netAmountCents,
+          occurredAt: tx.occurredAt
         });
-        await browser.close();
 
-        const buffer = Buffer.from(pdfBuffer);
         res.setHeader('content-type', 'application/pdf');
         res.setHeader('content-length', buffer.length.toString());
         res.setHeader(
@@ -132,9 +112,6 @@ export class TransactionsController {
         res.end(buffer);
         return;
       } catch (err) {
-        if (browser) {
-          await browser.close().catch(() => undefined);
-        }
         throw new ProblemException(
           'RECEIPT_PDF_FAILED',
           500,
