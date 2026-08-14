@@ -21,7 +21,7 @@ export const verificationProfiles = {
   pr: prStages,
   full: [
     ...prStages,
-    { name: 'mutation', script: 'test:mutation', enabled: false, ownerTask: 'T045' },
+    { name: 'mutation', script: 'test:mutation', enabled: true, ownerTask: 'T045' },
     { name: 'smoke', script: 'test:smoke', enabled: true, ownerTask: 'T010' },
     {
       name: 'release-evidence',

@@ -7,6 +7,8 @@ coverage/
 artifacts/
 playwright-report/
 test-results/
+reports/
+.stryker-tmp/
 *.log
 .DS_Store
 Thumbs.db

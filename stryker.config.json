@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/stryker-mutator-report-schema.json",
+  "tempDirName": "stryker-tmp",
+  "testRunner": "jest",
+  "jest": {
+    "configFile": "apps/api/jest.unit.config.mjs"
+  },
+  "checkers": ["typescript"],
+  "tsconfigFile": "apps/api/tsconfig.json",
+  "mutate": [
+    "apps/api/src/modules/audit/{audit-event.service,audit-retention.service}.ts",
+    "apps/api/src/modules/auth/auth.service.ts",
+    "apps/api/src/modules/checkout-links/checkout-link.service.ts",
+    "apps/api/src/modules/public-checkout/checkout-session.service.ts",
+    "apps/api/src/modules/demo/{demo.guard,demo.service}.ts",
+    "apps/api/src/modules/gateway-accounts/gateway-onboarding.service.ts",
+    "apps/api/src/modules/notifications/{brevo-email.gateway,email-deliveries.controller,email-outbox.service}.ts",
+    "apps/api/src/modules/observability/{dependency-health.service,metrics.service}.ts",
+    "apps/api/src/modules/payments/card/card-payment.service.ts",
+    "apps/api/src/modules/payments/pix/pix-payment.service.ts",
+    "apps/api/src/modules/reconciliation/reconciliation.service.ts",
+    "apps/api/src/modules/transactions/transactions.service.ts",
+    "apps/api/src/modules/wallet/wallet.service.ts",
+    "apps/api/src/modules/webhooks/processing/webhook-processing.service.ts",
+    "apps/api/src/modules/withdrawals/withdrawals.service.ts",
+    "apps/api/src/platform/security/security.service.ts",
+    "apps/api/src/integrations/lera-box/fees/lera-box-fees.client.ts"
+  ],
+  "thresholds": {
+    "high": 80,
+    "low": 80,
+    "break": 80
+  },
+  "timeoutMS": 10000,
+  "reporters": ["clear-text", "progress", "html"]
+}

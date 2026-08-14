@@ -2,7 +2,6 @@ name: Publish immutable images
 
 on:
   push:
-    branches: [main]
     tags: ['v*.*.*']
   workflow_dispatch:
 
@@ -11,7 +10,6 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository }}
 
 jobs:
   publish:
@@ -20,6 +18,8 @@ jobs:
       contents: read
       packages: write
       id-token: write
+      security-events: write
+      actions: read
     outputs:
       api-digest: ${{ steps.build-api.outputs.digest }}
       web-digest: ${{ steps.build-web.outputs.digest }}
@@ -31,20 +31,58 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - id: tags
-        name: Compute immutable tags
+      - id: meta
+        name: Normalize image prefix and compute immutable tags
         shell: bash
         run: |
           set -euo pipefail
+          # GHCR repository names must be lowercase.
+          PREFIX="$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
+          echo "prefix=${PREFIX}" >> "$GITHUB_OUTPUT"
           echo "commit=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then echo "semver=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"; else echo "semver=" >> "$GITHUB_OUTPUT"; fi
+      - name: Verify quality gates (CI and Mutation)
+        uses: actions/github-script@v7
+        env:
+          TARGET_SHA: ${{ github.sha }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const targetSha = process.env.TARGET_SHA;
+            const isDispatch = context.eventName === 'workflow_dispatch';
+
+            async function completedRuns(name) {
+              const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+                owner,
+                repo,
+                per_page: 100
+              });
+              return data.workflow_runs.filter(
+                (run) => run.name === name && run.status === 'completed'
+              );
+            }
+
+            for (const name of ['CI', 'Mutation']) {
+              const runs = await completedRuns(name);
+              const run = isDispatch
+                ? runs.find((candidate) => candidate.head_branch === 'main')
+                : runs.find((candidate) => candidate.head_sha === targetSha);
+              if (!run) {
+                throw new Error(
+                  `GATE_MISSING: no completed ${name} run found (${isDispatch ? 'main' : targetSha})`
+                );
+              }
+              if (run.conclusion !== 'success') {
+                throw new Error(`GATE_FAILED: ${name} #${run.id} concluded ${run.conclusion}`);
+              }
+              core.info(`GATE_PASSED: ${name} #${run.id} on ${run.head_sha.slice(0, 7)}`);
+            }
       - id: build-api
         uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/api/Dockerfile.prod
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/api:sha-${{ steps.tags.outputs.commit }}
+          tags: ${{ env.REGISTRY }}/${{ steps.meta.outputs.prefix }}/api:sha-${{ steps.meta.outputs.commit }}
           labels: org.opencontainers.image.revision=${{ github.sha }}
           sbom: true
           provenance: mode=max
@@ -54,19 +92,20 @@ jobs:
           context: .
           file: apps/web/Dockerfile.prod
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/web:sha-${{ steps.tags.outputs.commit }}
+          tags: ${{ env.REGISTRY }}/${{ steps.meta.outputs.prefix }}/web:sha-${{ steps.meta.outputs.commit }}
           labels: org.opencontainers.image.revision=${{ github.sha }}
           sbom: true
           provenance: mode=max
       - uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/api:sha-${{ steps.tags.outputs.commit }}
+          image-ref: ${{ env.REGISTRY }}/${{ steps.meta.outputs.prefix }}/api:sha-${{ steps.meta.outputs.commit }}
           format: sarif
           output: trivy-api.sarif
           severity: CRITICAL,HIGH
           exit-code: '1'
           ignore-unfixed: true
-      - uses: github/codeql-action/upload-sarif@v3
-        if: always()
+      - name: Upload Trivy SARIF
+        if: always() && hashFiles('trivy-api.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-api.sarif
