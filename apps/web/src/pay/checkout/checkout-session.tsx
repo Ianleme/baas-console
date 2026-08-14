@@ -30,6 +30,7 @@ export function CheckoutSession({
   const [pixSelected, setPixSelected] = useState(false);
   const [pixBusy, setPixBusy] = useState(false);
   const [cardSelected, setCardSelected] = useState(false);
+  const [pixError, setPixError] = useState('');
 
   useEffect(() => {
     if (started.current) return;
@@ -40,7 +41,7 @@ export function CheckoutSession({
       '',
       `${globalThis.location.pathname}${globalThis.location.search}`
     );
-    if (!match?.[1] || match[1].length < 43) {
+    if (!match?.[1] || match[1].length < 36) {
       setState('invalid');
       return;
     }
@@ -57,13 +58,41 @@ export function CheckoutSession({
       });
   }, [api, fragment]);
 
-  if (pixAttempt && pixApi) return <PixCheckout initial={pixAttempt} api={pixApi} />;
+  if (pixAttempt && pixApi && checkout)
+    return (
+      <PixCheckout
+        initial={pixAttempt}
+        api={pixApi}
+        onRetry={() => {
+          setPixAttempt(null);
+          setPixSelected(true);
+          setCardSelected(false);
+        }}
+        {...(checkout.methods === 'PIX_CARD'
+          ? {
+              onChooseMethod: () => {
+                setPixAttempt(null);
+                setPixSelected(false);
+                setCardSelected(false);
+              }
+            }
+          : {})}
+      />
+    );
   if (cardSelected && cardApi && checkout)
     return (
       <CardCheckout
         amountCents={checkout.amountCents}
         maxInstallments={checkout.maxInstallments}
         api={cardApi}
+        {...(checkout.methods === 'PIX_CARD'
+          ? {
+              onChooseMethod: () => {
+                setCardSelected(false);
+                setPixSelected(false);
+              }
+            }
+          : {})}
       />
     );
   if (state === 'loading') return <p role="status">Preparando checkout seguro…</p>;
@@ -74,9 +103,17 @@ export function CheckoutSession({
     if (!pixApi?.create || pixBusy) return;
     const payerDocument = new FormData(event.currentTarget).get('payerDocument');
     if (typeof payerDocument !== 'string') return;
+    const normalizedDocument = payerDocument.replace(/\D/gu, '');
+    if (normalizedDocument.length !== 11 && normalizedDocument.length !== 14) {
+      setPixError('Informe um CPF ou CNPJ com 11 ou 14 números.');
+      return;
+    }
     setPixBusy(true);
     try {
-      setPixAttempt(await pixApi.create({ payerDocument }));
+      setPixAttempt(await pixApi.create({ payerDocument: normalizedDocument }));
+      setPixError('');
+    } catch {
+      setPixError('Não foi possível gerar o Pix. Revise o documento e tente novamente.');
     } finally {
       setPixBusy(false);
     }
@@ -90,9 +127,11 @@ export function CheckoutSession({
       <div className="checkout-methods">
         {checkout.methods !== 'CARD' && !pixSelected && (
           <button
+            className={pixSelected ? 'is-selected' : ''}
             type="button"
             onClick={() => {
               setPixSelected(true);
+              setCardSelected(false);
             }}
           >
             Pagar com Pix
@@ -100,9 +139,11 @@ export function CheckoutSession({
         )}
         {checkout.methods !== 'PIX' && (
           <button
+            className={cardSelected ? 'is-selected' : ''}
             type="button"
             onClick={() => {
               setCardSelected(true);
+              setPixSelected(false);
             }}
           >
             Pagar com cartão · até {checkout.maxInstallments}x
@@ -110,14 +151,36 @@ export function CheckoutSession({
         )}
       </div>
       {pixSelected && pixApi?.create && (
-        <form aria-label="Gerar pagamento Pix" onSubmit={(event) => void createPix(event)}>
-          <label>
-            CPF ou CNPJ do pagador
-            <input name="payerDocument" inputMode="numeric" required />
-          </label>
-          <button type="submit" disabled={pixBusy}>
-            {pixBusy ? 'Gerando Pixâ€¦' : 'Gerar Pix'}
+        <form
+          className="pix-create-form space-y-4"
+          aria-label="Gerar pagamento Pix"
+          onSubmit={(event) => void createPix(event)}
+        >
+          <div className="pay-field">
+            <label htmlFor="payer-document">CPF ou CNPJ do pagador</label>
+            <input
+              id="payer-document"
+              className="w-full"
+              name="payerDocument"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={18}
+              aria-describedby="payer-document-hint"
+              autoFocus
+              required
+            />
+            <span id="payer-document-hint" className="pay-field__hint">
+              Somente dados fictícios de sandbox.
+            </span>
+          </div>
+          <button className="pay-primary w-full" type="submit" disabled={pixBusy}>
+            {pixBusy ? 'Gerando Pix…' : 'Gerar Pix'}
           </button>
+          {pixError && (
+            <p className="pay-status bg-red-50 text-xs font-semibold text-red-700" role="alert">
+              {pixError}
+            </p>
+          )}
         </form>
       )}
     </section>

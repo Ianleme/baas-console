@@ -3,10 +3,11 @@ import type { ReactNode } from 'react';
 import { BrandMark } from '../components/brand-mark.js';
 import { SandboxNotice } from '../components/sandbox-notice.js';
 import '../styles/tokens.css';
+import './pay.css';
 
 export function PayShell({ content }: { content?: ReactNode }) {
   return (
-    <div className="pay-surface bg-slate-50 min-h-screen flex flex-col justify-between p-4 sm:p-6">
+    <div className="pay-surface min-h-screen flex flex-col justify-between p-4 sm:p-6">
       <header className="pay-header flex items-center justify-between max-w-xl mx-auto w-full pb-6">
         <BrandMark />
         <SandboxNotice variant="badge" />
@@ -16,7 +17,7 @@ export function PayShell({ content }: { content?: ReactNode }) {
         aria-label="Checkout sandbox"
       >
         <section
-          className="checkout-shell bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm max-w-xl w-full space-y-6"
+          className="checkout-shell max-w-xl w-full space-y-6"
           aria-label="Pagamento sandbox"
         >
           <div className="checkout-shell__mark flex justify-center pb-2">

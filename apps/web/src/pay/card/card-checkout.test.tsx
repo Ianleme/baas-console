@@ -29,7 +29,7 @@ function view(client = api()) {
   return render(<CardCheckout amountCents="32000" maxInstallments={21} api={client} />);
 }
 async function obtainQuote() {
-  fireEvent.click(screen.getByRole('button', { name: 'Calcular parcelas e taxa' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Revisar pagamento' }));
   await screen.findByRole('complementary', { name: 'Resumo do pagamento' });
 }
 function fillCard() {
@@ -55,6 +55,14 @@ describe('CardCheckout', () => {
   test('offers all gateway installments through 21', () => {
     view();
     expect(screen.getByLabelText('Parcelas').querySelectorAll('option')).toHaveLength(21);
+    expect(screen.getByRole('option', { name: /3x de R.*106,67/ })).toBeVisible();
+  });
+  test('detects a supported card brand from the test PAN before quoting', () => {
+    view();
+    fireEvent.change(screen.getByLabelText('Número do cartão'), {
+      target: { value: '5555555555554444' }
+    });
+    expect(screen.getByLabelText('Bandeira')).toHaveValue('MASTERCARD');
   });
   test.each([
     ['Número do cartão', 'cc-number'],
@@ -90,17 +98,14 @@ describe('CardCheckout', () => {
   test('shows exact gross amount', async () => {
     view();
     await obtainQuote();
-    expect(screen.getByText('R$ 320,00')).toBeVisible();
+    expect(screen.getAllByText('R$ 320,00')).not.toHaveLength(0);
   });
-  test('shows fee in percent', async () => {
+  test('does not expose gateway fee or merchant net amount to the payer', async () => {
     view();
     await obtainQuote();
-    expect(screen.getByText('3,19%')).toBeVisible();
-  });
-  test('shows exact net amount', async () => {
-    view();
-    await obtainQuote();
-    expect(screen.getByText('R$ 309,79')).toBeVisible();
+    expect(screen.queryByText('3,19%')).not.toBeInTheDocument();
+    expect(screen.queryByText('R$ 309,79')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Líquido ao lojista|Taxa:/)).not.toBeInTheDocument();
   });
   test('changing installments invalidates the previous quote', async () => {
     view();
@@ -113,7 +118,7 @@ describe('CardCheckout', () => {
     view(client);
     await obtainQuote();
     fillCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar pagamento' }));
+    fireEvent.click(screen.getByRole('button', { name: /Pagar R.*320,00/ }));
     await waitFor(() => {
       expect(client.confirm).toHaveBeenCalledTimes(1);
     });
@@ -127,15 +132,15 @@ describe('CardCheckout', () => {
     });
   });
   test.each([
-    ['APPROVED', 'Pagamento confirmado.'],
-    ['DENIED', 'Pagamento não aprovado.'],
-    ['RECONCILIATION_PENDING', 'Aguarde a conciliação.']
+    ['APPROVED', 'Cartão aprovado'],
+    ['DENIED', 'Pagamento não aprovado'],
+    ['RECONCILIATION_PENDING', 'Pagamento em conferência']
   ] as const)('shows honest %s outcome', async (status, label) => {
     view(api(status));
     await obtainQuote();
     fillCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar pagamento' }));
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(label));
+    fireEvent.click(screen.getByRole('button', { name: /Pagar R.*320,00/ }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: label })).toBeVisible());
   });
   test('requires reconfirmation when fee changes', async () => {
     const client = api();
@@ -143,9 +148,12 @@ describe('CardCheckout', () => {
     view(client);
     await obtainQuote();
     fillCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar pagamento' }));
+    fireEvent.click(screen.getByRole('button', { name: /Pagar R.*320,00/ }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('A taxa mudou'));
     expect(screen.queryByLabelText('Resumo do pagamento')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Atualizar condições' }));
+    expect(await screen.findByRole('button', { name: /Pagar R.*320,00/ })).toBeVisible();
+    expect(client.confirm).toHaveBeenCalledTimes(1);
   });
   test('shows fifteen-minute cooldown without retrying', async () => {
     const client = api();
@@ -153,9 +161,10 @@ describe('CardCheckout', () => {
     view(client);
     await obtainQuote();
     fillCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar pagamento' }));
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('15 minutos'));
+    fireEvent.click(screen.getByRole('button', { name: /Pagar R.*320,00/ }));
+    await waitFor(() => expect(screen.getByText(/15 minutos/)).toBeVisible());
     expect(client.confirm).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: /Tentar/ })).not.toBeInTheDocument();
   });
   test('does not render sensitive values in errors', async () => {
     const client = api();
@@ -163,7 +172,7 @@ describe('CardCheckout', () => {
     view(client);
     await obtainQuote();
     fillCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar pagamento' }));
+    fireEvent.click(screen.getByRole('button', { name: /Pagar R.*320,00/ }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Não foi possível'));
     expect(document.body.textContent).not.toContain('4111111111111111');
     expect(document.body.textContent).not.toContain('123');
@@ -173,6 +182,34 @@ describe('CardCheckout', () => {
     const user = userEvent.setup();
     await user.tab();
     expect(screen.getByLabelText('Número do cartão')).toHaveFocus();
+  });
+  test('replaces the form with a terminal receipt after approval', async () => {
+    const client = api('APPROVED');
+    view(client);
+    await obtainQuote();
+    fillCard();
+    await userEvent.click(screen.getByRole('button', { name: /Pagar R.*320,00/ }));
+    expect(await screen.findByRole('heading', { name: 'Cartão aprovado' })).toHaveFocus();
+    expect(screen.queryByLabelText('Número do cartão')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(client.confirm).toHaveBeenCalledTimes(1);
+  });
+  test('offers retry and method change only after denial', async () => {
+    const onChooseMethod = vi.fn();
+    const client = api('DENIED');
+    render(
+      <CardCheckout
+        amountCents="32000"
+        maxInstallments={3}
+        api={client}
+        onChooseMethod={onChooseMethod}
+      />
+    );
+    await obtainQuote();
+    fillCard();
+    await userEvent.click(screen.getByRole('button', { name: /Pagar R.*320,00/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Escolher outro método' }));
+    expect(onChooseMethod).toHaveBeenCalledTimes(1);
   });
   test('has no automated axe violations', async () => {
     const { container } = view();

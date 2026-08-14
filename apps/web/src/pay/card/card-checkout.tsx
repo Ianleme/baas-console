@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from 'react';
+import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
 
@@ -36,11 +36,13 @@ export class CardCheckoutError extends Error {
 export function CardCheckout({
   amountCents,
   maxInstallments,
-  api
+  api,
+  onChooseMethod
 }: {
   amountCents: string;
   maxInstallments: number;
   api: CardCheckoutApi;
+  onChooseMethod?: () => void;
 }) {
   const [brand, setBrand] = useState<CardQuoteView['brand']>('VISA');
   const [installments, setInstallments] = useState(1);
@@ -48,6 +50,18 @@ export function CardCheckout({
   const [state, setState] = useState<
     'editing' | 'quoting' | 'confirming' | CardOutcome | 'fee-changed' | 'error'
   >('editing');
+  const outcomeHeading = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (
+      state === 'APPROVED' ||
+      state === 'DENIED' ||
+      state === 'RECONCILIATION_PENDING' ||
+      state === 'CARD_COOLDOWN'
+    ) {
+      outcomeHeading.current?.focus();
+    }
+  }, [state]);
 
   async function refreshQuote() {
     setState('quoting');
@@ -76,7 +90,6 @@ export function CardCheckout({
         expiryYear: Number(field(form, 'expiryYear')),
         cvv: field(form, 'cvv')
       });
-      formElement.reset();
       setState(result.status);
     } catch (error) {
       const code =
@@ -102,6 +115,72 @@ export function CardCheckout({
     setQuote(null);
     setState('editing');
   }
+  function retry() {
+    setQuote(null);
+    setState('editing');
+  }
+
+  if (state === 'APPROVED') {
+    return (
+      <section
+        className="payment-result payment-result--approved"
+        aria-labelledby="card-result-title"
+      >
+        <span className="payment-result__icon" aria-hidden="true">
+          ✓
+        </span>
+        <span className="eyebrow eyebrow--green">Pagamento concluído</span>
+        <h1 id="card-result-title" ref={outcomeHeading} tabIndex={-1}>
+          Cartão aprovado
+        </h1>
+        <strong className="payment-result__amount">{money(amountCents)}</strong>
+        <p role="status" aria-live="polite">
+          O pagamento foi aprovado e registrado com segurança.
+        </p>
+        {quote && (
+          <div className="payment-result__receipt">
+            <span>Forma de pagamento</span>
+            <strong>{installmentLabel(quote.grossAmountCents, quote.installments)}</strong>
+          </div>
+        )}
+        <p className="payment-result__hint">Você já pode fechar esta página.</p>
+      </section>
+    );
+  }
+
+  if (state === 'DENIED' || state === 'RECONCILIATION_PENDING' || state === 'CARD_COOLDOWN') {
+    const retryAllowed = state === 'DENIED';
+    return (
+      <section
+        className="payment-result payment-result--attention"
+        aria-labelledby="card-result-title"
+      >
+        <span className="payment-result__icon" aria-hidden="true">
+          !
+        </span>
+        <span className="eyebrow">Cartão sandbox</span>
+        <h1 id="card-result-title" ref={outcomeHeading} tabIndex={-1}>
+          {resultTitle(state)}
+        </h1>
+        <p role={state === 'DENIED' ? 'alert' : 'status'} aria-live="polite">
+          {message(state)}
+        </p>
+        <div className="payment-result__actions">
+          {retryAllowed && (
+            <Button type="button" className="pay-primary w-full" onClick={retry}>
+              Tentar outro cartão
+            </Button>
+          )}
+          {retryAllowed && onChooseMethod && (
+            <Button type="button" variant="outline" className="w-full" onClick={onChooseMethod}>
+              Escolher outro método
+            </Button>
+          )}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="card-checkout space-y-4" aria-labelledby="card-title">
       <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider">
@@ -110,6 +189,13 @@ export function CardCheckout({
       <h1 id="card-title" className="text-2xl font-bold text-slate-900">
         Pague com cartão
       </h1>
+      <div
+        className="checkout-total flex items-center justify-between gap-4"
+        aria-label="Total do pedido"
+      >
+        <span className="text-sm font-medium text-slate-600">Total do pedido</span>
+        <strong className="text-xl font-bold text-slate-900">{money(amountCents)}</strong>
+      </div>
       <div
         role="note"
         className="card-warning rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"
@@ -122,11 +208,20 @@ export function CardCheckout({
           void confirm(event);
         }}
         autoComplete="on"
-        className="space-y-4"
+        className="checkout-form space-y-4"
       >
         <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
           Número do cartão
-          <Input name="cardNumber" inputMode="numeric" autoComplete="cc-number" required />
+          <Input
+            name="cardNumber"
+            inputMode="numeric"
+            autoComplete="cc-number"
+            required
+            onChange={(event) => {
+              const detected = detectCardBrand(event.target.value);
+              if (detected && detected !== brand) changeSelection(detected, installments);
+            }}
+          />
         </label>
         <label className="flex flex-col text-xs font-semibold text-slate-700 gap-1">
           Nome impresso
@@ -172,7 +267,7 @@ export function CardCheckout({
             >
               {Array.from({ length: maxInstallments }, (_, index) => (
                 <option key={index + 1} value={index + 1}>
-                  {index + 1}x
+                  {installmentLabel(amountCents, index + 1)}
                 </option>
               ))}
             </select>
@@ -184,23 +279,20 @@ export function CardCheckout({
             aria-label="Resumo do pagamento"
           >
             <p className="flex justify-between">
-              Valor:{' '}
+              Total:{' '}
               <strong className="text-slate-900 font-bold">{money(quote.grossAmountCents)}</strong>
             </p>
             <p className="flex justify-between">
-              Taxa: <strong className="text-slate-900 font-bold">{bps(quote.feeBps)}</strong>
-            </p>
-            <p className="flex justify-between pt-1 border-t border-slate-200">
-              Líquido ao lojista:{' '}
-              <strong className="text-emerald-700 font-extrabold">
-                {money(quote.netAmountCents)}
+              Pagamento:{' '}
+              <strong className="text-slate-900 font-bold">
+                {installmentLabel(quote.grossAmountCents, quote.installments)}
               </strong>
             </p>
           </aside>
         )}
         <Button
           type={quote ? 'submit' : 'button'}
-          className="w-full bg-[#007a5a] hover:bg-[#005c47]"
+          className="pay-primary w-full"
           onClick={
             quote
               ? undefined
@@ -210,13 +302,19 @@ export function CardCheckout({
           }
           disabled={state === 'quoting' || state === 'confirming'}
         >
-          {quote ? 'Confirmar pagamento' : 'Calcular parcelas e taxa'}
+          {state === 'quoting'
+            ? 'Atualizando condições…'
+            : quote
+              ? `Pagar ${money(quote.grossAmountCents)}`
+              : state === 'fee-changed'
+                ? 'Atualizar condições'
+                : 'Revisar pagamento'}
         </Button>
       </form>
       <div
         role="status"
         aria-live="polite"
-        className={`card-state card-state--${state} text-xs font-medium p-3 rounded-lg bg-slate-100 text-slate-700`}
+        className={`pay-status card-state card-state--${state} text-xs font-medium bg-slate-100 text-slate-700`}
       >
         {message(state)}
       </div>
@@ -232,8 +330,24 @@ function money(cents: string) {
     Number(BigInt(cents)) / 100
   );
 }
-function bps(value: number) {
-  return `${(value / 100).toFixed(2).replace('.', ',')}%`;
+function installmentLabel(amountCents: string, installments: number) {
+  const installmentCents = Math.ceil(Number(BigInt(amountCents)) / installments);
+  return `${installments}x de ${money(String(installmentCents))}`;
+}
+function detectCardBrand(value: string): CardQuoteView['brand'] | null {
+  const number = value.replace(/\D/gu, '');
+  if (/^(?:4011|4312|4389|4514|4573|5041|5067|509|6277|6362|6363|650|6516|6550)/u.test(number))
+    return 'ELO';
+  if (/^4/u.test(number)) return 'VISA';
+  const prefix2 = Number(number.slice(0, 2));
+  const prefix4 = Number(number.slice(0, 4));
+  if ((prefix2 >= 51 && prefix2 <= 55) || (prefix4 >= 2221 && prefix4 <= 2720)) return 'MASTERCARD';
+  return null;
+}
+function resultTitle(state: 'DENIED' | 'RECONCILIATION_PENDING' | 'CARD_COOLDOWN') {
+  if (state === 'DENIED') return 'Pagamento não aprovado';
+  if (state === 'RECONCILIATION_PENDING') return 'Pagamento em conferência';
+  return 'Novas tentativas temporariamente bloqueadas';
 }
 function message(
   state: 'editing' | 'quoting' | 'confirming' | CardOutcome | 'fee-changed' | 'error'

@@ -66,6 +66,62 @@ describe('CheckoutSession', () => {
     });
     expect(await screen.findByLabelText('Código Pix copia e cola')).toHaveValue('PIX-CODE');
   });
+  test('lets the payer recover from a denied Pix without reusing the failed attempt', async () => {
+    const deniedAttempt = {
+      id: 'attempt-denied',
+      status: 'DENIED' as const,
+      amountCents: '32000',
+      emv: null,
+      qrCodeBase64: null,
+      txid: 'txid-denied',
+      expiresAt: new Date(Date.now() + 300_000).toISOString()
+    };
+    const api = {
+      exchange: vi.fn().mockResolvedValue({
+        checkout: ready,
+        csrfToken: 'memory-only',
+        pixAttempt: deniedAttempt
+      })
+    };
+    render(
+      <CheckoutSession
+        api={api}
+        pixApi={{ create: vi.fn(), status: vi.fn() }}
+        fragment={`#/checkout/${token}`}
+      />
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Gerar novo Pix' }));
+    expect(screen.getByLabelText('CPF ou CNPJ do pagador')).toHaveFocus();
+    expect(screen.queryByText('txid-denied')).not.toBeInTheDocument();
+  });
+  test('returns to method choice from a failed Pix when both methods are allowed', async () => {
+    const api = {
+      exchange: vi.fn().mockResolvedValue({
+        checkout: ready,
+        csrfToken: 'memory-only',
+        pixAttempt: {
+          id: 'attempt-expired',
+          status: 'EXPIRED' as const,
+          amountCents: '32000',
+          emv: null,
+          qrCodeBase64: null,
+          txid: null,
+          expiresAt: new Date(Date.now() - 1_000).toISOString()
+        }
+      })
+    };
+    render(
+      <CheckoutSession
+        api={api}
+        pixApi={{ create: vi.fn(), status: vi.fn() }}
+        cardApi={{ quote: vi.fn(), confirm: vi.fn() }}
+        fragment={`#/checkout/${token}`}
+      />
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Escolher outro método' }));
+    expect(screen.getByRole('button', { name: 'Pagar com Pix' })).toBeVisible();
+    expect(screen.getByRole('button', { name: /Pagar com cartão/ })).toBeVisible();
+  });
   test('maps an invalid token to a generic unavailable view', async () => {
     render(<CheckoutSession api={client()} fragment="#/checkout/short" />);
     expect(await screen.findByRole('heading', { name: 'Link indisponível' })).toBeVisible();

@@ -69,30 +69,65 @@ describe('PixCheckout', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
-    expect(screen.getByText('Pagamento confirmado.')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Pix confirmado' })).toBeVisible();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3000);
     });
     expect(client.status).toHaveBeenCalledTimes(1);
   });
   test('shows reconciliation without optimistic confirmation', () => {
-    render(<PixCheckout initial={{ ...pending, status: 'RECONCILIATION_PENDING' }} api={api()} />);
+    render(
+      <PixCheckout
+        initial={{ ...pending, status: 'RECONCILIATION_PENDING' }}
+        api={api()}
+        onRetry={vi.fn()}
+        onChooseMethod={vi.fn()}
+      />
+    );
     expect(screen.getByRole('status')).toHaveTextContent('Aguarde a conciliação');
     expect(screen.queryByText('Pagamento confirmado.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /novo Pix|outro método/ })).not.toBeInTheDocument();
   });
   test.each([
-    ['APPROVED', 'Pagamento confirmado.'],
+    ['APPROVED', 'Pix confirmado'],
     ['DENIED', 'Pagamento não aprovado'],
-    ['EXPIRED', 'Este Pix expirou.']
+    ['EXPIRED', 'Código Pix expirado']
   ] as const)('shows honest %s outcome', (status, label) => {
     render(<PixCheckout initial={{ ...pending, status }} api={api()} />);
-    expect(screen.getByRole('status')).toHaveTextContent(label);
+    expect(screen.getByRole('heading')).toHaveTextContent(label);
   });
   test('does not render QR or copy controls after a final outcome', () => {
     render(<PixCheckout initial={{ ...pending, status: 'APPROVED' }} api={api()} />);
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Copiar código Pix' })).not.toBeInTheDocument();
   });
+  test('renders approval as a terminal receipt', () => {
+    render(
+      <PixCheckout initial={{ ...pending, status: 'APPROVED' }} api={api()} onRetry={vi.fn()} />
+    );
+    expect(screen.getByRole('heading', { name: 'Pix confirmado' })).toBeVisible();
+    expect(screen.getByText('txid-sandbox')).toBeVisible();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+  test.each(['DENIED', 'EXPIRED'] as const)(
+    'offers a controlled retry after %s',
+    async (status) => {
+      const onRetry = vi.fn();
+      const onChooseMethod = vi.fn();
+      render(
+        <PixCheckout
+          initial={{ ...pending, status }}
+          api={api()}
+          onRetry={onRetry}
+          onChooseMethod={onChooseMethod}
+        />
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Gerar novo Pix' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Escolher outro método' }));
+      expect(onRetry).toHaveBeenCalledTimes(1);
+      expect(onChooseMethod).toHaveBeenCalledTimes(1);
+    }
+  );
   test('remains useful when gateway omits QR and EMV', () => {
     render(<PixCheckout initial={{ ...pending, qrCodeBase64: null, emv: null }} api={api()} />);
     expect(screen.getByRole('status')).toHaveTextContent('Aguardando confirmação');

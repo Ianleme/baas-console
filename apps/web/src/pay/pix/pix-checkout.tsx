@@ -23,16 +23,21 @@ export interface PixCheckoutApi {
 export function PixCheckout({
   initial,
   api,
-  pollMs = 5000
+  pollMs = 5000,
+  onRetry,
+  onChooseMethod
 }: {
   initial: PixCheckoutAttempt;
   api: PixCheckoutApi;
   pollMs?: number;
+  onRetry?: () => void;
+  onChooseMethod?: () => void;
 }) {
   const [attempt, setAttempt] = useState(initial);
   const [remaining, setRemaining] = useState(secondsUntil(initial.expiresAt));
   const [copied, setCopied] = useState(false);
   const polling = useRef(false);
+  const outcomeHeading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     const interval = setInterval(() => {
       setRemaining(secondsUntil(attempt.expiresAt));
@@ -57,11 +62,78 @@ export function PixCheckout({
       clearInterval(interval);
     };
   }, [api, attempt.id, attempt.status, pollMs]);
+  useEffect(() => {
+    if (
+      attempt.status === 'APPROVED' ||
+      attempt.status === 'DENIED' ||
+      attempt.status === 'EXPIRED'
+    ) {
+      outcomeHeading.current?.focus();
+    }
+  }, [attempt.status]);
   async function copy() {
     if (!attempt.emv) return;
     await globalThis.navigator.clipboard.writeText(attempt.emv);
     setCopied(true);
   }
+  if (attempt.status === 'APPROVED') {
+    return (
+      <section
+        className="payment-result payment-result--approved"
+        aria-labelledby="pix-result-title"
+      >
+        <span className="payment-result__icon" aria-hidden="true">
+          ✓
+        </span>
+        <span className="eyebrow eyebrow--green">Pagamento concluído</span>
+        <h1 id="pix-result-title" ref={outcomeHeading} tabIndex={-1}>
+          Pix confirmado
+        </h1>
+        <strong className="payment-result__amount">{money(attempt.amountCents)}</strong>
+        <p role="status" aria-live="polite">
+          O pagamento foi aprovado e registrado com segurança.
+        </p>
+        {attempt.txid && <ReceiptItem label="Identificador Pix" value={attempt.txid} mono />}
+        <p className="payment-result__hint">Você já pode fechar esta página.</p>
+      </section>
+    );
+  }
+
+  if (attempt.status === 'DENIED' || attempt.status === 'EXPIRED') {
+    const denied = attempt.status === 'DENIED';
+    return (
+      <section
+        className="payment-result payment-result--attention"
+        aria-labelledby="pix-result-title"
+      >
+        <span className="payment-result__icon" aria-hidden="true">
+          !
+        </span>
+        <span className="eyebrow">Pix não concluído</span>
+        <h1 id="pix-result-title" ref={outcomeHeading} tabIndex={-1}>
+          {denied ? 'Pagamento não aprovado' : 'Código Pix expirado'}
+        </h1>
+        <p role="alert">
+          {denied
+            ? 'Nenhum pagamento foi confirmado. Gere um novo código para tentar novamente.'
+            : 'Este código não pode mais ser pago. Gere um novo Pix para continuar.'}
+        </p>
+        <div className="payment-result__actions">
+          {onRetry && (
+            <Button type="button" className="pay-primary w-full" onClick={onRetry}>
+              Gerar novo Pix
+            </Button>
+          )}
+          {onChooseMethod && (
+            <Button type="button" variant="outline" className="w-full" onClick={onChooseMethod}>
+              Escolher outro método
+            </Button>
+          )}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="pix-checkout space-y-4" aria-labelledby="pix-title">
       <span className="eyebrow text-xs font-bold text-emerald-700 uppercase tracking-wider">
@@ -139,6 +211,22 @@ export function PixCheckout({
         {copied ? ' Código copiado.' : ''}
       </div>
     </section>
+  );
+}
+function ReceiptItem({
+  label,
+  value,
+  mono = false
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="payment-result__receipt">
+      <span>{label}</span>
+      <strong className={mono ? 'payment-result__mono' : undefined}>{value}</strong>
+    </div>
   );
 }
 function stateMessage(state: PixCheckoutState) {
