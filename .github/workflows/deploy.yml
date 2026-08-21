@@ -26,7 +26,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Validate immutable inputs
         env:
           API_IMAGE: ${{ inputs.api_image }}
