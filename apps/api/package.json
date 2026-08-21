@@ -17,7 +17,7 @@
     "@baas/receipt-template": "0.1.0",
     "@nestjs/common": "11.1.29",
     "@nestjs/core": "11.1.29",
-    "@nestjs/platform-express": "11.1.29",
+    "@nestjs/platform-express": "11.2.1",
     "@nestjs/swagger": "11.4.6",
     "argon2": "0.44.0",
     "class-transformer": "0.5.1",
