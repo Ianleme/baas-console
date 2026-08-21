@@ -31,7 +31,7 @@
     "typeorm": "0.3.27"
   },
   "devDependencies": {
-    "@nestjs/testing": "11.1.29",
+    "@nestjs/testing": "11.2.1",
     "@swc/core": "1.15.47",
     "@swc/jest": "0.2.39",
     "@types/express": "5.0.6",
