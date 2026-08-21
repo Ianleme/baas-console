@@ -32,7 +32,7 @@
   },
   "devDependencies": {
     "@nestjs/testing": "11.1.29",
-    "@swc/core": "1.15.47",
+    "@swc/core": "1.16.0",
     "@swc/jest": "0.2.39",
     "@types/express": "5.0.6",
     "@types/jest": "30.0.0",
