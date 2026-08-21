@@ -77,7 +77,7 @@ jobs:
               core.info(`GATE_PASSED: ${name} #${run.id} on ${run.head_sha.slice(0, 7)}`);
             }
       - id: build-api
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: apps/api/Dockerfile.prod
@@ -87,7 +87,7 @@ jobs:
           sbom: true
           provenance: mode=max
       - id: build-web
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: apps/web/Dockerfile.prod
